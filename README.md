@@ -3,16 +3,17 @@ Snake_Cruel_World is a 2D video game; snake game with a new concept that the wor
 
 This is a repo for the Capstone project in the [Udacity C++ Nanodegree Program](https://www.udacity.com/course/c-plus-plus-nanodegree--nd213).
 
-# How to play
-Use the arrows to move the snake in the four main directions to eat apples and avoid the world barrier.
-Every four apples you eat, the world gets smaller every time, and your score increases by 10 points.
-IF you eat yourself, you do not die, but your score decreases 5 points for every block you eat :).
 
 # Project description
 This project implements the Snake as a Linked list data structure and uses SFML library for Graphics and I/O.
 
+## How to play
+Use the arrows to move the snake in the four main directions to eat apples and avoid the world barrier.
+Every four apples you eat, the world gets smaller every time, and your score increases by 10 points.
+IF you eat yourself, you do not die, but your score decreases 5 points for every block you eat :).
+
 ## UML Calss Diagram
-![Snake Game - UML Class Diagram](Snake Game - UML Class Diagram-1.png)
+![Snake Game - UML Class Diagram](https://raw.githubusercontent.com/Ahmed-Sabry/Snake_Cruel_World/master/Snake%20Game%20-%20UML%20Class%20Diagram-1.png)
 
 # Covered Rubric Points
 | Covered Points | Where It is covered |
