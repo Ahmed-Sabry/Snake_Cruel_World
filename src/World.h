@@ -1,13 +1,14 @@
 #pragma once
 
-#include <SFML\Graphics.hpp>
-#include "Window.h"
 #include "Snake.h"
+#include "Textbox.h"
+#include "Window.h"
+#include <SFML\Graphics.hpp>
 
 class World
 {
 public:
-	World(Window& l_window, Snake& l_snake);
+	World(Window& l_window, Snake& l_snake, Textbox* l_log);
 	~World();
 
 	void Reset(Window& l_window, Snake& l_snake);
@@ -18,8 +19,10 @@ public:
 	void NarrowWorld(Window& l_window, Snake& l_snake);
 	void CheckCollision(Window& l_window, Snake& l_snake);
 
-	inline sf::Vector2f GetApplePos() { return m_applePos; }
-	
+	inline sf::Vector2f GetApplePos()
+	{
+		return m_applePos;
+	}
 
 private:
 	sf::RectangleShape m_borders[4];
@@ -33,9 +36,11 @@ private:
 	float m_maxY;
 	float m_appleRaduis;
 	float m_borderThinkness;
+
+	Textbox* m_log;
 };
 
-inline float Random(int a, int b) 
+inline float Random(int a, int b)
 {
-	return (a + rand() % (b - a + 1)); 
+	return (a + rand() % (b - a + 1));
 }

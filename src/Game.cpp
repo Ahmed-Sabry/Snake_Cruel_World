@@ -1,13 +1,15 @@
 #include "Game.h"
 
-Game::Game()
-	: m_window({1366, 768}, "Hello Cruel World"), m_world(m_window, m_snake)
+Game::Game() :
+	m_window({ 1366, 768 }, "Hello Cruel World"),
+	m_world(m_window, m_snake, &m_textbox)
 {
 	// {1366, 768}
 	m_window.SetBackground(sf::Color(30, 15, 20, 255));
 	m_elapsedTime = 0.0f;
 	m_world.Borders(m_window);
 	m_world.RespawnApple(m_snake);
+	m_textbox.Setup(5, 14, 350, sf::Vector2f(1000, 5));
 }
 
 Game::~Game()
@@ -30,11 +32,11 @@ void Game::Update()
 
 		if (m_snake.HasLost())
 			m_snake.Reset();
-		
-		
-		
+
+		// Cheat code grow up extend the snake
 		if (e == true)
 		{
+			m_textbox.Add("Snake grown up, but this really bad.");
 			m_snake.Extend();
 			e = false;
 		}
@@ -44,7 +46,7 @@ void Game::Update()
 }
 
 void Game::HandleInput()
-{		
+{
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) && (m_snake.GetDirection() != Direction::Down))
 		m_snake.SetDirection(Direction::Up);
 
@@ -67,6 +69,7 @@ void Game::Render()
 
 	m_world.Render(m_window);
 	m_snake.Render(m_window);
+	m_textbox.Render(m_window);
 
 	m_window.Display();
 }

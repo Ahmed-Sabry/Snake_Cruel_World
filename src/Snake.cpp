@@ -1,5 +1,7 @@
 #include "Snake.h"
 
+extern int Score;
+
 Snake::Snake()
 {
 	m_blockSize = 16;
@@ -23,6 +25,7 @@ void Snake::Reset()
 
 	m_lose = false;
 	m_dir = Direction::None;
+	Score = 0;
 
 	/***************************************************/
 	/// Note that Range is:
@@ -107,7 +110,10 @@ void Snake::CheckCollision()
 		{
 			// Cut
 			for (int j = ListSize(&m_snakeBody) - 1; j >= i; j--)
+			{
 				PopList(&m_snakeBody);
+				Score -= 5; // Decrease Score when snake eat herself
+			}
 		}
 	}
 }

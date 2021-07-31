@@ -28,14 +28,14 @@ void Window::Update()
 	{
 		switch (m_event.type)
 		{
-			case sf::Event::Closed:
+			case sf::Event::Closed: /* The window requested to be closed */
 				m_isDone = true;
 				break;
 
 			case sf::Event::KeyPressed:
-				if (m_event.key.code == sf::Keyboard::F5)
+				if (m_event.key.code == sf::Keyboard::F5) /* Press F5 to toggle FullScreen */
 					ToggleFullscreen();
-				else if (m_event.key.code == sf::Keyboard::Escape)
+				else if (m_event.key.code == sf::Keyboard::Escape) /* Press Esc to close the game */
 					m_isDone = true;
 				break;
 
