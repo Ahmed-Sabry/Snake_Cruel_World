@@ -1,3 +1,13 @@
+# Snake_Cruel_World
+2D video game; snake game with a new concept that the world is shrinking during your progress.
+
+# How to play
+Use the arrows to move the snake in the four main directions to eat apples and avoid the world barrier.
+Every four apples you eat, the world gets smaller every time, and your score increases by 10 points.
+IF you eat yourself, you do not die, but your score decreases 5 points for every block you eat :).
+
+
+
 # sfml-vscode-boilerplate
 
 A cross-platform [SFML](https://www.sfml-dev.org) 2.5.1 & C++17 build environment for [Visual Studio Code](https://code.visualstudio.com/)
