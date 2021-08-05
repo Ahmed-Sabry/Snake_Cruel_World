@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Platform/Platform.hpp"
 #include "Snake.h"
 #include "Textbox.h"
 #include "Window.h"
-#include <SFML\Graphics.hpp>
 
 class World
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SFML\Graphics.hpp>
+#include "Platform/Platform.hpp"
 #include <iostream>
 
 class Window

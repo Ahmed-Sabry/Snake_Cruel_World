@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Platform/Platform.hpp"
 #include "Window.h"
-#include <SFML/Graphics.hpp>
 #include <string>
 #include <vector>
 
