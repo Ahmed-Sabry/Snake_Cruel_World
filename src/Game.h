@@ -25,7 +25,6 @@ private:
 	Window m_window;
 	Snake m_snake;
 	World m_world;
-	Textbox m_textbox;
 
 	bool e = false; // temp
 	sf::Clock m_clock;

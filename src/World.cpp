@@ -2,7 +2,7 @@
 
 int Score;
 
-World::World(Window& l_window, Snake& l_snake, Textbox* l_log)
+World::World(Window& l_window, Snake& l_snake)
 {
 
 	Reset(l_window, l_snake);
@@ -10,8 +10,6 @@ World::World(Window& l_window, Snake& l_snake, Textbox* l_log)
 	m_appleRaduis = l_snake.GetBlockSize() / 2;
 	m_apple.setRadius(m_appleRaduis);
 	m_apple.setFillColor(sf::Color::Green);
-
-	m_log = l_log;
 
 	m_maxX = (l_window.GetWindowSize().x / l_snake.GetBlockSize());
 	m_maxY = (l_window.GetWindowSize().y / l_snake.GetBlockSize());
@@ -28,7 +26,6 @@ void World::Reset(Window& l_window, Snake& l_snake)
 	m_borderThinkness = l_snake.GetBlockSize();
 	Borders(l_window);
 	m_count = 0;
-	m_log->Clear();
 }
 
 void World::Borders(Window& l_window)
@@ -55,7 +52,6 @@ void World::NarrowWorld(Window& l_window, Snake& l_snake)
 	m_borderThinkness += l_snake.GetBlockSize();
 	Borders(l_window);
 	Score += 10; // Increase Score when the world get smaller
-	m_log->Add("Score: " + std::to_string((long long)Score));
 }
 
 void World::RespawnApple(Snake& l_snake)

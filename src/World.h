@@ -8,7 +8,7 @@
 class World
 {
 public:
-	World(Window& l_window, Snake& l_snake, Textbox* l_log);
+	World(Window& l_window, Snake& l_snake);
 	~World();
 
 	void Reset(Window& l_window, Snake& l_snake);
@@ -36,8 +36,6 @@ private:
 	float m_maxY;
 	float m_appleRaduis;
 	float m_borderThinkness;
-
-	Textbox* m_log;
 };
 
 inline float Random(int a, int b)
