@@ -1,16 +1,19 @@
+# Auto-detect Homebrew prefix (Apple Silicon: /opt/homebrew, Intel: /usr/local)
+HOMEBREW_PREFIX := $(shell brew --prefix)
+
 CC := clang++
-CFLAGS := $(CFLAGS:-s=)
+CFLAGS := $(CFLAGS:-s=) -isystem $(HOMEBREW_PREFIX)/include
 
 LIB_DIRS := \
-	/usr/local/lib
+	$(HOMEBREW_PREFIX)/lib
 
-INCLUDE_DIRS := \
-	/usr/local/include
+INCLUDE_DIRS :=
 
 BUILD_FLAGS :=
 
 MACOS_FRAMEWORK_PATHS := \
-	/Library/Frameworks
+	/Library/Frameworks \
+	$(HOMEBREW_PREFIX)/Frameworks
 
 # Name, no extension (eg. CoreFoundation, ogg)
 MACOS_FRAMEWORKS := \
@@ -23,17 +26,17 @@ PRODUCTION_DEPENDENCIES := \
 	$(PRODUCTION_DEPENDENCIES)
 
 PRODUCTION_MACOS_BUNDLE_DEVELOPER := developer
-PRODUCTION_MACOS_BUNDLE_DISPLAY_NAME := SFML Boilerplate
-PRODUCTION_MACOS_BUNDLE_NAME := SFML Boilerplate
+PRODUCTION_MACOS_BUNDLE_DISPLAY_NAME := Snake Cruel World
+PRODUCTION_MACOS_BUNDLE_NAME := Snake Cruel World
 PRODUCTION_MACOS_MAKE_DMG := true
 PRODUCTION_MACOS_BACKGROUND := dmg-background
 
 PRODUCTION_MACOS_DYLIBS := \
-	/usr/local/lib/libsfml-graphics.2.5 \
-	/usr/local/lib/libsfml-audio.2.5 \
-	/usr/local/lib/libsfml-network.2.5 \
-	/usr/local/lib/libsfml-window.2.5 \
-	/usr/local/lib/libsfml-system.2.5
+	$(HOMEBREW_PREFIX)/lib/libsfml-graphics.2.6 \
+	$(HOMEBREW_PREFIX)/lib/libsfml-audio.2.6 \
+	$(HOMEBREW_PREFIX)/lib/libsfml-network.2.6 \
+	$(HOMEBREW_PREFIX)/lib/libsfml-window.2.6 \
+	$(HOMEBREW_PREFIX)/lib/libsfml-system.2.6
 
 # Path, no extension (eg. /Library/Frameworks/ogg)
 PRODUCTION_MACOS_FRAMEWORKS :=

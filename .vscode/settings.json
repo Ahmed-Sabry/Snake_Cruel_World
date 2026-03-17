@@ -36,7 +36,7 @@
 		"PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 	},
 	"terminal.integrated.env.osx": {
-		"PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+		"PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 	},
 	"workbench.colorCustomizations": {
 		"statusBar.background": "#8ac242",
