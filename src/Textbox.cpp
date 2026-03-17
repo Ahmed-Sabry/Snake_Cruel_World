@@ -21,7 +21,6 @@ void Textbox::Setup(int l_visible, int l_charSize, int l_width, sf::Vector2f l_s
 
 	sf::Vector2f l_offset(2.0f, 2.0f);
 
-	system("dir");
 	m_font.loadFromFile("Fonts/RujisHandwritingFontV20-vrqZ.ttf");
 	m_content.setFont(m_font);
 	m_content.setString("");
