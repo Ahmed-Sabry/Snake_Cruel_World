@@ -1,7 +1,13 @@
 #pragma once
 
-#include "List.h"
 #include "Window.h"
+#include <vector>
+
+struct Position
+{
+	int x;
+	int y;
+};
 
 enum class Direction
 {
@@ -57,8 +63,7 @@ private:
 	void CheckCollision();
 
 private:
-	List m_snakeBody;
-	Position m_pos;
+	std::vector<Position> m_snakeBody;
 	Position m_headPos; // Snake head position
 	Direction m_dir;
 	float m_speed;
