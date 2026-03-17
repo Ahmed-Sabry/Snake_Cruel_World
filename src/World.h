@@ -24,6 +24,18 @@ public:
 		return m_applePos;
 	}
 
+	inline int GetApplesEaten()
+	{
+		return m_totalApplesEaten;
+	}
+
+	inline int GetShrinkCount()
+	{
+		return m_shrinkCount;
+	}
+
+	void SetBorderColor(sf::Color l_color);
+
 private:
 	sf::RectangleShape m_borders[4];
 	sf::CircleShape m_apple;
@@ -31,6 +43,8 @@ private:
 	sf::Vector2f m_applePos;
 
 	int m_count;
+	int m_totalApplesEaten;
+	int m_shrinkCount;
 
 	float m_maxX;
 	float m_maxY;

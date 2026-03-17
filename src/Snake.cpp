@@ -1,7 +1,5 @@
 #include "Snake.h"
 
-extern int Score;
-
 Snake::Snake()
 {
 	m_blockSize = 16;
@@ -21,8 +19,8 @@ void Snake::Reset()
 	m_snakeBody.clear();
 
 	m_lose = false;
+	m_selfCollided = false;
 	m_dir = Direction::None;
-	Score = 0;
 
 	/***************************************************/
 	/// Note that Range is:
@@ -92,9 +90,8 @@ void Snake::CheckCollision()
 		if ((m_headPos.x == m_snakeBody[i].x) && (m_headPos.y == m_snakeBody[i].y)) // If snake eat herself
 		{
 			// Cut
-			int removeCount = m_snakeBody.size() - i;
 			m_snakeBody.erase(m_snakeBody.begin() + i, m_snakeBody.end());
-			Score -= 5 * removeCount; // Decrease Score when snake eat herself
+			m_selfCollided = true;
 		}
 	}
 }

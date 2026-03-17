@@ -1,11 +1,10 @@
 #include "World.h"
 
-int Score;
-
 World::World(Window& l_window, Snake& l_snake)
 {
 
 	Reset(l_window, l_snake);
+	m_totalApplesEaten = 0;
 
 	m_appleRaduis = l_snake.GetBlockSize() / 2;
 	m_apple.setRadius(m_appleRaduis);
@@ -26,6 +25,14 @@ void World::Reset(Window& l_window, Snake& l_snake)
 	m_borderThinkness = l_snake.GetBlockSize();
 	Borders(l_window);
 	m_count = 0;
+	m_totalApplesEaten = 0;
+	m_shrinkCount = 0;
+}
+
+void World::SetBorderColor(sf::Color l_color)
+{
+	for (int i = 0; i < 4; i++)
+		m_borders[i].setFillColor(l_color);
 }
 
 void World::Borders(Window& l_window)
@@ -51,7 +58,7 @@ void World::NarrowWorld(Window& l_window, Snake& l_snake)
 {
 	m_borderThinkness += l_snake.GetBlockSize();
 	Borders(l_window);
-	Score += 10; // Increase Score when the world get smaller
+	m_shrinkCount++;
 }
 
 void World::RespawnApple(Snake& l_snake)
@@ -87,6 +94,7 @@ void World::Update(Window& l_window, Snake& l_snake)
 			m_count = 0;
 		}
 
+		m_totalApplesEaten++;
 		l_snake.Extend();
 		RespawnApple(l_snake);
 	}

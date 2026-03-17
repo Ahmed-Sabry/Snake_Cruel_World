@@ -8,7 +8,6 @@ Window::Window(const sf::Vector2u l_windowSize, std::string l_windowName) :
 	m_isFullscreen(false)
 
 {
-	m_window.close();
 	Create();
 }
 
@@ -36,14 +35,18 @@ void Window::Update()
 			case sf::Event::KeyPressed:
 				if (m_event.key.code == sf::Keyboard::F5) /* Press F5 to toggle FullScreen */
 					ToggleFullscreen();
-				else if (m_event.key.code == sf::Keyboard::Escape) /* Press Esc to close the game */
-					m_isDone = true;
+				// Escape is now handled by game states (pause, menu, etc.)
 				break;
 
 			default:
 				break;
 		}
 	}
+}
+
+bool Window::PollEvent(sf::Event& l_event)
+{
+	return m_window.pollEvent(l_event);
 }
 
 void Window::ToggleFullscreen()

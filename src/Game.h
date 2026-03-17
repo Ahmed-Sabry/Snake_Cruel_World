@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Snake.h"
-#include "Textbox.h"
 #include "Window.h"
-#include "World.h"
+#include "StateManager.h"
+#include "SaveManager.h"
 
 class Game
 {
@@ -23,10 +22,8 @@ public:
 
 private:
 	Window m_window;
-	Snake m_snake;
-	World m_world;
+	StateManager m_stateManager;
 
-	bool e = false; // temp
 	sf::Clock m_clock;
 	float m_elapsedTime;
 };

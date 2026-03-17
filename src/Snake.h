@@ -57,6 +57,22 @@ public:
 	{
 		m_lose = l_state;
 	}
+	inline bool DidSelfCollide()
+	{
+		return m_selfCollided;
+	}
+	inline void ClearSelfCollideFlag()
+	{
+		m_selfCollided = false;
+	}
+	inline void SetSpeed(float l_speed)
+	{
+		m_speed = l_speed;
+	}
+	inline int GetBodySize()
+	{
+		return (int)m_snakeBody.size();
+	}
 
 private:
 	void Move(sf::Vector2u l_windowSize);
@@ -70,6 +86,7 @@ private:
 	sf::RectangleShape m_bodyRect;
 
 	bool m_lose;
+	bool m_selfCollided;
 
 	float m_blockSize;
 };
