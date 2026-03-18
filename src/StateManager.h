@@ -22,9 +22,6 @@ public:
 	void PushState(StateType l_type); // overlay (e.g. pause)
 	void PopState();
 
-	// Process deferred state transitions (called between frames)
-	void ProcessPendingTransitions();
-
 	Window& GetWindow();
 
 	template <typename T>
@@ -53,6 +50,7 @@ public:
 	int starRatings[NUM_LEVELS] = {};
 
 private:
+	void ProcessPendingTransitions();
 	std::unique_ptr<BaseState> CreateState(StateType l_type);
 	void ExecuteSwitchTo(StateType l_type);
 	void ExecutePushState(StateType l_type);

@@ -44,6 +44,9 @@ void PlayState::OnEnter()
 	m_consecutiveApples = 0;
 	m_lastShrinkCount = 0;
 	m_paused = false;
+	m_cheatExtend = false;
+	m_escReleased = true;
+	m_rReleased = true;
 
 	m_stateManager.score = 0;
 	m_stateManager.applesEaten = 0;

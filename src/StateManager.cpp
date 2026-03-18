@@ -114,24 +114,25 @@ Window& StateManager::GetWindow()
 
 void StateManager::ExecuteSwitchTo(StateType l_type)
 {
+	// Create the new state first to avoid clearing the stack on failure
+	auto state = CreateState(l_type);
+	if (!state)
+		return;
+
 	while (!m_stateStack.empty())
 	{
 		m_isUpdating = true;
 		m_stateStack.back().second->OnExit();
 		m_isUpdating = false;
-		ProcessPendingTransitions();
 		m_stateStack.pop_back();
+		ProcessPendingTransitions();
 	}
 
-	auto state = CreateState(l_type);
-	if (state)
-	{
-		m_stateStack.push_back({ l_type, std::move(state) });
-		m_isUpdating = true;
-		m_stateStack.back().second->OnEnter();
-		m_isUpdating = false;
-		ProcessPendingTransitions();
-	}
+	m_stateStack.push_back({ l_type, std::move(state) });
+	m_isUpdating = true;
+	m_stateStack.back().second->OnEnter();
+	m_isUpdating = false;
+	ProcessPendingTransitions();
 }
 
 void StateManager::ExecutePushState(StateType l_type)
@@ -154,8 +155,8 @@ void StateManager::ExecutePopState()
 	m_isUpdating = true;
 	m_stateStack.back().second->OnExit();
 	m_isUpdating = false;
-	ProcessPendingTransitions();
 	m_stateStack.pop_back();
+	ProcessPendingTransitions();
 }
 
 std::unique_ptr<BaseState> StateManager::CreateState(StateType l_type)
