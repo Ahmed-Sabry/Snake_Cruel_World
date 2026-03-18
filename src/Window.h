@@ -2,6 +2,8 @@
 
 #include "Platform/Platform.hpp"
 #include <iostream>
+#include <functional>
+#include <vector>
 
 class Window
 {
@@ -10,6 +12,7 @@ public:
 	~Window();
 
 	void Update();
+	bool PollEvent(sf::Event& l_event);
 
 	inline void SetBackground(sf::Color l_color)
 	{
@@ -31,9 +34,25 @@ public:
 	{
 		return m_isDone;
 	}
+	inline void Close()
+	{
+		m_isDone = true;
+	}
 	inline sf::Vector2u GetWindowSize()
 	{
 		return m_windowSize;
+	}
+	inline sf::RenderWindow& GetRenderWindow()
+	{
+		return m_window;
+	}
+	inline void SetView(const sf::View& l_view)
+	{
+		m_window.setView(l_view);
+	}
+	inline sf::View GetDefaultView()
+	{
+		return m_window.getDefaultView();
 	}
 
 private:
