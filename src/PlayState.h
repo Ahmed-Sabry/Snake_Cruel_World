@@ -22,7 +22,7 @@ public:
 	void Render() override;
 
 private:
-	void OnAppleEaten();
+	void OnAppleEaten(const Position& l_applePos);
 	void OnDeath();
 	void UpdateCombo(bool l_reset);
 	int CalculatePoints(int l_base);

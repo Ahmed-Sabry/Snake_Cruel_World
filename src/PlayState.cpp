@@ -141,6 +141,9 @@ void PlayState::Update(float l_dt)
 	{
 		Window& window = m_stateManager.GetWindow();
 
+		// Capture head position before tick for accurate VFX placement
+		Position preTickHead = m_snake.GetPosition();
+
 		m_world.Update(window, m_snake);
 		m_snake.Tick(window.GetWindowSize());
 
@@ -149,7 +152,7 @@ void PlayState::Update(float l_dt)
 		if (newApplesEaten > m_applesEaten)
 		{
 			m_applesEaten = newApplesEaten;
-			OnAppleEaten();
+			OnAppleEaten(preTickHead);
 		}
 
 		// Detect world shrink and award bonus
@@ -222,7 +225,7 @@ void PlayState::Render()
 	m_hud.Render(window);
 }
 
-void PlayState::OnAppleEaten()
+void PlayState::OnAppleEaten(const Position& l_applePos)
 {
 	m_consecutiveApples++;
 	UpdateCombo(false);
@@ -234,8 +237,8 @@ void PlayState::OnAppleEaten()
 	// Audio + visual feedback
 	m_stateManager.GetAudio().PlaySound("apple_eat");
 	sf::Vector2f applePixelPos(
-		m_snake.GetPosition().x * m_snake.GetBlockSize(),
-		m_snake.GetPosition().y * m_snake.GetBlockSize());
+		l_applePos.x * m_snake.GetBlockSize(),
+		l_applePos.y * m_snake.GetBlockSize());
 	m_particles.SpawnAppleBurst(applePixelPos, m_levelConfig.apple);
 	m_particles.SpawnFloatingText("+" + std::to_string(points), applePixelPos,
 								  sf::Color(255, 255, 100));
