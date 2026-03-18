@@ -1,4 +1,5 @@
 #include "GameOverState.h"
+#include "AudioManager.h"
 #include "LevelConfig.h"
 #include <sstream>
 #include <iomanip>
@@ -48,10 +49,7 @@ GameOverState::GameOverState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_selectedItem(0),
 	  m_itemCount(3),
-	  m_keyReleased(false),
-	  m_shakeTimer(0.0f),
-	  m_shakeOffsetX(0.0f),
-	  m_shakeOffsetY(0.0f)
+	  m_keyReleased(false)
 {
 }
 
@@ -164,14 +162,12 @@ void GameOverState::OnEnter()
 
 	// Screen shake on death
 	if (!won)
-		m_shakeTimer = 0.4f;
+		m_screenShake.Trigger(0.4f, 4.0f);
 }
 
 void GameOverState::OnExit()
 {
-	// Reset view
-	Window& window = m_stateManager.GetWindow();
-	window.SetView(window.GetDefaultView());
+	m_screenShake.Reset(m_stateManager.GetWindow());
 }
 
 void GameOverState::HandleInput()
@@ -195,6 +191,7 @@ void GameOverState::HandleInput()
 	// Quick restart
 	if (rPressed)
 	{
+		m_stateManager.GetAudio().PlaySound("menu_select");
 		m_stateManager.SwitchTo(StateType::Gameplay);
 		return;
 	}
@@ -204,15 +201,18 @@ void GameOverState::HandleInput()
 		m_selectedItem--;
 		if (m_selectedItem < 0)
 			m_selectedItem = m_itemCount - 1;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (downPressed)
 	{
 		m_selectedItem++;
 		if (m_selectedItem >= m_itemCount)
 			m_selectedItem = 0;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (enterPressed)
 	{
+		m_stateManager.GetAudio().PlaySound("menu_select");
 		switch (m_selectedItem)
 		{
 			case 0: // Retry
@@ -233,21 +233,7 @@ void GameOverState::HandleInput()
 void GameOverState::Update(float l_dt)
 {
 	// Screen shake
-	if (m_shakeTimer > 0.0f)
-	{
-		m_shakeTimer -= l_dt;
-		float intensity = m_shakeTimer * 10.0f;
-		m_shakeOffsetX = ((rand() % 100) / 100.0f - 0.5f) * intensity;
-		m_shakeOffsetY = ((rand() % 100) / 100.0f - 0.5f) * intensity;
-
-		sf::View view = m_stateManager.GetWindow().GetDefaultView();
-		view.move(m_shakeOffsetX, m_shakeOffsetY);
-		m_stateManager.GetWindow().SetView(view);
-	}
-	else
-	{
-		m_stateManager.GetWindow().SetView(m_stateManager.GetWindow().GetDefaultView());
-	}
+	m_screenShake.Update(l_dt, m_stateManager.GetWindow());
 
 	// Menu item colors
 	for (int i = 0; i < m_itemCount; i++)

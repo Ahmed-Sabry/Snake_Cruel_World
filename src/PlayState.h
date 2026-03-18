@@ -6,6 +6,8 @@
 #include "World.h"
 #include "HUD.h"
 #include "LevelConfig.h"
+#include "ParticleSystem.h"
+#include "ScreenShake.h"
 
 class PlayState : public BaseState
 {
@@ -20,7 +22,7 @@ public:
 	void Render() override;
 
 private:
-	void OnAppleEaten();
+	void OnAppleEaten(const Position& l_applePos);
 	void OnDeath();
 	void UpdateCombo(bool l_reset);
 	int CalculatePoints(int l_base);
@@ -29,15 +31,18 @@ private:
 	World m_world;
 	HUD m_hud;
 	LevelConfig m_levelConfig;
+	ParticleSystem m_particles;
+	ScreenShake m_screenShake;
 
 	float m_elapsedTime;
 	float m_gameTime;
 	int m_applesEaten;
 	int m_consecutiveApples; // for combo
-	bool m_paused;
 
 	int m_lastShrinkCount;
 	bool m_cheatExtend; // temp cheat code
 	bool m_escReleased;
 	bool m_rReleased;
+	bool m_comboSoundPlayed;
+	float m_levelCompleteDelay; // countdown before switching to GameOver
 };

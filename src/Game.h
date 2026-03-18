@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Window.h"
+#include "AudioManager.h"
 #include "StateManager.h"
 #include "SaveManager.h"
 
@@ -22,6 +23,7 @@ public:
 
 private:
 	Window m_window;
+	AudioManager m_audioManager;
 	StateManager m_stateManager;
 
 	sf::Clock m_clock;

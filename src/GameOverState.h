@@ -2,6 +2,7 @@
 
 #include "GameState.h"
 #include "StateManager.h"
+#include "ScreenShake.h"
 
 class GameOverState : public BaseState
 {
@@ -24,9 +25,7 @@ private:
 	int m_selectedItem;
 	int m_itemCount;
 	bool m_keyReleased;
-	float m_shakeTimer;
-	float m_shakeOffsetX;
-	float m_shakeOffsetY;
+	ScreenShake m_screenShake;
 
 	static const char* s_deathTaunts[];
 	static const int s_deathTauntCount;

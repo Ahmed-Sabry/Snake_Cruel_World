@@ -8,10 +8,12 @@
 #include <memory>
 #include <vector>
 
+class AudioManager;
+
 class StateManager
 {
 public:
-	StateManager(Window& l_window);
+	StateManager(Window& l_window, AudioManager& l_audio);
 	~StateManager();
 
 	void Update(float l_dt);
@@ -23,6 +25,7 @@ public:
 	void PopState();
 
 	Window& GetWindow();
+	AudioManager& GetAudio();
 
 	template <typename T>
 	void RegisterState(StateType l_type)
@@ -57,6 +60,7 @@ private:
 	void ExecutePopState();
 
 	Window& m_window;
+	AudioManager& m_audio;
 	std::vector<std::pair<StateType, std::unique_ptr<BaseState>>> m_stateStack;
 	std::unordered_map<StateType, std::function<std::unique_ptr<BaseState>()>> m_stateFactory;
 

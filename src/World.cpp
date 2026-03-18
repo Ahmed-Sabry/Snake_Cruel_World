@@ -3,6 +3,8 @@
 World::World(Window& l_window, Snake& l_snake)
 {
 	m_topOffset = 0.f;
+	m_flashTimer = 0.0f;
+	m_normalBorderColor = sf::Color(200, 100, 50);
 	Reset(l_window, l_snake);
 
 	m_appleRaduis = l_snake.GetBlockSize() / 2;
@@ -30,8 +32,33 @@ void World::Reset(Window& l_window, Snake& l_snake)
 
 void World::SetBorderColor(sf::Color l_color)
 {
+	m_normalBorderColor = l_color;
 	for (int i = 0; i < 4; i++)
 		m_borders[i].setFillColor(l_color);
+}
+
+void World::FlashBorders(float l_duration)
+{
+	if (l_duration <= 0.0f)
+		return;
+
+	m_flashTimer = l_duration;
+	for (int i = 0; i < 4; i++)
+		m_borders[i].setFillColor(sf::Color::Red);
+}
+
+void World::UpdateFlash(float l_dt)
+{
+	if (m_flashTimer <= 0.0f)
+		return;
+
+	m_flashTimer -= l_dt;
+	if (m_flashTimer <= 0.0f)
+	{
+		m_flashTimer = 0.0f;
+		for (int i = 0; i < 4; i++)
+			m_borders[i].setFillColor(m_normalBorderColor);
+	}
 }
 
 void World::SetTopOffset(float l_offset)
@@ -45,7 +72,7 @@ void World::Borders(Window& l_window)
 
 	for (int i = 0; i < 4; i++)
 	{
-		m_borders[i].setFillColor(sf::Color(200, 100, 50, 255));
+		m_borders[i].setFillColor(m_normalBorderColor);
 
 		if (i % 2)																			// if odd
 			m_borders[i].setSize({ m_borderThinkness, winHeight - m_topOffset });			// Right & Left

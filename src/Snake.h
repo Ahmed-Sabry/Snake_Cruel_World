@@ -64,6 +64,11 @@ public:
 	inline void ClearSelfCollideFlag()
 	{
 		m_selfCollided = false;
+		m_lastCutSegments.clear();
+	}
+	inline const std::vector<Position>& GetLastCutSegments() const
+	{
+		return m_lastCutSegments;
 	}
 	inline void SetSpeed(float l_speed)
 	{
@@ -87,6 +92,7 @@ private:
 
 	bool m_lose;
 	bool m_selfCollided;
+	std::vector<Position> m_lastCutSegments;
 
 	float m_blockSize;
 };

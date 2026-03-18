@@ -36,6 +36,8 @@ public:
 
 	void SetBorderColor(sf::Color l_color);
 	void SetTopOffset(float l_offset);
+	void FlashBorders(float l_duration);
+	void UpdateFlash(float l_dt);
 
 private:
 	sf::RectangleShape m_borders[4];
@@ -52,6 +54,9 @@ private:
 	float m_appleRaduis;
 	float m_borderThinkness;
 	float m_topOffset;
+
+	float m_flashTimer;
+	sf::Color m_normalBorderColor;
 };
 
 inline float Random(int a, int b)

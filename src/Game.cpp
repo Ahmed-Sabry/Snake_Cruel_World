@@ -7,9 +7,26 @@
 
 Game::Game() :
 	m_window({ 1366, 768 }, "Hello Cruel World"),
-	m_stateManager(m_window)
+	m_stateManager(m_window, m_audioManager)
 {
 	m_elapsedTime = 0.0f;
+
+	// Load sound effects from files (silently skips missing files)
+	static const std::pair<const char*, const char*> soundAssets[] = {
+		{ "apple_eat",      "content/audio/sfx/apple_eat.ogg" },
+		{ "self_collide",   "content/audio/sfx/self_collide.ogg" },
+		{ "wall_death",     "content/audio/sfx/wall_death.ogg" },
+		{ "world_shrink",   "content/audio/sfx/world_shrink.ogg" },
+		{ "combo_3x",       "content/audio/sfx/combo_3x.ogg" },
+		{ "level_complete", "content/audio/sfx/level_complete.ogg" },
+		{ "menu_navigate",  "content/audio/sfx/menu_navigate.ogg" },
+		{ "menu_select",    "content/audio/sfx/menu_select.ogg" },
+	};
+	for (const auto& [id, path] : soundAssets)
+		m_audioManager.LoadSound(id, path);
+
+	// Fill in any missing sounds with synthesized defaults
+	m_audioManager.GenerateDefaultSounds();
 
 	// Register all states
 	m_stateManager.RegisterState<MenuState>(StateType::MainMenu);

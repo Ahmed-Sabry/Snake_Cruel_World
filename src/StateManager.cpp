@@ -1,6 +1,7 @@
 #include "StateManager.h"
 
-StateManager::StateManager(Window& l_window) : m_window(l_window)
+StateManager::StateManager(Window& l_window, AudioManager& l_audio)
+	: m_window(l_window), m_audio(l_audio)
 {
 }
 
@@ -110,6 +111,11 @@ void StateManager::ProcessPendingTransitions()
 Window& StateManager::GetWindow()
 {
 	return m_window;
+}
+
+AudioManager& StateManager::GetAudio()
+{
+	return m_audio;
 }
 
 void StateManager::ExecuteSwitchTo(StateType l_type)
