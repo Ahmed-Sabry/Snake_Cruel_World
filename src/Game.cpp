@@ -12,14 +12,18 @@ Game::Game() :
 	m_elapsedTime = 0.0f;
 
 	// Load sound effects from files (silently skips missing files)
-	m_audioManager.LoadSound("apple_eat", "content/audio/sfx/apple_eat.ogg");
-	m_audioManager.LoadSound("self_collide", "content/audio/sfx/self_collide.ogg");
-	m_audioManager.LoadSound("wall_death", "content/audio/sfx/wall_death.ogg");
-	m_audioManager.LoadSound("world_shrink", "content/audio/sfx/world_shrink.ogg");
-	m_audioManager.LoadSound("combo_3x", "content/audio/sfx/combo_3x.ogg");
-	m_audioManager.LoadSound("level_complete", "content/audio/sfx/level_complete.ogg");
-	m_audioManager.LoadSound("menu_navigate", "content/audio/sfx/menu_navigate.ogg");
-	m_audioManager.LoadSound("menu_select", "content/audio/sfx/menu_select.ogg");
+	static const std::pair<const char*, const char*> soundAssets[] = {
+		{ "apple_eat",      "content/audio/sfx/apple_eat.ogg" },
+		{ "self_collide",   "content/audio/sfx/self_collide.ogg" },
+		{ "wall_death",     "content/audio/sfx/wall_death.ogg" },
+		{ "world_shrink",   "content/audio/sfx/world_shrink.ogg" },
+		{ "combo_3x",       "content/audio/sfx/combo_3x.ogg" },
+		{ "level_complete", "content/audio/sfx/level_complete.ogg" },
+		{ "menu_navigate",  "content/audio/sfx/menu_navigate.ogg" },
+		{ "menu_select",    "content/audio/sfx/menu_select.ogg" },
+	};
+	for (const auto& [id, path] : soundAssets)
+		m_audioManager.LoadSound(id, path);
 
 	// Fill in any missing sounds with synthesized defaults
 	m_audioManager.GenerateDefaultSounds();

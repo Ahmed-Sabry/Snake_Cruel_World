@@ -39,6 +39,9 @@ void World::SetBorderColor(sf::Color l_color)
 
 void World::FlashBorders(float l_duration)
 {
+	if (l_duration <= 0.0f)
+		return;
+
 	m_flashTimer = l_duration;
 	for (int i = 0; i < 4; i++)
 		m_borders[i].setFillColor(sf::Color::Red);

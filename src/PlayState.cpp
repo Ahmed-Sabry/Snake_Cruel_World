@@ -14,7 +14,8 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_cheatExtend(false),
 	  m_escReleased(true),
 	  m_rReleased(true),
-	  m_comboSoundPlayed(false)
+	  m_comboSoundPlayed(false),
+	  m_levelCompleteDelay(-1.0f)
 {
 }
 
@@ -49,6 +50,7 @@ void PlayState::OnEnter()
 	m_escReleased = true;
 	m_rReleased = true;
 	m_comboSoundPlayed = false;
+	m_levelCompleteDelay = -1.0f;
 
 	m_stateManager.score = 0;
 	m_stateManager.applesEaten = 0;
@@ -135,7 +137,7 @@ void PlayState::Update(float l_dt)
 
 	float timeStep = 1.0f / speed;
 
-	if (m_elapsedTime >= timeStep)
+	if (m_elapsedTime >= timeStep && m_levelCompleteDelay < 0.0f)
 	{
 		Window& window = m_stateManager.GetWindow();
 
@@ -200,6 +202,14 @@ void PlayState::Update(float l_dt)
 	m_particles.Update(l_dt);
 	m_screenShake.Update(l_dt, m_stateManager.GetWindow());
 	m_world.UpdateFlash(l_dt);
+
+	// Deferred level-complete transition (lets particles render first)
+	if (m_levelCompleteDelay >= 0.0f)
+	{
+		m_levelCompleteDelay -= l_dt;
+		if (m_levelCompleteDelay < 0.0f)
+			m_stateManager.SwitchTo(StateType::GameOver);
+	}
 }
 
 void PlayState::Render()
@@ -256,7 +266,7 @@ void PlayState::OnAppleEaten()
 			m_stateManager.highestUnlockedLevel = std::min(NUM_LEVELS, m_stateManager.currentLevel + 1);
 
 		m_stateManager.levelComplete = true;
-		m_stateManager.SwitchTo(StateType::GameOver);
+		m_levelCompleteDelay = 0.5f;
 	}
 }
 

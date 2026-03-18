@@ -1,31 +1,13 @@
 #include "ParticleSystem.h"
 #include "Snake.h"
 #include "LevelConfig.h"
+#include "RandomUtils.h"
 #include <cmath>
 #include <algorithm>
-#include <random>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-
-static std::mt19937& GetRNG()
-{
-	static std::mt19937 rng(std::random_device{}());
-	return rng;
-}
-
-static int RandomInt(int l_min, int l_max)
-{
-	std::uniform_int_distribution<int> dist(l_min, l_max);
-	return dist(GetRNG());
-}
-
-static float RandomFloat(float l_min, float l_max)
-{
-	std::uniform_real_distribution<float> dist(l_min, l_max);
-	return dist(GetRNG());
-}
 
 ParticleSystem::ParticleSystem()
 	: m_fontLoaded(false)
@@ -129,6 +111,9 @@ void ParticleSystem::SpawnSelfCollisionCut(const std::vector<Position>& l_segmen
 void ParticleSystem::SpawnFloatingText(const std::string& l_text, const sf::Vector2f& l_pos,
 									   const sf::Color& l_color)
 {
+	if (!m_fontLoaded)
+		return;
+
 	Particle p;
 	p.type = ParticleType::Text;
 	p.position = l_pos;

@@ -44,4 +44,5 @@ private:
 	bool m_escReleased;
 	bool m_rReleased;
 	bool m_comboSoundPlayed;
+	float m_levelCompleteDelay; // countdown before switching to GameOver
 };

@@ -32,6 +32,7 @@ public:
 
 private:
 	void ApplyMusicVolume();
+	void ApplySFXVolume();
 	void StoreSamples(const std::string& l_name, const std::vector<sf::Int16>& l_samples,
 					  unsigned l_sampleRate);
 

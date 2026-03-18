@@ -95,6 +95,7 @@ void Snake::CheckCollision()
 			// Cut
 			m_snakeBody.erase(m_snakeBody.begin() + i, m_snakeBody.end());
 			m_selfCollided = true;
+			break;
 		}
 	}
 }

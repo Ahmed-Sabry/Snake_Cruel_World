@@ -1,23 +1,16 @@
 #include "AudioManager.h"
+#include "RandomUtils.h"
 #include <iostream>
 #include <cmath>
-#include <random>
 #include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-static std::mt19937& GetRNG()
-{
-	static std::mt19937 rng(std::random_device{}());
-	return rng;
-}
-
 static float RandomNoise()
 {
-	std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-	return dist(GetRNG());
+	return RandomFloat(-1.0f, 1.0f);
 }
 
 AudioManager::AudioManager()
@@ -93,11 +86,13 @@ void AudioManager::SetMasterVolume(float l_vol)
 {
 	m_masterVolume = std::clamp(l_vol, 0.0f, 100.0f);
 	ApplyMusicVolume();
+	ApplySFXVolume();
 }
 
 void AudioManager::SetSFXVolume(float l_vol)
 {
 	m_sfxVolume = std::clamp(l_vol, 0.0f, 100.0f);
+	ApplySFXVolume();
 }
 
 void AudioManager::SetMusicVolume(float l_vol)
@@ -109,6 +104,16 @@ void AudioManager::SetMusicVolume(float l_vol)
 void AudioManager::ApplyMusicVolume()
 {
 	m_music.setVolume(m_masterVolume * m_musicVolume / 100.0f);
+}
+
+void AudioManager::ApplySFXVolume()
+{
+	float vol = m_masterVolume * m_sfxVolume / 100.0f;
+	for (int i = 0; i < MAX_SOUNDS; i++)
+	{
+		if (m_sounds[i].getStatus() == sf::Sound::Playing)
+			m_sounds[i].setVolume(vol);
+	}
 }
 
 void AudioManager::StoreSamples(const std::string& l_name, const std::vector<sf::Int16>& l_samples,
