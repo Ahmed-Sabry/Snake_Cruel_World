@@ -21,9 +21,10 @@ private:
 	sf::Text m_title;
 	sf::Text m_taunt;
 	sf::Text m_stats[5]; // score, apples, combo, time, collisions
-	sf::Text m_menuItems[3]; // Retry, Level Select, Main Menu
+	sf::Text m_menuItems[4]; // Next Level, Retry, Level Select, Main Menu
 	int m_selectedItem;
 	int m_itemCount;
+	bool m_hasNextLevel;
 	bool m_keyReleased;
 	ScreenShake m_screenShake;
 

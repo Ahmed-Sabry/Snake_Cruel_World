@@ -89,7 +89,7 @@ void LevelSelectState::OnEnter()
 	m_backHint.setPosition(20.f, winSize.y - 40.f);
 
 	m_selectedLevel = std::max(0, std::min(m_stateManager.currentLevel - 1, NUM_LEVELS - 1));
-	m_keyReleased = true;
+	m_keyReleased = false; // require key release before accepting input
 }
 
 void LevelSelectState::OnExit()

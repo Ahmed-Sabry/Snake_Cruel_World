@@ -1,4 +1,5 @@
 #include "World.h"
+#include <algorithm>
 
 World::World(Window& l_window, Snake& l_snake)
 {
@@ -23,11 +24,14 @@ World::~World()
 
 void World::Reset(Window& l_window, Snake& l_snake)
 {
-	m_borderThinkness = l_snake.GetBlockSize();
+	m_borderThickness = l_snake.GetBlockSize();
 	Borders(l_window);
 	m_count = 0;
 	m_totalApplesEaten = 0;
 	m_shrinkCount = 0;
+	m_shrinkInterval = 4;
+	m_shrinkTimerSec = 0.0f;
+	m_shrinkTimerAccum = 0.0f;
 }
 
 void World::SetBorderColor(sf::Color l_color)
@@ -75,39 +79,68 @@ void World::Borders(Window& l_window)
 		m_borders[i].setFillColor(m_normalBorderColor);
 
 		if (i % 2)																			// if odd
-			m_borders[i].setSize({ m_borderThinkness, winHeight - m_topOffset });			// Right & Left
+			m_borders[i].setSize({ m_borderThickness, winHeight - m_topOffset });			// Right & Left
 		else																				// if even
-			m_borders[i].setSize({ (float)l_window.GetWindowSize().x, m_borderThinkness }); // Top & Down
+			m_borders[i].setSize({ (float)l_window.GetWindowSize().x, m_borderThickness }); // Top & Down
 	}
 
 	m_borders[0].setPosition({ 0, m_topOffset });
-	m_borders[2].setPosition({ 0, winHeight - m_borderThinkness });
-	m_borders[1].setPosition({ (float)l_window.GetWindowSize().x - m_borderThinkness, m_topOffset });
+	m_borders[2].setPosition({ 0, winHeight - m_borderThickness });
+	m_borders[1].setPosition({ (float)l_window.GetWindowSize().x - m_borderThickness, m_topOffset });
 	m_borders[3].setPosition({ 0, m_topOffset });
 }
 
 void World::NarrowWorld(Window& l_window, Snake& l_snake)
 {
-	m_borderThinkness += l_snake.GetBlockSize();
+	m_borderThickness += l_snake.GetBlockSize();
 	Borders(l_window);
 	m_shrinkCount++;
+
+	// If apple is now inside a wall, respawn it within new bounds
+	float bs = l_snake.GetBlockSize();
+	float xLeft = m_borderThickness / bs;
+	float xRight = m_maxX - (m_borderThickness / bs) - 2 * (m_appleRaduis / bs);
+	float yTop = (m_borderThickness + m_topOffset) / bs;
+	float yBottom = m_maxY - (m_borderThickness / bs) - 2 * (m_appleRaduis / bs);
+
+	if (m_applePos.x < xLeft || m_applePos.x > xRight ||
+		m_applePos.y < yTop || m_applePos.y > yBottom)
+	{
+		RespawnApple(l_snake);
+	}
 }
 
 void World::RespawnApple(Snake& l_snake)
 {
-	float x = Random(m_borderThinkness / l_snake.GetBlockSize(), m_maxX - (m_borderThinkness / l_snake.GetBlockSize()) - 2 * (m_appleRaduis / l_snake.GetBlockSize()));
-	float y = Random((m_borderThinkness + m_topOffset) / l_snake.GetBlockSize(), m_maxY - (m_borderThinkness / l_snake.GetBlockSize()) - 2 * (m_appleRaduis / l_snake.GetBlockSize()));
+	float bs = l_snake.GetBlockSize();
+	int xMin = (int)(m_borderThickness / bs);
+	int xMax = (int)(m_maxX - (m_borderThickness / bs) - 2 * (m_appleRaduis / bs));
+	int yMin = (int)((m_borderThickness + m_topOffset) / bs);
+	int yMax = (int)(m_maxY - (m_borderThickness / bs) - 2 * (m_appleRaduis / bs));
 
-	m_apple.setPosition(sf::Vector2f(x * l_snake.GetBlockSize(), y * l_snake.GetBlockSize()));
-	m_applePos = { x, y }; // Store apple position
+	// If eating this apple will trigger a shrink, add 1-block inward margin
+	// so the snake won't be crushed by the border moving inward
+	if (m_shrinkInterval > 0 && m_count == m_shrinkInterval - 1)
+	{
+		xMin += 1;
+		xMax -= 1;
+		yMin += 1;
+		yMax -= 1;
+	}
+
+	float x = Random(xMin, xMax);
+	float y = Random(yMin, yMax);
+
+	m_apple.setPosition(sf::Vector2f(x * bs, y * bs));
+	m_applePos = { x, y };
 }
 
 void World::CheckCollision(Window& l_window, Snake& l_snake)
 {
-	float xLeft = m_borderThinkness / l_snake.GetBlockSize();
-	float xRight = m_maxX - (m_borderThinkness / l_snake.GetBlockSize()) - 1;
-	float yLeft = (m_borderThinkness + m_topOffset) / l_snake.GetBlockSize();
-	float yRight = m_maxY - (m_borderThinkness / l_snake.GetBlockSize()) - 1;
+	float xLeft = m_borderThickness / l_snake.GetBlockSize();
+	float xRight = m_maxX - (m_borderThickness / l_snake.GetBlockSize()) - 1;
+	float yLeft = (m_borderThickness + m_topOffset) / l_snake.GetBlockSize();
+	float yRight = m_maxY - (m_borderThickness / l_snake.GetBlockSize()) - 1;
 
 	if ((l_snake.GetPosition().x < xLeft) || (l_snake.GetPosition().x > xRight) || (l_snake.GetPosition().y < yLeft) || (l_snake.GetPosition().y > yRight))
 	{
@@ -120,10 +153,13 @@ void World::Update(Window& l_window, Snake& l_snake)
 {
 	if (l_snake.GetPosition().x == m_applePos.x && l_snake.GetPosition().y == m_applePos.y)
 	{
-		if (++m_count == 4)
+		if (m_shrinkInterval > 0)
 		{
-			NarrowWorld(l_window, l_snake);
-			m_count = 0;
+			if (++m_count >= m_shrinkInterval)
+			{
+				NarrowWorld(l_window, l_snake);
+				m_count = 0;
+			}
 		}
 
 		m_totalApplesEaten++;
@@ -132,6 +168,37 @@ void World::Update(Window& l_window, Snake& l_snake)
 	}
 
 	CheckCollision(l_window, l_snake);
+}
+
+void World::SetShrinkInterval(int l_interval)
+{
+	m_shrinkInterval = l_interval;
+}
+
+void World::SetShrinkTimerSec(float l_sec)
+{
+	m_shrinkTimerSec = l_sec;
+}
+
+void World::UpdateTimedShrink(float l_dt, Window& l_window, Snake& l_snake)
+{
+	if (m_shrinkTimerSec <= 0.0f) return;
+	m_shrinkTimerAccum += l_dt;
+	if (m_shrinkTimerAccum >= m_shrinkTimerSec)
+	{
+		TriggerShrink(l_window, l_snake);
+		m_shrinkTimerAccum -= m_shrinkTimerSec;
+	}
+}
+
+void World::TriggerShrink(Window& l_window, Snake& l_snake)
+{
+	NarrowWorld(l_window, l_snake);
+}
+
+void World::SetAppleColor(sf::Color l_color)
+{
+	m_apple.setFillColor(l_color);
 }
 
 void World::Render(Window& l_window)

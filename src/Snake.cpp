@@ -4,6 +4,8 @@ Snake::Snake()
 {
 	m_blockSize = 16;
 	m_speed = 12;
+	m_headColor = sf::Color::Red;
+	m_bodyColor = sf::Color::Magenta;
 
 	m_bodyRect.setSize({ m_blockSize - 1, m_blockSize - 1 });
 
@@ -156,12 +158,12 @@ void Snake::Extend()
 void Snake::Render(Window& l_window)
 {
 	// Draw Head
-	m_bodyRect.setFillColor(sf::Color::Red);
+	m_bodyRect.setFillColor(m_headColor);
 	m_bodyRect.setPosition(m_snakeBody[0].x * m_blockSize, m_snakeBody[0].y * m_blockSize);
 	l_window.Draw(m_bodyRect);
 
 	// Draw Body
-	m_bodyRect.setFillColor(sf::Color::Magenta);
+	m_bodyRect.setFillColor(m_bodyColor);
 	for (int i = 1; i < (int)m_snakeBody.size(); i++)
 	{
 		m_bodyRect.setPosition(m_snakeBody[i].x * m_blockSize, m_snakeBody[i].y * m_blockSize);

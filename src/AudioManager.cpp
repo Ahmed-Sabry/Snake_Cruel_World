@@ -272,4 +272,51 @@ void AudioManager::GenerateDefaultSounds()
 		}
 		StoreSamples("menu_select", samples, RATE);
 	}
+
+	// --- blackout_on: low hum when lights go out (300ms) ---
+	if (m_buffers.find("blackout_on") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.3f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			float env = expDecay(t, 5.0f);
+			float val = sine(t, 80.0f) + 0.3f * sine(t, 120.0f);
+			samples[i] = (sf::Int16)(env * 10000.0f * val);
+		}
+		StoreSamples("blackout_on", samples, RATE);
+	}
+
+	// --- mirror_flip: descending shimmer sweep (200ms) ---
+	if (m_buffers.find("mirror_flip") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.2f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			float env = expDecay(t, 10.0f);
+			float freq = 2000.0f - t * 8000.0f;
+			if (freq < 200.0f) freq = 200.0f;
+			samples[i] = (sf::Int16)(env * 10000.0f * sine(t, freq));
+		}
+		StoreSamples("mirror_flip", samples, RATE);
+	}
+
+	// --- apple_miss: descending disappointment tone (200ms) ---
+	if (m_buffers.find("apple_miss") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.2f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			float env = expDecay(t, 8.0f);
+			float freq = 400.0f - t * 1500.0f;
+			if (freq < 100.0f) freq = 100.0f;
+			samples[i] = (sf::Int16)(env * 14000.0f * sine(t, freq));
+		}
+		StoreSamples("apple_miss", samples, RATE);
+	}
 }

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cstdlib>
+#include <vector>
 
 const char* GameOverState::s_deathTaunts[] = {
 	"That was almost impressive.",
@@ -49,6 +50,7 @@ GameOverState::GameOverState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_selectedItem(0),
 	  m_itemCount(3),
+	  m_hasNextLevel(false),
 	  m_keyReleased(false)
 {
 }
@@ -143,8 +145,17 @@ void GameOverState::OnEnter()
 		m_stats[4].setPosition((winSize.x - bounds.width) / 2.0f, statsStartY + 4 * 35.f);
 	}
 
-	// Menu items
-	std::string items[] = { "Retry", "Level Select", "Main Menu" };
+	// Menu items — "Next Level" only on victory and if not the last level
+	m_hasNextLevel = won && m_stateManager.currentLevel < NUM_LEVELS;
+
+	std::vector<std::string> items;
+	if (m_hasNextLevel)
+		items.push_back("Next Level");
+	items.push_back("Retry");
+	items.push_back("Level Select");
+	items.push_back("Main Menu");
+	m_itemCount = (int)items.size();
+
 	float menuStartY = 460.f;
 	float spacing = 50.f;
 
@@ -213,15 +224,21 @@ void GameOverState::HandleInput()
 	else if (enterPressed)
 	{
 		m_stateManager.GetAudio().PlaySound("menu_select");
-		switch (m_selectedItem)
+		// Menu layout shifts by 1 when "Next Level" is present
+		int idx = m_hasNextLevel ? m_selectedItem : m_selectedItem + 1;
+		switch (idx)
 		{
-			case 0: // Retry
+			case 0: // Next Level
+				m_stateManager.currentLevel++;
 				m_stateManager.SwitchTo(StateType::Gameplay);
 				break;
-			case 1: // Level Select
+			case 1: // Retry
+				m_stateManager.SwitchTo(StateType::Gameplay);
+				break;
+			case 2: // Level Select
 				m_stateManager.SwitchTo(StateType::LevelSelect);
 				break;
-			case 2: // Main Menu
+			case 3: // Main Menu
 				m_stateManager.SwitchTo(StateType::MainMenu);
 				break;
 			default:
