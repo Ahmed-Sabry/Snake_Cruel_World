@@ -25,6 +25,7 @@ void PlayState::OnEnter()
 	auto levels = GetAllLevels();
 	int idx = m_stateManager.currentLevel - 1;
 	if (idx < 0 || idx >= NUM_LEVELS) idx = 0;
+	m_stateManager.currentLevel = idx + 1;
 	m_levelConfig = levels[idx];
 
 	// Apply level palette

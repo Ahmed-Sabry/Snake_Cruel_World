@@ -119,14 +119,14 @@ void StateManager::ExecuteSwitchTo(StateType l_type)
 	if (!state)
 		return;
 
+	m_isUpdating = true;
 	while (!m_stateStack.empty())
 	{
-		m_isUpdating = true;
 		m_stateStack.back().second->OnExit();
-		m_isUpdating = false;
 		m_stateStack.pop_back();
-		ProcessPendingTransitions();
 	}
+	m_isUpdating = false;
+	ProcessPendingTransitions();
 
 	m_stateStack.push_back({ l_type, std::move(state) });
 	m_isUpdating = true;
