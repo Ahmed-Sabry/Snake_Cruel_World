@@ -1,6 +1,7 @@
 #include "PlayState.h"
 #include "AudioManager.h"
 #include <algorithm>
+#include <string>
 
 PlayState::PlayState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
