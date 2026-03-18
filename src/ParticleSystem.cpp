@@ -2,11 +2,30 @@
 #include "Snake.h"
 #include "LevelConfig.h"
 #include <cmath>
-#include <cstdlib>
+#include <algorithm>
+#include <random>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+static std::mt19937& GetRNG()
+{
+	static std::mt19937 rng(std::random_device{}());
+	return rng;
+}
+
+static int RandomInt(int l_min, int l_max)
+{
+	std::uniform_int_distribution<int> dist(l_min, l_max);
+	return dist(GetRNG());
+}
+
+static float RandomFloat(float l_min, float l_max)
+{
+	std::uniform_real_distribution<float> dist(l_min, l_max);
+	return dist(GetRNG());
+}
 
 ParticleSystem::ParticleSystem()
 	: m_fontLoaded(false)
@@ -64,7 +83,7 @@ void ParticleSystem::Clear()
 
 void ParticleSystem::SpawnAppleBurst(const sf::Vector2f& l_pos, const sf::Color& l_color)
 {
-	int count = 8 + (rand() % 5); // 8-12 particles
+	int count = RandomInt(8, 12);
 
 	for (int i = 0; i < count; i++)
 	{
@@ -72,20 +91,21 @@ void ParticleSystem::SpawnAppleBurst(const sf::Vector2f& l_pos, const sf::Color&
 		p.type = ParticleType::Square;
 		p.position = l_pos;
 
-		float angle = (float)(rand() % 360) * (float)M_PI / 180.0f;
-		float speed = 100.0f + (float)(rand() % 100); // 100-200 px/s
+		float angle = RandomFloat(0.0f, 2.0f * (float)M_PI);
+		float speed = RandomFloat(100.0f, 200.0f);
 		p.velocity = sf::Vector2f(std::cos(angle) * speed, std::sin(angle) * speed);
 
 		p.lifetime = 0.3f;
 		p.age = 0.0f;
 		p.color = l_color;
-		p.size = 3.0f + (float)(rand() % 3); // 3-5 px
+		p.size = RandomFloat(3.0f, 5.0f);
 
 		m_particles.push_back(p);
 	}
 }
 
-void ParticleSystem::SpawnSelfCollisionCut(const std::vector<Position>& l_segments, float l_blockSize)
+void ParticleSystem::SpawnSelfCollisionCut(const std::vector<Position>& l_segments, float l_blockSize,
+										   const sf::Color& l_color)
 {
 	for (const auto& seg : l_segments)
 	{
@@ -94,12 +114,12 @@ void ParticleSystem::SpawnSelfCollisionCut(const std::vector<Position>& l_segmen
 		p.position = sf::Vector2f(seg.x * l_blockSize, seg.y * l_blockSize);
 
 		// Drift downward with slight random horizontal
-		float hSpeed = ((rand() % 100) / 100.0f - 0.5f) * 40.0f;
-		p.velocity = sf::Vector2f(hSpeed, 50.0f + (float)(rand() % 30));
+		float hSpeed = RandomFloat(-20.0f, 20.0f);
+		p.velocity = sf::Vector2f(hSpeed, RandomFloat(50.0f, 80.0f));
 
 		p.lifetime = 0.4f;
 		p.age = 0.0f;
-		p.color = sf::Color::White;
+		p.color = l_color;
 		p.size = l_blockSize;
 
 		m_particles.push_back(p);

@@ -35,7 +35,8 @@ public:
 	void Clear();
 
 	void SpawnAppleBurst(const sf::Vector2f& l_pos, const sf::Color& l_color);
-	void SpawnSelfCollisionCut(const std::vector<Position>& l_segments, float l_blockSize);
+	void SpawnSelfCollisionCut(const std::vector<Position>& l_segments, float l_blockSize,
+							   const sf::Color& l_color);
 	void SpawnFloatingText(const std::string& l_text, const sf::Vector2f& l_pos,
 						   const sf::Color& l_color);
 

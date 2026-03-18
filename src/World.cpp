@@ -69,7 +69,7 @@ void World::Borders(Window& l_window)
 
 	for (int i = 0; i < 4; i++)
 	{
-		m_borders[i].setFillColor(sf::Color(200, 100, 50, 255));
+		m_borders[i].setFillColor(m_normalBorderColor);
 
 		if (i % 2)																			// if odd
 			m_borders[i].setSize({ m_borderThinkness, winHeight - m_topOffset });			// Right & Left

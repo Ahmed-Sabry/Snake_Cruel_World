@@ -1,11 +1,24 @@
 #include "AudioManager.h"
 #include <iostream>
 #include <cmath>
-#include <cstdlib>
+#include <random>
+#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+static std::mt19937& GetRNG()
+{
+	static std::mt19937 rng(std::random_device{}());
+	return rng;
+}
+
+static float RandomNoise()
+{
+	std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+	return dist(GetRNG());
+}
 
 AudioManager::AudioManager()
 	: m_nextSound(0),
@@ -42,12 +55,18 @@ void AudioManager::PlaySound(const std::string& l_name)
 
 void AudioManager::PlayMusic(const std::string& l_filepath, bool l_loop)
 {
+	if (l_filepath == m_currentMusicPath &&
+		m_music.getStatus() == sf::Music::Playing)
+		return;
+
 	if (!m_music.openFromFile(l_filepath))
 	{
 		std::cerr << "AudioManager: Could not load music from " << l_filepath << std::endl;
+		m_currentMusicPath.clear();
 		return;
 	}
 
+	m_currentMusicPath = l_filepath;
 	m_music.setLoop(l_loop);
 	m_music.setVolume(m_masterVolume * m_musicVolume / 100.0f);
 	m_music.play();
@@ -56,6 +75,7 @@ void AudioManager::PlayMusic(const std::string& l_filepath, bool l_loop)
 void AudioManager::StopMusic()
 {
 	m_music.stop();
+	m_currentMusicPath.clear();
 }
 
 void AudioManager::PauseMusic()
@@ -71,23 +91,22 @@ void AudioManager::ResumeMusic()
 
 void AudioManager::SetMasterVolume(float l_vol)
 {
-	m_masterVolume = l_vol;
-	ApplyVolumes();
+	m_masterVolume = std::clamp(l_vol, 0.0f, 100.0f);
+	ApplyMusicVolume();
 }
 
 void AudioManager::SetSFXVolume(float l_vol)
 {
-	m_sfxVolume = l_vol;
-	ApplyVolumes();
+	m_sfxVolume = std::clamp(l_vol, 0.0f, 100.0f);
 }
 
 void AudioManager::SetMusicVolume(float l_vol)
 {
-	m_musicVolume = l_vol;
-	ApplyVolumes();
+	m_musicVolume = std::clamp(l_vol, 0.0f, 100.0f);
+	ApplyMusicVolume();
 }
 
-void AudioManager::ApplyVolumes()
+void AudioManager::ApplyMusicVolume()
 {
 	m_music.setVolume(m_masterVolume * m_musicVolume / 100.0f);
 }
@@ -143,7 +162,7 @@ void AudioManager::GenerateDefaultSounds()
 		{
 			float t = (float)i / RATE;
 			float env = expDecay(t, 25.0f);
-			float noise = ((rand() % 20000) - 10000) / 10000.0f;
+			float noise = RandomNoise();
 			float tone = sine(t, 150.0f) + 0.5f * sine(t, 230.0f);
 			samples[i] = (sf::Int16)(env * 14000.0f * (0.5f * tone + 0.5f * noise));
 		}
@@ -160,7 +179,7 @@ void AudioManager::GenerateDefaultSounds()
 			float t = (float)i / RATE;
 			float env = expDecay(t, 8.0f);
 			float thud = sine(t, 60.0f + 40.0f * expDecay(t, 15.0f));
-			float noise = ((rand() % 20000) - 10000) / 10000.0f;
+			float noise = RandomNoise();
 			float crackle = noise * expDecay(t, 12.0f);
 			samples[i] = (sf::Int16)(20000.0f * (env * thud * 0.7f + crackle * 0.3f));
 		}
@@ -177,7 +196,7 @@ void AudioManager::GenerateDefaultSounds()
 			float t = (float)i / RATE;
 			float env = (t < 0.05f) ? (t / 0.05f) : decay(t - 0.05f, 0.35f);
 			float rumble = sine(t, 45.0f) + 0.6f * sine(t, 70.0f);
-			float grind = ((rand() % 20000) - 10000) / 10000.0f * 0.3f;
+			float grind = RandomNoise() * 0.3f;
 			samples[i] = (sf::Int16)(env * 16000.0f * (rumble * 0.7f + grind));
 		}
 		StoreSamples("world_shrink", samples, RATE);

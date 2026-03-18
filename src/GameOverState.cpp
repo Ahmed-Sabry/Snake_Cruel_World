@@ -191,6 +191,7 @@ void GameOverState::HandleInput()
 	// Quick restart
 	if (rPressed)
 	{
+		m_stateManager.GetAudio().PlaySound("menu_select");
 		m_stateManager.SwitchTo(StateType::Gameplay);
 		return;
 	}

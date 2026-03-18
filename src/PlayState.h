@@ -38,10 +38,10 @@ private:
 	float m_gameTime;
 	int m_applesEaten;
 	int m_consecutiveApples; // for combo
-	bool m_paused;
 
 	int m_lastShrinkCount;
 	bool m_cheatExtend; // temp cheat code
 	bool m_escReleased;
 	bool m_rReleased;
+	bool m_comboSoundPlayed;
 };

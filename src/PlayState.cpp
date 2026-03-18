@@ -10,11 +10,11 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_gameTime(0.0f),
 	  m_applesEaten(0),
 	  m_consecutiveApples(0),
-	  m_paused(false),
 	  m_lastShrinkCount(0),
 	  m_cheatExtend(false),
 	  m_escReleased(true),
-	  m_rReleased(true)
+	  m_rReleased(true),
+	  m_comboSoundPlayed(false)
 {
 }
 
@@ -45,10 +45,10 @@ void PlayState::OnEnter()
 	m_applesEaten = 0;
 	m_consecutiveApples = 0;
 	m_lastShrinkCount = 0;
-	m_paused = false;
 	m_cheatExtend = false;
 	m_escReleased = true;
 	m_rReleased = true;
+	m_comboSoundPlayed = false;
 
 	m_stateManager.score = 0;
 	m_stateManager.applesEaten = 0;
@@ -168,7 +168,8 @@ void PlayState::Update(float l_dt)
 			m_stateManager.score = std::max(0, m_stateManager.score - 50);
 			UpdateCombo(true);
 			m_stateManager.GetAudio().PlaySound("self_collide");
-			m_particles.SpawnSelfCollisionCut(m_snake.GetLastCutSegments(), m_snake.GetBlockSize());
+			m_particles.SpawnSelfCollisionCut(m_snake.GetLastCutSegments(), m_snake.GetBlockSize(),
+										 m_levelConfig.snakeBody);
 			m_snake.ClearSelfCollideFlag();
 		}
 
@@ -225,7 +226,7 @@ void PlayState::OnAppleEaten()
 	sf::Vector2f applePixelPos(
 		m_snake.GetPosition().x * m_snake.GetBlockSize(),
 		m_snake.GetPosition().y * m_snake.GetBlockSize());
-	m_particles.SpawnAppleBurst(applePixelPos, sf::Color::Green);
+	m_particles.SpawnAppleBurst(applePixelPos, m_levelConfig.apple);
 	m_particles.SpawnFloatingText("+" + std::to_string(points), applePixelPos,
 								  sf::Color(255, 255, 100));
 
@@ -274,6 +275,7 @@ void PlayState::UpdateCombo(bool l_reset)
 		m_consecutiveApples = 0;
 		m_stateManager.comboMultiplier = 1.0f;
 		m_stateManager.combo = 0;
+		m_comboSoundPlayed = false;
 		return;
 	}
 
@@ -292,8 +294,11 @@ void PlayState::UpdateCombo(bool l_reset)
 	if (m_stateManager.comboMultiplier >= 3.0f)
 	{
 		m_hud.FlashCombo();
-		if (m_consecutiveApples == 5) // fire only on the transition to 3x
+		if (m_consecutiveApples >= 5 && !m_comboSoundPlayed)
+		{
 			m_stateManager.GetAudio().PlaySound("combo_3x");
+			m_comboSoundPlayed = true;
+		}
 	}
 }
 

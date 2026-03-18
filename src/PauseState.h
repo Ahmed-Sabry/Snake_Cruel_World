@@ -24,6 +24,7 @@ private:
 	int m_selectedItem;
 	int m_itemCount;
 	bool m_keyReleased;
+	bool m_musicStopped;
 
 	static const char* s_cruelTips[];
 	static const int s_tipCount;

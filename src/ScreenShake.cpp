@@ -1,6 +1,12 @@
 #include "ScreenShake.h"
-#include <cstdlib>
 #include <cmath>
+#include <random>
+
+static std::mt19937& GetRNG()
+{
+	static std::mt19937 rng(std::random_device{}());
+	return rng;
+}
 
 ScreenShake::ScreenShake()
 	: m_timer(0.0f),
@@ -23,8 +29,9 @@ void ScreenShake::Update(float l_dt, Window& l_window)
 
 	m_timer -= l_dt;
 
-	float offsetX = ((rand() % 100) / 100.0f - 0.5f) * 2.0f * m_intensity;
-	float offsetY = ((rand() % 100) / 100.0f - 0.5f) * 2.0f * m_intensity;
+	std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+	float offsetX = dist(GetRNG()) * m_intensity;
+	float offsetY = dist(GetRNG()) * m_intensity;
 
 	sf::View view = l_window.GetDefaultView();
 	view.move(offsetX, offsetY);

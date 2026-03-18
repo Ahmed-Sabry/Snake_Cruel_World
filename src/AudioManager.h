@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Platform/Platform.hpp"
-#include <unordered_map>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -31,17 +31,18 @@ public:
 	void GenerateDefaultSounds();
 
 private:
-	void ApplyVolumes();
+	void ApplyMusicVolume();
 	void StoreSamples(const std::string& l_name, const std::vector<sf::Int16>& l_samples,
 					  unsigned l_sampleRate);
 
-	std::unordered_map<std::string, sf::SoundBuffer> m_buffers;
+	std::map<std::string, sf::SoundBuffer> m_buffers;
 
 	static constexpr int MAX_SOUNDS = 8;
 	sf::Sound m_sounds[MAX_SOUNDS];
 	int m_nextSound;
 
 	sf::Music m_music;
+	std::string m_currentMusicPath;
 
 	float m_masterVolume;
 	float m_sfxVolume;
