@@ -35,6 +35,7 @@ public:
 	}
 
 	void SetBorderColor(sf::Color l_color);
+	void SetTopOffset(float l_offset);
 
 private:
 	sf::RectangleShape m_borders[4];
@@ -50,6 +51,7 @@ private:
 	float m_maxY;
 	float m_appleRaduis;
 	float m_borderThinkness;
+	float m_topOffset;
 };
 
 inline float Random(int a, int b)

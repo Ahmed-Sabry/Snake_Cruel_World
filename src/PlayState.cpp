@@ -3,6 +3,7 @@
 PlayState::PlayState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_world(l_stateManager.GetWindow(), m_snake),
+	  m_hud(l_stateManager.GetWindow().GetWindowSize()),
 	  m_elapsedTime(0.0f),
 	  m_gameTime(0.0f),
 	  m_applesEaten(0),
@@ -29,10 +30,11 @@ void PlayState::OnEnter()
 
 	// Reset game state
 	m_snake.Reset();
+	m_world.SetTopOffset(HUD::GetHeight());
 	m_world.Reset(window, m_snake);
-	m_world.Borders(window);
 	m_world.RespawnApple(m_snake);
 	m_world.SetBorderColor(m_levelConfig.border);
+	m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
 
 	m_elapsedTime = 0.0f;
 	m_gameTime = 0.0f;
