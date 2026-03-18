@@ -4,7 +4,6 @@ World::World(Window& l_window, Snake& l_snake)
 {
 	m_topOffset = 0.f;
 	Reset(l_window, l_snake);
-	m_totalApplesEaten = 0;
 
 	m_appleRaduis = l_snake.GetBlockSize() / 2;
 	m_apple.setRadius(m_appleRaduis);

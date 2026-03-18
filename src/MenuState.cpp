@@ -5,7 +5,7 @@
 MenuState::MenuState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_selectedItem(0),
-	  m_itemCount(4),
+	  m_itemCount(3),
 	  m_keyReleased(true),
 	  m_animTimer(0.0f)
 {
@@ -37,7 +37,7 @@ void MenuState::OnEnter()
 	m_tagline.setPosition((winSize.x - tagBounds.width) / 2.0f, 175.f);
 
 	// Menu items
-	std::string items[] = { "Play", "Level Select", "Settings", "Quit" };
+	std::string items[] = { "Play", "Level Select", "Quit" };
 	float startY = 320.f;
 	float spacing = 60.f;
 
@@ -99,9 +99,7 @@ void MenuState::HandleInput()
 			case 1: // Level Select
 				m_stateManager.SwitchTo(StateType::LevelSelect);
 				break;
-			case 2: // Settings (placeholder - go back to menu for now)
-				break;
-			case 3: // Quit
+			case 2: // Quit
 				m_stateManager.GetWindow().Close();
 				break;
 			default:

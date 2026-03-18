@@ -31,7 +31,7 @@ const char* PauseState::s_cruelTips[] = {
 	"Pro tip: don't hit the walls."
 };
 
-const int PauseState::s_tipCount = 25;
+const int PauseState::s_tipCount = sizeof(PauseState::s_cruelTips) / sizeof(PauseState::s_cruelTips[0]);
 
 PauseState::PauseState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),

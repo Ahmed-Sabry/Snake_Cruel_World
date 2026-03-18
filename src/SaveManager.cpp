@@ -8,7 +8,10 @@ void SaveManager::Save(const StateManager& l_state)
 {
 	std::ofstream file(s_saveFile, std::ios::binary);
 	if (!file.is_open())
+	{
+		std::cerr << "SaveManager: Failed to open " << s_saveFile << " for writing" << std::endl;
 		return;
+	}
 
 	// Version marker
 	int version = 1;
@@ -59,6 +62,15 @@ void SaveManager::Load(StateManager& l_state)
 	// Validate loaded data
 	if (l_state.highestUnlockedLevel < 1 || l_state.highestUnlockedLevel > NUM_LEVELS)
 		l_state.highestUnlockedLevel = 1;
+	for (int i = 0; i < NUM_LEVELS; i++)
+	{
+		if (l_state.highScores[i] < 0)
+			l_state.highScores[i] = 0;
+		if (l_state.starRatings[i] < 0)
+			l_state.starRatings[i] = 0;
+		else if (l_state.starRatings[i] > 3)
+			l_state.starRatings[i] = 3;
+	}
 
 	file.close();
 }

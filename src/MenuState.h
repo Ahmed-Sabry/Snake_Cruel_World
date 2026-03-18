@@ -19,7 +19,7 @@ private:
 	sf::Font m_font;
 	sf::Text m_title;
 	sf::Text m_tagline;
-	sf::Text m_menuItems[4]; // Play, Level Select, Settings, Quit
+	sf::Text m_menuItems[3]; // Play, Level Select, Quit
 	int m_selectedItem;
 	int m_itemCount;
 	bool m_keyReleased;

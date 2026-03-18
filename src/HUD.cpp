@@ -87,6 +87,8 @@ void HUD::Update(int l_score, float l_combo, int l_applesEaten, int l_applesToWi
 	if (m_comboFlashTimer > 0.0f)
 	{
 		m_comboFlashTimer -= l_dt;
+		if (m_comboFlashTimer < 0.0f)
+			m_comboFlashTimer = 0.0f;
 		int alpha = (int)(255 * (m_comboFlashTimer / 0.5f));
 		m_comboText.setFillColor(sf::Color(255, 255, 100, std::min(255, alpha + 150)));
 	}

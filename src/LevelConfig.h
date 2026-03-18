@@ -5,7 +5,7 @@
 #include <array>
 
 static constexpr int NUM_LEVELS = 10;
-static const std::string FONT_PATH = "Fonts/RujisHandwritingFontV20-vrqZ.ttf";
+inline const std::string FONT_PATH = "Fonts/RujisHandwritingFontV20-vrqZ.ttf";
 
 struct LevelConfig
 {

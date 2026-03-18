@@ -39,11 +39,15 @@ void StateManager::Render()
 
 	m_window.Clear();
 
+	m_isUpdating = true;
 	// Render all states in the stack (bottom to top) so overlays work
 	for (auto& pair : m_stateStack)
 	{
 		pair.second->Render();
 	}
+	m_isUpdating = false;
+
+	ProcessPendingTransitions();
 
 	m_window.Display();
 }
@@ -112,7 +116,10 @@ void StateManager::ExecuteSwitchTo(StateType l_type)
 {
 	while (!m_stateStack.empty())
 	{
+		m_isUpdating = true;
 		m_stateStack.back().second->OnExit();
+		m_isUpdating = false;
+		ProcessPendingTransitions();
 		m_stateStack.pop_back();
 	}
 
@@ -120,7 +127,10 @@ void StateManager::ExecuteSwitchTo(StateType l_type)
 	if (state)
 	{
 		m_stateStack.push_back({ l_type, std::move(state) });
+		m_isUpdating = true;
 		m_stateStack.back().second->OnEnter();
+		m_isUpdating = false;
+		ProcessPendingTransitions();
 	}
 }
 
@@ -130,7 +140,10 @@ void StateManager::ExecutePushState(StateType l_type)
 	if (state)
 	{
 		m_stateStack.push_back({ l_type, std::move(state) });
+		m_isUpdating = true;
 		m_stateStack.back().second->OnEnter();
+		m_isUpdating = false;
+		ProcessPendingTransitions();
 	}
 }
 
@@ -138,7 +151,10 @@ void StateManager::ExecutePopState()
 {
 	if (m_stateStack.empty())
 		return;
+	m_isUpdating = true;
 	m_stateStack.back().second->OnExit();
+	m_isUpdating = false;
+	ProcessPendingTransitions();
 	m_stateStack.pop_back();
 }
 

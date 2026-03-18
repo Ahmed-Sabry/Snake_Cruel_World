@@ -1,4 +1,5 @@
 #include "PlayState.h"
+#include <algorithm>
 
 PlayState::PlayState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
@@ -9,6 +10,7 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_applesEaten(0),
 	  m_consecutiveApples(0),
 	  m_paused(false),
+	  m_lastShrinkCount(0),
 	  m_cheatExtend(false),
 	  m_escReleased(true),
 	  m_rReleased(true)
@@ -151,7 +153,7 @@ void PlayState::Update(float l_dt)
 		if (m_snake.DidSelfCollide())
 		{
 			m_stateManager.selfCollisions++;
-			m_stateManager.score -= 50; // penalty per self-collision
+			m_stateManager.score = std::max(0, m_stateManager.score - 50);
 			UpdateCombo(true);
 			m_snake.ClearSelfCollideFlag();
 		}
@@ -212,10 +214,13 @@ void PlayState::OnAppleEaten()
 
 		// Update persistent progress
 		int idx = m_stateManager.currentLevel - 1;
-		if (m_stateManager.score > m_stateManager.highScores[idx])
-			m_stateManager.highScores[idx] = m_stateManager.score;
-		if (stars > m_stateManager.starRatings[idx])
-			m_stateManager.starRatings[idx] = stars;
+		if (idx >= 0 && idx < NUM_LEVELS)
+		{
+			if (m_stateManager.score > m_stateManager.highScores[idx])
+				m_stateManager.highScores[idx] = m_stateManager.score;
+			if (stars > m_stateManager.starRatings[idx])
+				m_stateManager.starRatings[idx] = stars;
+		}
 		if (m_stateManager.currentLevel >= m_stateManager.highestUnlockedLevel)
 			m_stateManager.highestUnlockedLevel = std::min(NUM_LEVELS, m_stateManager.currentLevel + 1);
 

@@ -1,4 +1,5 @@
 #include "LevelSelectState.h"
+#include <algorithm>
 #include <iostream>
 
 LevelSelectState::LevelSelectState(StateManager& l_stateManager)
@@ -86,7 +87,7 @@ void LevelSelectState::OnEnter()
 	m_backHint.setFillColor(sf::Color(100, 90, 90));
 	m_backHint.setPosition(20.f, winSize.y - 40.f);
 
-	m_selectedLevel = m_stateManager.currentLevel - 1;
+	m_selectedLevel = std::max(0, std::min(m_stateManager.currentLevel - 1, NUM_LEVELS - 1));
 	m_keyReleased = true;
 }
 
