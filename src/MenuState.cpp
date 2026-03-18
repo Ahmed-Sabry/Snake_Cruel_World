@@ -1,4 +1,5 @@
 #include "MenuState.h"
+#include "AudioManager.h"
 #include "LevelConfig.h"
 #include <iostream>
 
@@ -53,10 +54,13 @@ void MenuState::OnEnter()
 
 	m_selectedItem = 0;
 	m_keyReleased = true;
+
+	m_stateManager.GetAudio().PlayMusic("content/audio/music/menu_theme.ogg");
 }
 
 void MenuState::OnExit()
 {
+	m_stateManager.GetAudio().StopMusic();
 }
 
 void MenuState::HandleInput()
@@ -81,15 +85,18 @@ void MenuState::HandleInput()
 		m_selectedItem--;
 		if (m_selectedItem < 0)
 			m_selectedItem = m_itemCount - 1;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (downPressed)
 	{
 		m_selectedItem++;
 		if (m_selectedItem >= m_itemCount)
 			m_selectedItem = 0;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (enterPressed)
 	{
+		m_stateManager.GetAudio().PlaySound("menu_select");
 		switch (m_selectedItem)
 		{
 			case 0: // Play

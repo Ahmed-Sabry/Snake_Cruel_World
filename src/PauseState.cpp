@@ -1,4 +1,5 @@
 #include "PauseState.h"
+#include "AudioManager.h"
 #include "LevelConfig.h"
 #include <cstdlib>
 #include <iostream>
@@ -86,10 +87,13 @@ void PauseState::OnEnter()
 
 	m_selectedItem = 0;
 	m_keyReleased = false; // must release key first
+
+	m_stateManager.GetAudio().PauseMusic();
 }
 
 void PauseState::OnExit()
 {
+	m_stateManager.GetAudio().ResumeMusic();
 }
 
 void PauseState::HandleInput()
@@ -121,15 +125,18 @@ void PauseState::HandleInput()
 		m_selectedItem--;
 		if (m_selectedItem < 0)
 			m_selectedItem = m_itemCount - 1;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (downPressed)
 	{
 		m_selectedItem++;
 		if (m_selectedItem >= m_itemCount)
 			m_selectedItem = 0;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (enterPressed)
 	{
+		m_stateManager.GetAudio().PlaySound("menu_select");
 		switch (m_selectedItem)
 		{
 			case 0: // Resume
@@ -140,6 +147,7 @@ void PauseState::HandleInput()
 				m_stateManager.SwitchTo(StateType::Gameplay);
 				break;
 			case 2: // Quit to Menu
+				m_stateManager.GetAudio().StopMusic();
 				m_stateManager.PopState();
 				m_stateManager.SwitchTo(StateType::MainMenu);
 				break;

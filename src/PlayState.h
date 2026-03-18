@@ -6,6 +6,8 @@
 #include "World.h"
 #include "HUD.h"
 #include "LevelConfig.h"
+#include "ParticleSystem.h"
+#include "ScreenShake.h"
 
 class PlayState : public BaseState
 {
@@ -29,6 +31,8 @@ private:
 	World m_world;
 	HUD m_hud;
 	LevelConfig m_levelConfig;
+	ParticleSystem m_particles;
+	ScreenShake m_screenShake;
 
 	float m_elapsedTime;
 	float m_gameTime;

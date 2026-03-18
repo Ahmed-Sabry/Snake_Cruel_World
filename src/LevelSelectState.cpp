@@ -1,4 +1,5 @@
 #include "LevelSelectState.h"
+#include "AudioManager.h"
 #include <algorithm>
 #include <iostream>
 
@@ -117,6 +118,7 @@ void LevelSelectState::HandleInput()
 
 	if (escPressed)
 	{
+		m_stateManager.GetAudio().PlaySound("menu_select");
 		m_stateManager.SwitchTo(StateType::MainMenu);
 		return;
 	}
@@ -126,25 +128,30 @@ void LevelSelectState::HandleInput()
 		m_selectedLevel--;
 		if (m_selectedLevel < 0)
 			m_selectedLevel = NUM_LEVELS - 1;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (downPressed)
 	{
 		m_selectedLevel++;
 		if (m_selectedLevel >= NUM_LEVELS)
 			m_selectedLevel = 0;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (leftPressed && m_selectedLevel >= 5)
 	{
 		m_selectedLevel -= 5;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (rightPressed && m_selectedLevel < 5)
 	{
 		m_selectedLevel += 5;
+		m_stateManager.GetAudio().PlaySound("menu_navigate");
 	}
 	else if (enterPressed)
 	{
 		if ((m_selectedLevel + 1) <= m_stateManager.highestUnlockedLevel)
 		{
+			m_stateManager.GetAudio().PlaySound("menu_select");
 			m_stateManager.currentLevel = m_selectedLevel + 1;
 			m_stateManager.SwitchTo(StateType::Gameplay);
 		}

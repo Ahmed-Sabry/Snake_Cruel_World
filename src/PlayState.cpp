@@ -1,4 +1,5 @@
 #include "PlayState.h"
+#include "AudioManager.h"
 #include <algorithm>
 
 PlayState::PlayState(StateManager& l_stateManager)
@@ -56,10 +57,14 @@ void PlayState::OnEnter()
 	m_stateManager.selfCollisions = 0;
 	m_stateManager.levelTime = 0.0f;
 	m_stateManager.levelComplete = false;
+
+	m_particles.Clear();
+	m_screenShake.Reset(m_stateManager.GetWindow());
 }
 
 void PlayState::OnExit()
 {
+	m_screenShake.Reset(m_stateManager.GetWindow());
 }
 
 void PlayState::HandleInput()
@@ -151,6 +156,9 @@ void PlayState::Update(float l_dt)
 		{
 			m_stateManager.score += 250; // survive world shrink bonus
 			m_lastShrinkCount = newShrinkCount;
+			m_stateManager.GetAudio().PlaySound("world_shrink");
+			m_screenShake.Trigger(0.3f, 3.0f);
+			m_world.FlashBorders(0.2f);
 		}
 
 		// Check for self-collision
@@ -159,6 +167,8 @@ void PlayState::Update(float l_dt)
 			m_stateManager.selfCollisions++;
 			m_stateManager.score = std::max(0, m_stateManager.score - 50);
 			UpdateCombo(true);
+			m_stateManager.GetAudio().PlaySound("self_collide");
+			m_particles.SpawnSelfCollisionCut(m_snake.GetLastCutSegments(), m_snake.GetBlockSize());
 			m_snake.ClearSelfCollideFlag();
 		}
 
@@ -184,6 +194,11 @@ void PlayState::Update(float l_dt)
 	m_hud.Update(m_stateManager.score, m_stateManager.comboMultiplier,
 				 m_applesEaten, m_levelConfig.applesToWin,
 				 m_levelConfig.name, m_gameTime, l_dt);
+
+	// Update visual effects (continuous, not tick-based)
+	m_particles.Update(l_dt);
+	m_screenShake.Update(l_dt, m_stateManager.GetWindow());
+	m_world.UpdateFlash(l_dt);
 }
 
 void PlayState::Render()
@@ -192,6 +207,7 @@ void PlayState::Render()
 
 	m_world.Render(window);
 	m_snake.Render(window);
+	m_particles.Render(window);
 	m_hud.Render(window);
 }
 
@@ -204,10 +220,20 @@ void PlayState::OnAppleEaten()
 	m_stateManager.score += points;
 	m_stateManager.applesEaten = m_applesEaten;
 
+	// Audio + visual feedback
+	m_stateManager.GetAudio().PlaySound("apple_eat");
+	sf::Vector2f applePixelPos(
+		m_snake.GetPosition().x * m_snake.GetBlockSize(),
+		m_snake.GetPosition().y * m_snake.GetBlockSize());
+	m_particles.SpawnAppleBurst(applePixelPos, sf::Color::Green);
+	m_particles.SpawnFloatingText("+" + std::to_string(points), applePixelPos,
+								  sf::Color(255, 255, 100));
+
 	// Check level complete
 	if (m_applesEaten >= m_levelConfig.applesToWin)
 	{
 		m_stateManager.score += 1000; // level complete bonus
+		m_stateManager.GetAudio().PlaySound("level_complete");
 
 		// Star calculation based on self-collisions
 		int stars = 1;
@@ -237,6 +263,7 @@ void PlayState::OnDeath()
 {
 	m_stateManager.totalDeaths++;
 	m_stateManager.levelComplete = false;
+	m_stateManager.GetAudio().PlaySound("wall_death");
 	m_stateManager.SwitchTo(StateType::GameOver);
 }
 
@@ -263,7 +290,11 @@ void PlayState::UpdateCombo(bool l_reset)
 		m_stateManager.comboMultiplier = 1.0f;
 
 	if (m_stateManager.comboMultiplier >= 3.0f)
+	{
 		m_hud.FlashCombo();
+		if (m_consecutiveApples == 5) // fire only on the transition to 3x
+			m_stateManager.GetAudio().PlaySound("combo_3x");
+	}
 }
 
 int PlayState::CalculatePoints(int l_base)

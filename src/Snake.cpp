@@ -20,6 +20,7 @@ void Snake::Reset()
 
 	m_lose = false;
 	m_selfCollided = false;
+	m_lastCutSegments.clear();
 	m_dir = Direction::None;
 
 	/***************************************************/
@@ -89,6 +90,8 @@ void Snake::CheckCollision()
 	{
 		if ((m_headPos.x == m_snakeBody[i].x) && (m_headPos.y == m_snakeBody[i].y)) // If snake eat herself
 		{
+			// Capture cut segments for particle effects
+			m_lastCutSegments.assign(m_snakeBody.begin() + i, m_snakeBody.end());
 			// Cut
 			m_snakeBody.erase(m_snakeBody.begin() + i, m_snakeBody.end());
 			m_selfCollided = true;
