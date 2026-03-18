@@ -19,8 +19,10 @@ void MirrorGhost::Update(const Snake& l_snake, float l_centerX, float l_centerY)
 	m_history.push_back(l_snake.GetPosition());
 
 	// Need enough history before the ghost appears
+	// Total snake length = head + body segments
 	int bodySize = l_snake.GetBodySize();
-	int needed = GHOST_DELAY + bodySize;
+	int totalSize = bodySize + 1;
+	int needed = GHOST_DELAY + totalSize;
 	if ((int)m_history.size() < needed)
 	{
 		m_ghostBody.clear();
@@ -32,9 +34,9 @@ void MirrorGhost::Update(const Snake& l_snake, float l_centerX, float l_centerY)
 		m_history.pop_front();
 
 	// Build ghost body from delayed history, mirrored with current axis
-	m_ghostBody.resize(bodySize);
+	m_ghostBody.resize(totalSize);
 	int histEnd = (int)m_history.size() - 1;
-	for (int i = 0; i < bodySize; i++)
+	for (int i = 0; i < totalSize; i++)
 	{
 		int idx = histEnd - GHOST_DELAY - i;
 		if (idx >= 0)

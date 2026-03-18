@@ -128,6 +128,10 @@ void World::RespawnApple(Snake& l_snake)
 		yMax -= 1;
 	}
 
+	// Guard against invalid bounds after excessive shrinking
+	if (xMin > xMax) xMin = xMax;
+	if (yMin > yMax) yMin = yMax;
+
 	float x = Random(xMin, xMax);
 	float y = Random(yMin, yMax);
 

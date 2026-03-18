@@ -39,13 +39,17 @@ void PlayState::OnEnter()
 	m_snake.Reset();
 	m_world.SetTopOffset(HUD::GetHeight());
 	m_world.Reset(window, m_snake);
+
+	// Set shrink parameters before first RespawnApple so the pre-shrink
+	// safety margin uses the configured interval, not the default
+	m_world.SetShrinkInterval(m_levelConfig.shrinkInterval);
+	m_world.SetShrinkTimerSec(m_levelConfig.shrinkTimerSec);
+
 	m_world.RespawnApple(m_snake);
 	m_world.SetBorderColor(m_levelConfig.border);
 	m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
 
-	// Apply level-specific configuration
-	m_world.SetShrinkInterval(m_levelConfig.shrinkInterval);
-	m_world.SetShrinkTimerSec(m_levelConfig.shrinkTimerSec);
+	// Apply remaining level-specific configuration
 	m_world.SetAppleColor(m_levelConfig.apple);
 	m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
 
@@ -279,7 +283,11 @@ void PlayState::Update(float l_dt)
 	// Timer-based world shrinking (Level 3)
 	if (m_levelConfig.shrinkTimerSec > 0.0f && m_levelCompleteDelay < 0.0f)
 	{
-		m_world.UpdateTimedShrink(l_dt, m_stateManager.GetWindow(), m_snake);
+		Window& window = m_stateManager.GetWindow();
+		m_world.UpdateTimedShrink(l_dt, window, m_snake);
+		// Shrink may have moved borders onto the snake
+		m_world.CheckCollision(window, m_snake);
+		if (m_snake.HasLost()) { OnDeath(); return; }
 	}
 
 	// Timed apples (Level 5)
@@ -296,6 +304,10 @@ void PlayState::Update(float l_dt)
 			m_stateManager.GetAudio().PlaySound("apple_miss");
 			m_screenShake.Trigger(0.3f, 3.0f);
 			m_world.FlashBorders(0.2f);
+
+			// Check if shrink crushed the snake
+			m_world.CheckCollision(window, m_snake);
+			if (m_snake.HasLost()) { OnDeath(); return; }
 
 			// Respawn apple with adjusted timer
 			m_world.RespawnApple(m_snake);
@@ -392,6 +404,10 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 		m_stateManager.GetAudio().PlaySound("world_shrink");
 		m_screenShake.Trigger(0.5f, 5.0f);
 		m_world.FlashBorders(0.3f);
+
+		// Double-shrink may have crushed the snake
+		m_world.CheckCollision(window, m_snake);
+		if (m_snake.HasLost()) return;
 	}
 
 	// Check level complete
