@@ -245,3 +245,17 @@ sf::Vector2f PoisonApple::GetPixelPos(float l_blockSize) const
 {
 	return { m_pos.x * l_blockSize, m_pos.y * l_blockSize };
 }
+
+bool PoisonApple::IsInBounds(const World& l_world, float l_blockSize) const
+{
+	if (m_pos.x < 0) return true; // not spawned
+
+	float bs = l_blockSize;
+	float xMin = l_world.GetEffectiveThickness(3) / bs;
+	float xMax = l_world.GetMaxX() - l_world.GetEffectiveThickness(1) / bs - 1;
+	float yMin = (l_world.GetEffectiveThickness(0) + l_world.GetTopOffset()) / bs;
+	float yMax = l_world.GetMaxY() - l_world.GetEffectiveThickness(2) / bs - 1;
+
+	return m_pos.x >= xMin && m_pos.x <= xMax &&
+		   m_pos.y >= yMin && m_pos.y <= yMax;
+}

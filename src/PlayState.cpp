@@ -419,7 +419,7 @@ void PlayState::Update(float l_dt)
 			if (!m_world.IsAppleInBounds(m_snake.GetBlockSize()))
 				m_world.RespawnApple(m_snake);
 
-			if (m_levelConfig.hasPoisonApples)
+			if (m_levelConfig.hasPoisonApples && !m_poisonApple.IsInBounds(m_world, m_snake.GetBlockSize()))
 				m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
 
 			m_world.CheckCollision(window, m_snake);

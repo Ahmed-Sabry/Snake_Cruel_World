@@ -7,7 +7,7 @@
 Earthquake::Earthquake()
 	: m_state(QuakeState::Idle),
 	  m_timer(0.0f),
-	  m_quakeInterval(7.0f),
+	  m_quakeInterval(7.0f),   // 7s idle + 1s warning = 8s between quakes (per spec)
 	  m_warningDuration(1.0f),
 	  m_blockSize(16.0f),
 	  m_justQuaked(false),
