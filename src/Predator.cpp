@@ -70,7 +70,7 @@ void Predator::Reset(float l_blockSize, const Snake& l_snake, const World& l_wor
 	m_direction = Direction::Right;
 
 	m_bodyRect.setSize({ m_blockSize - 2, m_blockSize - 2 });
-	m_eyeShape.setRadius(2.0f);
+	m_eyeShape.setRadius(m_blockSize * 0.125f);
 	m_eyeShape.setFillColor(sf::Color::White);
 
 	// Spawn head and 4 trailing body segments to the left
@@ -351,10 +351,11 @@ void Predator::Render(Window& l_window, float l_blockSize)
 		float cx = m_body[0].x * l_blockSize + l_blockSize / 2.0f;
 		float cy = m_body[0].y * l_blockSize + l_blockSize / 2.0f;
 
-		// Offset eyes based on direction
+		// Offset eyes based on direction (scaled to block size)
 		float ex1 = 0, ey1 = 0, ex2 = 0, ey2 = 0;
-		float fwd = 3.0f;  // forward offset
-		float side = 3.0f; // side offset
+		float fwd = l_blockSize * 0.1875f;  // forward offset
+		float side = l_blockSize * 0.1875f; // side offset
+		m_eyeShape.setRadius(l_blockSize * 0.125f);
 
 		switch (m_direction)
 		{
