@@ -297,21 +297,32 @@ void PlayState::Update(float l_dt)
 
 		if (m_timedApple.HasExpired())
 		{
-			// Penalty: apple missed, world shrinks
-			Window& window = m_stateManager.GetWindow();
-			m_world.TriggerShrink(window, m_snake);
-			m_lastShrinkCount = m_world.GetShrinkCount();
-			m_stateManager.GetAudio().PlaySound("apple_miss");
-			m_screenShake.Trigger(0.3f, 3.0f);
-			m_world.FlashBorders(0.2f);
+			// Don't penalize if the snake is already on the apple (will be
+			// eaten on the next tick — timer expired between ticks)
+			sf::Vector2f ap = m_world.GetApplePos();
+			Position head = m_snake.GetPosition();
+			if (head.x == (int)ap.x && head.y == (int)ap.y)
+			{
+				m_timedApple.OnAppleEaten(GetAppleTimerDuration());
+			}
+			else
+			{
+				// Penalty: apple missed, world shrinks
+				Window& window = m_stateManager.GetWindow();
+				m_world.TriggerShrink(window, m_snake);
+				m_lastShrinkCount = m_world.GetShrinkCount();
+				m_stateManager.GetAudio().PlaySound("apple_miss");
+				m_screenShake.Trigger(0.3f, 3.0f);
+				m_world.FlashBorders(0.2f);
 
-			// Check if shrink crushed the snake
-			m_world.CheckCollision(window, m_snake);
-			if (m_snake.HasLost()) { OnDeath(); return; }
+				// Check if shrink crushed the snake
+				m_world.CheckCollision(window, m_snake);
+				if (m_snake.HasLost()) { OnDeath(); return; }
 
-			// Respawn apple with adjusted timer
-			m_world.RespawnApple(m_snake);
-			m_timedApple.OnAppleEaten(GetAppleTimerDuration());
+				// Respawn apple with adjusted timer
+				m_world.RespawnApple(m_snake);
+				m_timedApple.OnAppleEaten(GetAppleTimerDuration());
+			}
 		}
 	}
 

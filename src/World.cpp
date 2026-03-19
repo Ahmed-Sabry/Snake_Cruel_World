@@ -188,7 +188,7 @@ void World::UpdateTimedShrink(float l_dt, Window& l_window, Snake& l_snake)
 {
 	if (m_shrinkTimerSec <= 0.0f) return;
 	m_shrinkTimerAccum += l_dt;
-	if (m_shrinkTimerAccum >= m_shrinkTimerSec)
+	while (m_shrinkTimerAccum >= m_shrinkTimerSec)
 	{
 		TriggerShrink(l_window, l_snake);
 		m_shrinkTimerAccum -= m_shrinkTimerSec;
