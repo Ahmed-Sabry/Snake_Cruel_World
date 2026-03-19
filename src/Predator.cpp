@@ -182,13 +182,18 @@ Direction Predator::ChooseDirection(const Position& l_target, const World& l_wor
 		}
 	}
 
-	// Pick lowest score (allows blocked as last resort)
-	int bestIdx = 0;
-	for (int i = 1; i < 4; i++)
+	// Pick lowest-score unblocked candidate
+	int bestIdx = -1;
+	for (int i = 0; i < 4; i++)
 	{
-		if (candidates[i].score < candidates[bestIdx].score)
+		if (candidates[i].blocked) continue;
+		if (bestIdx < 0 || candidates[i].score < candidates[bestIdx].score)
 			bestIdx = i;
 	}
+
+	// All directions blocked — pause (don't move)
+	if (bestIdx < 0)
+		return Direction::None;
 
 	return candidates[bestIdx].dir;
 }
@@ -196,6 +201,9 @@ Direction Predator::ChooseDirection(const Position& l_target, const World& l_wor
 void Predator::Move()
 {
 	if (m_body.empty()) return;
+
+	// Direction::None means all directions blocked — pause in place
+	if (m_direction == Direction::None) return;
 
 	// Shift body segments backward (tail follows head)
 	for (int i = (int)m_body.size() - 1; i > 0; i--)
@@ -241,9 +249,9 @@ void Predator::Update(float l_dt, const World& l_world, const Snake& l_snake)
 	if (m_modeTransitionTimer > 0.0f)
 		m_modeTransitionTimer -= l_dt;
 
-	float timeStep = 1.0f / m_speed;
+	float timeStep = (m_speed > 0.0f) ? (1.0f / m_speed) : 1.0f;
 
-	if (m_elapsedTime >= timeStep)
+	while (m_elapsedTime >= timeStep && timeStep > 0.0f)
 	{
 		// Determine target
 		Position target;

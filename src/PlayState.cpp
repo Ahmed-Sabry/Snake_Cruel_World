@@ -447,6 +447,14 @@ void PlayState::Update(float l_dt)
 	{
 		m_predator.Update(l_dt, m_world, m_snake);
 
+		// Check if predator moved onto player head
+		if (m_predator.HitPlayer(m_snake.GetPosition()))
+		{
+			m_snake.LoseStatus(true);
+			OnDeath();
+			return;
+		}
+
 		if (m_predator.JustAteApple())
 		{
 			m_predatorApplesEaten++;
