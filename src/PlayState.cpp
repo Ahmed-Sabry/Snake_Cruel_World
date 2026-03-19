@@ -11,6 +11,7 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_gameTime(0.0f),
 	  m_applesEaten(0),
 	  m_consecutiveApples(0),
+	  m_speedModifier(1.0f),
 	  m_lastShrinkCount(0),
 	  m_cheatExtend(false),
 	  m_escReleased(true),
@@ -38,14 +39,25 @@ void PlayState::OnEnter()
 	m_snake.Reset();
 	m_world.SetTopOffset(HUD::GetHeight());
 	m_world.Reset(window, m_snake);
+
+	// Set shrink parameters before first RespawnApple so the pre-shrink
+	// safety margin uses the configured interval, not the default
+	m_world.SetShrinkInterval(m_levelConfig.shrinkInterval);
+	m_world.SetShrinkTimerSec(m_levelConfig.shrinkTimerSec);
+
 	m_world.RespawnApple(m_snake);
 	m_world.SetBorderColor(m_levelConfig.border);
 	m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
+
+	// Apply remaining level-specific configuration
+	m_world.SetAppleColor(m_levelConfig.apple);
+	m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
 
 	m_elapsedTime = 0.0f;
 	m_gameTime = 0.0f;
 	m_applesEaten = 0;
 	m_consecutiveApples = 0;
+	m_speedModifier = 1.0f;
 	m_lastShrinkCount = 0;
 	m_cheatExtend = false;
 	m_escReleased = true;
@@ -61,8 +73,27 @@ void PlayState::OnEnter()
 	m_stateManager.levelTime = 0.0f;
 	m_stateManager.levelComplete = false;
 
+	m_mirrorFlipCounter = 0;
+
 	m_particles.Clear();
 	m_screenShake.Reset(m_stateManager.GetWindow());
+
+	// Initialize level mechanic systems
+	if (m_levelConfig.hasBlackouts)
+		m_blackout.Reset();
+
+	if (m_levelConfig.hasQuicksand)
+	{
+		m_quicksand.Reset(m_world.GetMaxX(), m_world.GetMaxY(),
+						  m_world.GetBorderThickness(), m_snake.GetBlockSize(),
+						  m_world.GetTopOffset());
+	}
+
+	if (m_levelConfig.hasMirrorGhost)
+		m_mirrorGhost.Reset();
+
+	if (m_levelConfig.hasTimedApples)
+		m_timedApple.Reset(m_levelConfig.appleTimerSec);
 }
 
 void PlayState::OnExit()
@@ -135,6 +166,7 @@ void PlayState::Update(float l_dt)
 	float speed = m_levelConfig.baseSpeed;
 	// Speed creep: +0.5 every 5 apples
 	speed += (m_applesEaten / 5) * 0.5f;
+	speed *= m_speedModifier;
 
 	float timeStep = 1.0f / speed;
 
@@ -179,6 +211,20 @@ void PlayState::Update(float l_dt)
 			m_snake.ClearSelfCollideFlag();
 		}
 
+		// Mirror ghost update (tick-based, same rate as snake movement)
+		if (m_levelConfig.hasMirrorGhost)
+		{
+			float bs = m_snake.GetBlockSize();
+			float centerX = (m_world.GetBorderThickness() / bs +
+							 m_world.GetMaxX() - m_world.GetBorderThickness() / bs - 1) / 2.0f;
+			float centerY = ((m_world.GetBorderThickness() + m_world.GetTopOffset()) / bs +
+							 m_world.GetMaxY() - m_world.GetBorderThickness() / bs - 1) / 2.0f;
+			m_mirrorGhost.Update(m_snake, centerX, centerY);
+
+			if (m_mirrorGhost.CheckCollision(m_snake.GetPosition()))
+				m_snake.LoseStatus(true);
+		}
+
 		// Check death
 		if (m_snake.HasLost())
 		{
@@ -207,6 +253,79 @@ void PlayState::Update(float l_dt)
 	m_screenShake.Update(l_dt, m_stateManager.GetWindow());
 	m_world.UpdateFlash(l_dt);
 
+	// --- Level mechanic continuous updates ---
+
+	// Reset speed modifier each frame; mechanics below accumulate into it
+	m_speedModifier = 1.0f;
+
+	// Blackout (Level 2)
+	if (m_levelConfig.hasBlackouts)
+	{
+		m_blackout.Update(l_dt, m_snake);
+		if (m_blackout.JustStartedBlackout())
+		{
+			m_world.RespawnApple(m_snake);
+			m_stateManager.GetAudio().PlaySound("blackout_on");
+		}
+	}
+
+	// Quicksand speed modifier (Level 3)
+	if (m_levelConfig.hasQuicksand)
+	{
+		m_quicksand.Update(l_dt, m_world.GetMaxX(), m_world.GetMaxY(),
+						   m_world.GetBorderThickness(), m_snake.GetBlockSize(),
+						   m_world.GetTopOffset());
+
+		if (m_quicksand.IsOnQuicksand(m_snake.GetPosition()))
+			m_speedModifier *= 0.5f;
+	}
+
+	// Timer-based world shrinking (Level 3)
+	if (m_levelConfig.shrinkTimerSec > 0.0f && m_levelCompleteDelay < 0.0f)
+	{
+		Window& window = m_stateManager.GetWindow();
+		m_world.UpdateTimedShrink(l_dt, window, m_snake);
+		// Shrink may have moved borders onto the snake
+		m_world.CheckCollision(window, m_snake);
+		if (m_snake.HasLost()) { OnDeath(); return; }
+	}
+
+	// Timed apples (Level 5)
+	if (m_levelConfig.hasTimedApples && m_levelCompleteDelay < 0.0f)
+	{
+		m_timedApple.Update(l_dt);
+
+		if (m_timedApple.HasExpired())
+		{
+			// Don't penalize if the snake is already on the apple (will be
+			// eaten on the next tick — timer expired between ticks)
+			sf::Vector2f ap = m_world.GetApplePos();
+			Position head = m_snake.GetPosition();
+			if (head.x == (int)ap.x && head.y == (int)ap.y)
+			{
+				m_timedApple.OnAppleEaten(GetAppleTimerDuration());
+			}
+			else
+			{
+				// Penalty: apple missed, world shrinks
+				Window& window = m_stateManager.GetWindow();
+				m_world.TriggerShrink(window, m_snake);
+				m_lastShrinkCount = m_world.GetShrinkCount();
+				m_stateManager.GetAudio().PlaySound("apple_miss");
+				m_screenShake.Trigger(0.3f, 3.0f);
+				m_world.FlashBorders(0.2f);
+
+				// Check if shrink crushed the snake
+				m_world.CheckCollision(window, m_snake);
+				if (m_snake.HasLost()) { OnDeath(); return; }
+
+				// Respawn apple with adjusted timer
+				m_world.RespawnApple(m_snake);
+				m_timedApple.OnAppleEaten(GetAppleTimerDuration());
+			}
+		}
+	}
+
 	// Deferred level-complete transition (lets particles render first)
 	if (m_levelCompleteDelay >= 0.0f)
 	{
@@ -221,8 +340,34 @@ void PlayState::Render()
 	Window& window = m_stateManager.GetWindow();
 
 	m_world.Render(window);
+
+	if (m_levelConfig.hasQuicksand)
+		m_quicksand.Render(window, m_snake.GetBlockSize());
+
+	if (m_levelConfig.hasTimedApples)
+	{
+		sf::Vector2f applePixelPos(
+			m_world.GetApplePos().x * m_snake.GetBlockSize(),
+			m_world.GetApplePos().y * m_snake.GetBlockSize());
+		m_timedApple.Render(window, applePixelPos, m_snake.GetBlockSize() / 2.0f);
+	}
+
+	if (m_levelConfig.hasMirrorGhost)
+	{
+		float bs = m_snake.GetBlockSize();
+		int bMinX = (int)(m_world.GetBorderThickness() / bs);
+		int bMaxX = (int)(m_world.GetMaxX() - m_world.GetBorderThickness() / bs - 1);
+		int bMinY = (int)((m_world.GetBorderThickness() + m_world.GetTopOffset()) / bs);
+		int bMaxY = (int)(m_world.GetMaxY() - m_world.GetBorderThickness() / bs - 1);
+		m_mirrorGhost.Render(window, bs, bMinX, bMaxX, bMinY, bMaxY);
+	}
+
 	m_snake.Render(window);
 	m_particles.Render(window);
+
+	if (m_levelConfig.hasBlackouts)
+		m_blackout.Render(window, m_snake.GetBlockSize());
+
 	m_hud.Render(window);
 }
 
@@ -243,6 +388,38 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 	m_particles.SpawnAppleBurst(applePixelPos, m_levelConfig.apple);
 	m_particles.SpawnFloatingText("+" + std::to_string(points), applePixelPos,
 								  sf::Color(255, 255, 100));
+
+	// Mirror ghost: flip axis every 5 apples
+	if (m_levelConfig.hasMirrorGhost)
+	{
+		m_mirrorFlipCounter++;
+		if (m_mirrorFlipCounter % 5 == 0)
+		{
+			m_mirrorGhost.FlipAxis();
+			m_stateManager.GetAudio().PlaySound("mirror_flip");
+			m_screenShake.Trigger(0.2f, 2.0f);
+		}
+	}
+
+	// Timed apples: reset timer with adjusted duration
+	if (m_levelConfig.hasTimedApples)
+		m_timedApple.OnAppleEaten(GetAppleTimerDuration());
+
+	// Level 1 "False Hope" twist: double shrink on final apple
+	if (m_levelConfig.id == 1 && m_applesEaten == m_levelConfig.applesToWin)
+	{
+		Window& window = m_stateManager.GetWindow();
+		m_world.TriggerShrink(window, m_snake);
+		m_world.TriggerShrink(window, m_snake);
+		m_lastShrinkCount = m_world.GetShrinkCount();
+		m_stateManager.GetAudio().PlaySound("world_shrink");
+		m_screenShake.Trigger(0.5f, 5.0f);
+		m_world.FlashBorders(0.3f);
+
+		// Double-shrink may have crushed the snake
+		m_world.CheckCollision(window, m_snake);
+		if (m_snake.HasLost()) return;
+	}
 
 	// Check level complete
 	if (m_applesEaten >= m_levelConfig.applesToWin)
@@ -319,4 +496,12 @@ void PlayState::UpdateCombo(bool l_reset)
 int PlayState::CalculatePoints(int l_base)
 {
 	return (int)(l_base * m_stateManager.comboMultiplier);
+}
+
+float PlayState::GetAppleTimerDuration() const
+{
+	float timer = m_levelConfig.appleTimerSec;
+	if (m_applesEaten >= 15) timer = 2.0f;
+	else if (m_applesEaten >= 10) timer = 3.0f;
+	return timer;
 }

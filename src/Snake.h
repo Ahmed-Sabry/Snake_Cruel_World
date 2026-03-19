@@ -41,11 +41,11 @@ public:
 	{
 		return m_speed;
 	}
-	inline Position GetPosition()
+	inline Position GetPosition() const
 	{
 		return m_headPos;
 	}
-	inline float GetBlockSize()
+	inline float GetBlockSize() const
 	{
 		return m_blockSize;
 	}
@@ -74,9 +74,18 @@ public:
 	{
 		m_speed = l_speed;
 	}
-	inline int GetBodySize()
+	inline int GetBodySize() const
 	{
 		return (int)m_snakeBody.size();
+	}
+	inline const std::vector<Position>& GetBody() const
+	{
+		return m_snakeBody;
+	}
+	void SetColors(sf::Color l_head, sf::Color l_body)
+	{
+		m_headColor = l_head;
+		m_bodyColor = l_body;
 	}
 
 private:
@@ -95,4 +104,7 @@ private:
 	std::vector<Position> m_lastCutSegments;
 
 	float m_blockSize;
+
+	sf::Color m_headColor;
+	sf::Color m_bodyColor;
 };

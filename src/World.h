@@ -39,6 +39,17 @@ public:
 	void FlashBorders(float l_duration);
 	void UpdateFlash(float l_dt);
 
+	void SetShrinkInterval(int l_interval);
+	void SetShrinkTimerSec(float l_sec);
+	void UpdateTimedShrink(float l_dt, Window& l_window, Snake& l_snake);
+	void TriggerShrink(Window& l_window, Snake& l_snake);
+	void SetAppleColor(sf::Color l_color);
+
+	inline float GetBorderThickness() const { return m_borderThickness; }
+	inline float GetMaxX() const { return m_maxX; }
+	inline float GetMaxY() const { return m_maxY; }
+	inline float GetTopOffset() const { return m_topOffset; }
+
 private:
 	sf::RectangleShape m_borders[4];
 	sf::CircleShape m_apple;
@@ -52,11 +63,15 @@ private:
 	float m_maxX;
 	float m_maxY;
 	float m_appleRaduis;
-	float m_borderThinkness;
+	float m_borderThickness;
 	float m_topOffset;
 
 	float m_flashTimer;
 	sf::Color m_normalBorderColor;
+
+	int m_shrinkInterval;
+	float m_shrinkTimerSec;
+	float m_shrinkTimerAccum;
 };
 
 inline float Random(int a, int b)

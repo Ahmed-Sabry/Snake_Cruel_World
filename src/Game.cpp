@@ -21,6 +21,9 @@ Game::Game() :
 		{ "level_complete", "content/audio/sfx/level_complete.ogg" },
 		{ "menu_navigate",  "content/audio/sfx/menu_navigate.ogg" },
 		{ "menu_select",    "content/audio/sfx/menu_select.ogg" },
+		{ "blackout_on",    "content/audio/sfx/blackout_on.ogg" },
+		{ "mirror_flip",    "content/audio/sfx/mirror_flip.ogg" },
+		{ "apple_miss",     "content/audio/sfx/apple_miss.ogg" },
 	};
 	for (const auto& [id, path] : soundAssets)
 		m_audioManager.LoadSound(id, path);

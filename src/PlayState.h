@@ -8,6 +8,10 @@
 #include "LevelConfig.h"
 #include "ParticleSystem.h"
 #include "ScreenShake.h"
+#include "BlackoutEffect.h"
+#include "Quicksand.h"
+#include "MirrorGhost.h"
+#include "TimedApple.h"
 
 class PlayState : public BaseState
 {
@@ -26,6 +30,7 @@ private:
 	void OnDeath();
 	void UpdateCombo(bool l_reset);
 	int CalculatePoints(int l_base);
+	float GetAppleTimerDuration() const;
 
 	Snake m_snake;
 	World m_world;
@@ -34,10 +39,18 @@ private:
 	ParticleSystem m_particles;
 	ScreenShake m_screenShake;
 
+	// Level mechanic systems
+	BlackoutEffect m_blackout;
+	Quicksand m_quicksand;
+	MirrorGhost m_mirrorGhost;
+	TimedApple m_timedApple;
+	int m_mirrorFlipCounter;
+
 	float m_elapsedTime;
 	float m_gameTime;
 	int m_applesEaten;
 	int m_consecutiveApples; // for combo
+	float m_speedModifier;
 
 	int m_lastShrinkCount;
 	bool m_cheatExtend; // temp cheat code
