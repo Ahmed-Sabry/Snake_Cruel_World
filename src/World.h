@@ -19,17 +19,17 @@ public:
 	void NarrowWorld(Window& l_window, Snake& l_snake);
 	void CheckCollision(Window& l_window, Snake& l_snake);
 
-	inline sf::Vector2f GetApplePos()
+	inline sf::Vector2f GetApplePos() const
 	{
 		return m_applePos;
 	}
 
-	inline int GetApplesEaten()
+	inline int GetApplesEaten() const
 	{
 		return m_totalApplesEaten;
 	}
 
-	inline int GetShrinkCount()
+	inline int GetShrinkCount() const
 	{
 		return m_shrinkCount;
 	}
