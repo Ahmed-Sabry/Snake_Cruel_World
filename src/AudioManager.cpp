@@ -402,4 +402,21 @@ void AudioManager::GenerateDefaultSounds()
 		}
 		StoreSamples("shuffle_warning", samples, RATE);
 	}
+
+	// --- phase_advance: dramatic descending power chord (0.5s) ---
+	if (m_buffers.find("phase_advance") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.5f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			float env = (t < 0.02f) ? (t / 0.02f) : expDecay(t - 0.02f, 3.0f);
+			float freq = 200.0f - t * 100.0f;
+			float val = sine(t, freq) + 0.7f * sine(t, freq * 1.5f) + 0.4f * sine(t, freq * 2.0f);
+			float noise = RandomNoise() * 0.15f * expDecay(t, 6.0f);
+			samples[i] = (sf::Int16)(env * 18000.0f * (val * 0.8f + noise));
+		}
+		StoreSamples("phase_advance", samples, RATE);
+	}
 }

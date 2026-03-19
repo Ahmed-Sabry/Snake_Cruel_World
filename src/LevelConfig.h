@@ -137,7 +137,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 		sf::Color(30, 15, 20), sf::Color(200, 100, 50),
 		sf::Color::Red, sf::Color::Magenta, sf::Color::Green,
 		true, true, true, true, true, true, true, true,
-		5.0f, 10, 5
+		6.0f, 10, 5
 	};
 
 		return l;
