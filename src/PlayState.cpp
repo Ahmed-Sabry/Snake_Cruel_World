@@ -20,7 +20,11 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_escReleased(true),
 	  m_rReleased(true),
 	  m_comboSoundPlayed(false),
-	  m_levelCompleteDelay(-1.0f)
+	  m_levelCompleteDelay(-1.0f),
+	  m_cruelPhase(0),
+	  m_screenFlipped(false),
+	  m_phaseAnnouncementTimer(0.0f),
+	  m_announcementFontLoaded(false)
 {
 }
 
@@ -119,6 +123,155 @@ void PlayState::OnEnter()
 		m_controlShuffle.Reset();
 
 	m_psychedelicTimer = 0.0f;
+
+	// Level 10 "Cruel World": override to Phase 1 after all mechanics initialized
+	if (m_levelConfig.id == 10)
+		InitCruelWorldPhases();
+}
+
+void PlayState::InitCruelWorldPhases()
+{
+	m_cruelPhase = 0;
+	m_screenFlipped = false;
+	m_phaseAnnouncementTimer = 0.0f;
+	m_phaseAnnouncementText.clear();
+
+	// Load announcement font once
+	if (!m_announcementFontLoaded)
+	{
+		if (m_announcementFont.loadFromFile(FONT_PATH))
+			m_announcementFontLoaded = true;
+	}
+
+	// Phase 1: only timed apples active
+	m_levelConfig.hasBlackouts = false;
+	m_levelConfig.hasQuicksand = false;
+	m_levelConfig.hasPredator = false;
+	m_levelConfig.hasEarthquakes = false;
+	m_levelConfig.hasControlShuffle = false;
+	m_levelConfig.hasPoisonApples = false;
+	m_levelConfig.hasTimedApples = true;
+	m_levelConfig.hasMirrorGhost = false;
+
+	// Phase 1 parameters
+	m_levelConfig.baseSpeed = 12.0f;
+	m_levelConfig.shrinkInterval = 4;
+	m_levelConfig.shrinkTimerSec = 0.0f;
+	m_levelConfig.appleTimerSec = 6.0f;
+	m_world.SetShrinkInterval(4);
+	m_world.SetShrinkTimerSec(0.0f);
+
+	// Phase 1 theme: warm maroon (same as Level 1 "False Hope")
+	m_levelConfig.background = sf::Color(30, 15, 20);
+	m_levelConfig.border = sf::Color(200, 100, 50);
+	m_stateManager.GetWindow().SetBackground(m_levelConfig.background);
+	m_world.SetBorderColor(m_levelConfig.border);
+	m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
+}
+
+void PlayState::AdvanceCruelPhase()
+{
+	m_cruelPhase++;
+	Window& window = m_stateManager.GetWindow();
+
+	switch (m_cruelPhase)
+	{
+		case 1: // Phase 2 (apples 6-10): Blackouts + Predator
+		{
+			m_levelConfig.hasBlackouts = true;
+			m_levelConfig.hasPredator = true;
+
+			m_blackout.Reset();
+			m_predator.Reset(m_snake.GetBlockSize(), m_snake, m_world);
+			m_predatorApplesEaten = 0;
+
+			m_levelConfig.appleTimerSec = 5.0f;
+			m_levelConfig.baseSpeed = 13.0f;
+			m_levelConfig.shrinkInterval = 3;
+			m_world.SetShrinkInterval(3);
+
+			// Theme: cold blue-gray (Level 8 palette)
+			m_levelConfig.background = sf::Color(15, 15, 25);
+			m_levelConfig.border = sf::Color(60, 70, 100);
+			window.SetBackground(m_levelConfig.background);
+			m_world.SetBorderColor(m_levelConfig.border);
+			m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
+
+			m_phaseAnnouncementText = "It gets worse.";
+			m_phaseAnnouncementTimer = 2.0f;
+			break;
+		}
+
+		case 2: // Phase 3 (apples 11-15): Quicksand + Poison
+		{
+			m_levelConfig.hasQuicksand = true;
+			m_levelConfig.hasPoisonApples = true;
+
+			float maxThick = std::max({m_world.GetEffectiveThickness(0),
+									   m_world.GetEffectiveThickness(1),
+									   m_world.GetEffectiveThickness(2),
+									   m_world.GetEffectiveThickness(3)});
+			m_quicksand.Reset(m_world.GetMaxX(), m_world.GetMaxY(),
+							  maxThick, m_snake.GetBlockSize(),
+							  m_world.GetTopOffset());
+
+			m_poisonApple.Reset(m_snake.GetBlockSize());
+			m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
+
+			m_levelConfig.appleTimerSec = 4.0f;
+			m_levelConfig.baseSpeed = 14.0f;
+			m_levelConfig.shrinkInterval = 2;
+			m_world.SetShrinkInterval(2);
+
+			// Theme: sickly poisonous green
+			m_levelConfig.background = sf::Color(10, 30, 10);
+			m_levelConfig.border = sf::Color(40, 120, 30);
+			window.SetBackground(m_levelConfig.background);
+			m_world.SetBorderColor(m_levelConfig.border);
+			m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
+
+			m_phaseAnnouncementText = "It gets worse.";
+			m_phaseAnnouncementTimer = 2.0f;
+			break;
+		}
+
+		case 3: // Phase 4 (apples 16-20): Everything. All at once.
+		{
+			m_levelConfig.hasEarthquakes = true;
+			m_levelConfig.hasControlShuffle = true;
+			m_levelConfig.hasMirrorGhost = true;
+
+			m_earthquake.Reset(m_snake.GetBlockSize());
+			m_controlShuffle.Reset();
+			m_mirrorGhost.Reset();
+			m_mirrorFlipCounter = 0;
+
+			m_levelConfig.appleTimerSec = 3.0f;
+			m_levelConfig.baseSpeed = 15.0f;
+			m_levelConfig.shrinkInterval = 2;
+			m_levelConfig.shrinkTimerSec = 5.0f;
+			m_world.SetShrinkInterval(2);
+			m_world.SetShrinkTimerSec(5.0f);
+
+			// Theme: near-black with crimson borders
+			m_levelConfig.background = sf::Color(8, 5, 5);
+			m_levelConfig.border = sf::Color(180, 20, 20);
+			window.SetBackground(m_levelConfig.background);
+			m_world.SetBorderColor(m_levelConfig.border);
+			m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
+
+			m_phaseAnnouncementText = "Everything. All at once.";
+			m_phaseAnnouncementTimer = 2.0f;
+			break;
+		}
+
+		default:
+			break;
+	}
+
+	// Common phase transition effects
+	m_screenShake.Trigger(0.5f, 5.0f);
+	m_stateManager.GetAudio().PlaySound("phase_advance");
 }
 
 void PlayState::OnExit()
@@ -559,6 +712,10 @@ void PlayState::Update(float l_dt)
 			(sf::Uint8)(128 + 127 * std::sin(ap + 4.189f))));
 	}
 
+	// Level 10 phase announcement timer
+	if (m_levelConfig.id == 10 && m_phaseAnnouncementTimer > 0.0f)
+		m_phaseAnnouncementTimer -= l_dt;
+
 	// Deferred level-complete transition (lets particles render first)
 	if (m_levelCompleteDelay >= 0.0f)
 	{
@@ -571,6 +728,16 @@ void PlayState::Update(float l_dt)
 void PlayState::Render()
 {
 	Window& window = m_stateManager.GetWindow();
+
+	// Level 10: screen flip (The Cruel Twist at apple 19)
+	sf::View savedView;
+	if (m_screenFlipped)
+	{
+		savedView = window.GetRenderWindow().getView();
+		sf::View flipped = savedView;
+		flipped.setRotation(180.f);
+		window.SetView(flipped);
+	}
 
 	m_world.Render(window);
 
@@ -623,13 +790,24 @@ void PlayState::Render()
 	m_snake.Render(window);
 	m_particles.Render(window);
 
-	if (m_levelConfig.hasControlShuffle)
-		m_controlShuffle.Render(window);
-
 	if (m_levelConfig.hasBlackouts)
 		m_blackout.Render(window, m_snake.GetBlockSize());
 
+	// Restore un-flipped view for HUD and UI overlays (never upside-down)
+	if (m_screenFlipped)
+		window.SetView(savedView);
+
+	if (m_levelConfig.hasControlShuffle)
+		m_controlShuffle.Render(window);
+
 	m_hud.Render(window);
+
+	// Level 10 phase announcement overlay (always right-side-up, on top)
+	if (m_levelConfig.id == 10 && m_phaseAnnouncementTimer > 0.0f)
+	{
+		window.SetView(window.GetDefaultView());
+		RenderPhaseAnnouncement(window);
+	}
 }
 
 void PlayState::OnAppleEaten(const Position& l_applePos)
@@ -680,6 +858,30 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 	// Timed apples: reset timer with adjusted duration
 	if (m_levelConfig.hasTimedApples)
 		m_timedApple.OnAppleEaten(GetAppleTimerDuration());
+
+	// Level 10 "Cruel World" phase transitions
+	if (m_levelConfig.id == 10)
+	{
+		bool phaseChanged = false;
+		if (m_applesEaten == 5 && m_cruelPhase == 0)
+			{ AdvanceCruelPhase(); phaseChanged = true; }
+		else if (m_applesEaten == 10 && m_cruelPhase == 1)
+			{ AdvanceCruelPhase(); phaseChanged = true; }
+		else if (m_applesEaten == 15 && m_cruelPhase == 2)
+			{ AdvanceCruelPhase(); phaseChanged = true; }
+
+		// Re-set timed apple with new phase duration
+		if (phaseChanged && m_levelConfig.hasTimedApples)
+			m_timedApple.OnAppleEaten(GetAppleTimerDuration());
+
+		// The Cruel Twist: screen flips at apple 19
+		if (m_applesEaten == 19 && !m_screenFlipped)
+		{
+			m_screenFlipped = true;
+			m_screenShake.Trigger(0.8f, 8.0f);
+			m_stateManager.GetAudio().PlaySound("phase_advance");
+		}
+	}
 
 	// Level 1 "False Hope" twist: double shrink on final apple
 	if (m_levelConfig.id == 1 && m_applesEaten == m_levelConfig.applesToWin)
@@ -776,8 +978,52 @@ int PlayState::CalculatePoints(int l_base)
 
 float PlayState::GetAppleTimerDuration() const
 {
+	// Level 10: timer controlled by phase system
+	if (m_levelConfig.id == 10)
+		return m_levelConfig.appleTimerSec;
+
+	// Level 5 (Famine): progressive timer escalation
 	float timer = m_levelConfig.appleTimerSec;
 	if (m_applesEaten >= 15) timer = 2.0f;
 	else if (m_applesEaten >= 10) timer = 3.0f;
 	return timer;
+}
+
+void PlayState::RenderPhaseAnnouncement(Window& l_window)
+{
+	if (!m_announcementFontLoaded)
+		return;
+
+	const float totalDuration = 2.0f;
+	float elapsed = totalDuration - m_phaseAnnouncementTimer;
+
+	// Fade in 0.3s, hold, fade out 0.5s
+	float alpha = 1.0f;
+	if (elapsed < 0.3f)
+		alpha = elapsed / 0.3f;
+	else if (m_phaseAnnouncementTimer < 0.5f)
+		alpha = m_phaseAnnouncementTimer / 0.5f;
+
+	sf::Uint8 a = (sf::Uint8)(255 * alpha);
+	sf::Vector2u winSize = l_window.GetWindowSize();
+
+	// Semi-transparent dark overlay
+	sf::RectangleShape overlay(sf::Vector2f((float)winSize.x, (float)winSize.y));
+	overlay.setPosition(0.f, 0.f);
+	overlay.setFillColor(sf::Color(0, 0, 0, (sf::Uint8)(120 * alpha)));
+	l_window.Draw(overlay);
+
+	// Red announcement text, centered
+	sf::Text text;
+	text.setFont(m_announcementFont);
+	text.setString(m_phaseAnnouncementText);
+	text.setCharacterSize(48);
+	text.setFillColor(sf::Color(220, 30, 30, a));
+
+	sf::FloatRect bounds = text.getLocalBounds();
+	text.setOrigin(bounds.left + bounds.width / 2.0f,
+				   bounds.top + bounds.height / 2.0f);
+	text.setPosition((float)winSize.x / 2.0f, (float)winSize.y / 2.0f);
+
+	l_window.Draw(text);
 }

@@ -35,6 +35,9 @@ private:
 	void UpdateCombo(bool l_reset);
 	int CalculatePoints(int l_base);
 	float GetAppleTimerDuration() const;
+	void InitCruelWorldPhases();
+	void AdvanceCruelPhase();
+	void RenderPhaseAnnouncement(Window& l_window);
 
 	Snake m_snake;
 	World m_world;
@@ -70,4 +73,12 @@ private:
 	bool m_rReleased;
 	bool m_comboSoundPlayed;
 	float m_levelCompleteDelay; // countdown before switching to GameOver
+
+	// Level 10 "Cruel World" phase system
+	int m_cruelPhase;
+	bool m_screenFlipped;
+	float m_phaseAnnouncementTimer;
+	std::string m_phaseAnnouncementText;
+	sf::Font m_announcementFont;
+	bool m_announcementFontLoaded;
 };
