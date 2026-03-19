@@ -27,12 +27,14 @@ Position Predator::FindSpawnPosition(const Snake& l_snake, const World& l_world)
 	int yMax = (int)(l_world.GetMaxY() - l_world.GetEffectiveThickness(2) / bs) - 2;
 
 	Position playerHead = l_snake.GetPosition();
-	Position best = { (xMin + xMax) / 2, (yMin + yMax) / 2 };
-	int bestDist = 0;
 
 	// If playable area is too narrow for 5 trailing segments, use center fallback
 	if (xMin + 4 > xMax)
-		return best;
+		return { (xMin + xMax) / 2, (yMin + yMax) / 2 };
+
+	// Seed best from a legal head position within the valid lane
+	Position best = { RandomInt(xMin + 4, xMax), RandomInt(yMin, yMax) };
+	int bestDist = std::abs(best.x - playerHead.x) + std::abs(best.y - playerHead.y);
 
 	for (int attempt = 0; attempt < 30; attempt++)
 	{
@@ -166,10 +168,11 @@ Direction Predator::ChooseDirection(const Position& l_target, const World& l_wor
 		// Base score: Manhattan distance to target
 		c.score = std::abs(c.pos.x - l_target.x) + std::abs(c.pos.y - l_target.y);
 
-		// Soft penalty for overlapping player body (avoid but don't reject)
-		for (const auto& seg : playerBody)
+		// Soft penalty for overlapping player body (avoid but don't reject).
+		// Skip playerBody[0] (head) when hunting the player — that's the target.
+		for (size_t s = (m_mode == PredatorMode::HUNTING_PLAYER) ? 1 : 0; s < playerBody.size(); s++)
 		{
-			if (seg.x == c.pos.x && seg.y == c.pos.y)
+			if (playerBody[s].x == c.pos.x && playerBody[s].y == c.pos.y)
 			{
 				c.score += 1000;
 				break;
@@ -228,19 +231,7 @@ void Predator::Update(float l_dt, const World& l_world, const Snake& l_snake)
 
 	m_elapsedTime += l_dt;
 
-	// Hunt timer countdown
-	if (m_mode == PredatorMode::HUNTING_PLAYER)
-	{
-		m_huntTimer -= l_dt;
-		if (m_huntTimer <= 0.0f)
-		{
-			m_mode = PredatorMode::HUNTING_APPLE;
-			m_huntTimer = 0.0f;
-			m_modeTransitionTimer = 1.0f;
-		}
-	}
-
-	// Mode transition visual timer
+	// Mode transition visual timer (cosmetic, fine to use l_dt)
 	if (m_modeTransitionTimer > 0.0f)
 		m_modeTransitionTimer -= l_dt;
 
@@ -248,6 +239,18 @@ void Predator::Update(float l_dt, const World& l_world, const Snake& l_snake)
 
 	while (m_elapsedTime >= timeStep && timeStep > 0.0f)
 	{
+		// Hunt timer countdown (per-tick so mode flips at the correct step)
+		if (m_mode == PredatorMode::HUNTING_PLAYER)
+		{
+			m_huntTimer -= timeStep;
+			if (m_huntTimer <= 0.0f)
+			{
+				m_mode = PredatorMode::HUNTING_APPLE;
+				m_huntTimer = 0.0f;
+				m_modeTransitionTimer = 1.0f;
+			}
+		}
+
 		// Determine target
 		Position target;
 		if (m_mode == PredatorMode::HUNTING_PLAYER)
