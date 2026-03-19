@@ -26,11 +26,6 @@ Position Predator::FindSpawnPosition(const Snake& l_snake, const World& l_world)
 	int yMin = (int)((l_world.GetEffectiveThickness(0) + l_world.GetTopOffset()) / bs) + 1;
 	int yMax = (int)(l_world.GetMaxY() - l_world.GetEffectiveThickness(2) / bs) - 2;
 
-	// Need room for 5 segments trailing left from head
-	if (xMin + 5 > xMax) xMin = xMax - 5;
-	if (xMin < (int)(l_world.GetEffectiveThickness(3) / bs) + 1)
-		xMin = (int)(l_world.GetEffectiveThickness(3) / bs) + 1;
-
 	Position playerHead = l_snake.GetPosition();
 	Position best = { (xMin + xMax) / 2, (yMin + yMax) / 2 };
 	int bestDist = 0;
@@ -344,7 +339,6 @@ void Predator::Render(Window& l_window, float l_blockSize)
 	}
 
 	// Draw eyes on head
-	if (!m_body.empty())
 	{
 		float cx = m_body[0].x * l_blockSize + l_blockSize / 2.0f;
 		float cy = m_body[0].y * l_blockSize + l_blockSize / 2.0f;
