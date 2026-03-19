@@ -64,10 +64,7 @@ void PoisonApple::Render(Window& l_window, float l_blockSize)
 	if (m_pos.x < 0) return;
 
 	float baseRadius = l_blockSize / 2.0f;
-	float radius = baseRadius;
-
-	// Poison apple always pulses
-	radius = baseRadius + std::sin(m_pulseTimer * 4.0f) * 1.0f;
+	float radius = baseRadius + std::sin(m_pulseTimer * 4.0f) * 1.0f;
 
 	m_shape.setRadius(radius);
 	m_shape.setOrigin(radius - baseRadius, radius - baseRadius);
