@@ -34,12 +34,16 @@ void ControlShuffle::Reset()
 
 	if (!m_fontLoaded)
 	{
-		m_font.loadFromFile(FONT_PATH);
-		m_indicatorText.setFont(m_font);
-		m_indicatorText.setCharacterSize(18);
-		m_indicatorText.setFillColor(sf::Color::White);
+		if (!m_font.loadFromFile(FONT_PATH))
+			std::cerr << "ControlShuffle: Failed to load font from " << FONT_PATH << std::endl;
+		else
+		{
+			m_indicatorText.setFont(m_font);
+			m_indicatorText.setCharacterSize(18);
+			m_indicatorText.setFillColor(sf::Color::White);
+			m_fontLoaded = true;
+		}
 		m_indicatorBg.setFillColor(sf::Color(40, 10, 50, 180));
-		m_fontLoaded = true;
 	}
 }
 
