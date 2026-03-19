@@ -31,12 +31,12 @@ Position Predator::FindSpawnPosition(const Snake& l_snake, const World& l_world)
 	int bestDist = 0;
 
 	// If playable area is too narrow for 5 trailing segments, use center fallback
-	if (xMin + 5 > xMax)
+	if (xMin + 4 > xMax)
 		return best;
 
 	for (int attempt = 0; attempt < 30; attempt++)
 	{
-		int x = RandomInt(xMin + 5, xMax); // +5 to leave room for body trailing left
+		int x = RandomInt(xMin + 4, xMax); // +4 to leave room for body trailing left
 		int y = RandomInt(yMin, yMax);
 
 		int dist = std::abs(x - playerHead.x) + std::abs(y - playerHead.y);
@@ -283,6 +283,11 @@ void Predator::Update(float l_dt, const World& l_world, const Snake& l_snake)
 					m_justStartedHunting = true;
 					m_modeTransitionTimer = 1.0f;
 				}
+
+				// Stop simulation — let PlayState handle shrink/respawn
+				// before we continue with updated world state
+				m_elapsedTime -= timeStep;
+				break;
 			}
 		}
 
