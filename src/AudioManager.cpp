@@ -370,4 +370,36 @@ void AudioManager::GenerateDefaultSounds()
 		}
 		StoreSamples("apple_miss", samples, RATE);
 	}
+
+	// --- control_shuffle: disorienting warble (250ms) ---
+	if (m_buffers.find("control_shuffle") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.25f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			float env = expDecay(t, 6.0f);
+			float wobble = sine(t, 8.0f); // slow wobble for FM
+			float freq = 400.0f + wobble * 200.0f;
+			float val = sine(t, freq) + 0.6f * sine(t, freq * 1.5f);
+			samples[i] = (sf::Int16)(env * 12000.0f * val);
+		}
+		StoreSamples("control_shuffle", samples, RATE);
+	}
+
+	// --- shuffle_warning: short rising tick (100ms) ---
+	if (m_buffers.find("shuffle_warning") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.1f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			float env = expDecay(t, 15.0f);
+			float freq = 600.0f + t * 4000.0f;
+			samples[i] = (sf::Int16)(env * 8000.0f * sine(t, freq));
+		}
+		StoreSamples("shuffle_warning", samples, RATE);
+	}
 }

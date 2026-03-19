@@ -15,6 +15,7 @@
 #include "PoisonApple.h"
 #include "Earthquake.h"
 #include "Predator.h"
+#include "ControlShuffle.h"
 
 class PlayState : public BaseState
 {
@@ -51,8 +52,11 @@ private:
 	Earthquake m_earthquake;
 	Predator m_predator;
 	int m_predatorApplesEaten;
+	ControlShuffle m_controlShuffle;
 	sf::CircleShape m_realPulse; // reused each frame for Phase 2 apple pulse
 	int m_mirrorFlipCounter;
+
+	float m_psychedelicTimer;
 
 	float m_elapsedTime;
 	float m_gameTime;

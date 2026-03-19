@@ -9,6 +9,7 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_world(l_stateManager.GetWindow(), m_snake),
 	  m_hud(l_stateManager.GetWindow().GetWindowSize()),
 	  m_predatorApplesEaten(0),
+	  m_psychedelicTimer(0.0f),
 	  m_elapsedTime(0.0f),
 	  m_gameTime(0.0f),
 	  m_applesEaten(0),
@@ -113,6 +114,11 @@ void PlayState::OnEnter()
 		m_predator.Reset(m_snake.GetBlockSize(), m_snake, m_world);
 		m_predatorApplesEaten = 0;
 	}
+
+	if (m_levelConfig.hasControlShuffle)
+		m_controlShuffle.Reset();
+
+	m_psychedelicTimer = 0.0f;
 }
 
 void PlayState::OnExit()
@@ -176,6 +182,10 @@ void PlayState::HandleInput()
 		}
 	}
 
+	// Control shuffle: remap direction
+	if (inputDir != Direction::None && m_levelConfig.hasControlShuffle)
+		inputDir = m_controlShuffle.MapDirection(inputDir);
+
 	// Apply direction (prevent 180-degree reversal)
 	if (inputDir != Direction::None)
 	{
@@ -215,6 +225,18 @@ void PlayState::Update(float l_dt)
 
 		m_world.Update(window, m_snake);
 		m_snake.Tick(window.GetWindowSize());
+
+		// Wall collision grace: forgive wall death right after a control shuffle
+		if (m_snake.HasLost())
+		{
+			if (m_levelConfig.hasControlShuffle && m_controlShuffle.IsGracePeriod())
+				m_snake.LoseStatus(false);
+			else
+			{
+				OnDeath();
+				return;
+			}
+		}
 
 		// Detect apple eaten by comparing count
 		int newApplesEaten = m_world.GetApplesEaten();
@@ -289,7 +311,7 @@ void PlayState::Update(float l_dt)
 				m_snake.LoseStatus(true);
 		}
 
-		// Check death
+		// Check death (entity collisions — not forgiven by grace)
 		if (m_snake.HasLost())
 		{
 			OnDeath();
@@ -492,6 +514,51 @@ void PlayState::Update(float l_dt)
 		}
 	}
 
+	// Control shuffle (Level 9)
+	if (m_levelConfig.hasControlShuffle && m_levelCompleteDelay < 0.0f)
+	{
+		m_controlShuffle.Update(l_dt);
+
+		if (m_controlShuffle.IsWarning())
+			m_stateManager.GetAudio().PlaySound("shuffle_warning");
+
+		if (m_controlShuffle.JustShuffled())
+		{
+			m_stateManager.GetAudio().PlaySound("control_shuffle");
+			m_screenShake.Trigger(0.3f, 3.0f);
+		}
+	}
+
+	// Border pulse during grace period
+	if (m_levelConfig.hasControlShuffle && m_controlShuffle.IsGracePeriod())
+	{
+		float pulse = std::sin(m_gameTime * 20.0f);
+		sf::Uint8 g = (sf::Uint8)(200 + 55 * pulse);
+		m_world.SetBorderColor(sf::Color(100, g, 255));
+	}
+	else if (m_levelConfig.hasControlShuffle)
+	{
+		m_world.SetBorderColor(m_levelConfig.border);
+	}
+
+	// Psychedelic color cycling (Level 9 theme)
+	if (m_levelConfig.id == 9 && m_levelCompleteDelay < 0.0f)
+	{
+		m_psychedelicTimer += l_dt;
+
+		// Background: cycle between dark purple (40,10,50) and dark teal (10,40,50)
+		float t = (std::sin(m_psychedelicTimer * 0.8f) + 1.0f) / 2.0f;
+		m_stateManager.GetWindow().SetBackground(sf::Color(
+			(sf::Uint8)(10 + t * 30), (sf::Uint8)(40 - t * 30), 50));
+
+		// Apple: RGB cycling via phase-shifted sin waves
+		float ap = m_psychedelicTimer * 2.0f;
+		m_world.SetAppleColor(sf::Color(
+			(sf::Uint8)(128 + 127 * std::sin(ap)),
+			(sf::Uint8)(128 + 127 * std::sin(ap + 2.094f)),
+			(sf::Uint8)(128 + 127 * std::sin(ap + 4.189f))));
+	}
+
 	// Deferred level-complete transition (lets particles render first)
 	if (m_levelCompleteDelay >= 0.0f)
 	{
@@ -556,6 +623,9 @@ void PlayState::Render()
 	m_snake.Render(window);
 	m_particles.Render(window);
 
+	if (m_levelConfig.hasControlShuffle)
+		m_controlShuffle.Render(window);
+
 	if (m_levelConfig.hasBlackouts)
 		m_blackout.Render(window, m_snake.GetBlockSize());
 
@@ -602,6 +672,10 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 	// Predator: notify that player got the apple
 	if (m_levelConfig.hasPredator)
 		m_predator.OnPlayerAteApple();
+
+	// Control shuffle: update apple counter for indicator cutoff
+	if (m_levelConfig.hasControlShuffle)
+		m_controlShuffle.OnAppleEaten(m_applesEaten);
 
 	// Timed apples: reset timer with adjusted duration
 	if (m_levelConfig.hasTimedApples)
