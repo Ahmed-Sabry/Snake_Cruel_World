@@ -34,10 +34,12 @@ HUD::HUD(const sf::Vector2u& l_windowSize) : m_visible(true), m_comboFlashTimer(
 	setupText(m_levelText, 18, sf::Color(200, 200, 200), { 0.f, HUD_TEXT_Y });
 	setupText(m_appleText, 18, sf::Color(100, 255, 100), { 0.f, HUD_TEXT_Y });
 	setupText(m_timerText, 18, sf::Color(200, 200, 200), { 0.f, HUD_TEXT_Y });
+	setupText(m_predatorText, 18, sf::Color(100, 150, 255), { 0.f, HUD_TEXT_Y });
 }
 
 void HUD::Update(int l_score, float l_combo, int l_applesEaten, int l_applesToWin,
-				  const std::string& l_levelName, float l_time, float l_dt)
+				  const std::string& l_levelName, float l_time, float l_dt,
+				  int l_predatorApples, int l_predatorMax)
 {
 	// Score (left-anchored)
 	m_scoreText.setString("Score: " + std::to_string(l_score));
@@ -77,10 +79,34 @@ void HUD::Update(int l_score, float l_combo, int l_applesEaten, int l_applesToWi
 	sf::FloatRect timerBounds = m_timerText.getGlobalBounds();
 	m_timerText.setPosition(m_windowWidth - timerBounds.width - HUD_PADDING, HUD_TEXT_Y);
 
-	// Apples (positioned left of timer)
+	// Predator counter (positioned left of timer, only when active)
+	float predatorRightEdge = m_timerText.getPosition().x;
+	if (l_predatorApples >= 0)
+	{
+		m_predatorText.setString("Predator: " + std::to_string(l_predatorApples) + "/" + std::to_string(l_predatorMax));
+
+		// Color urgency: blue → orange → red
+		if (l_predatorApples >= l_predatorMax - 1)
+			m_predatorText.setFillColor(sf::Color(255, 60, 60));
+		else if (l_predatorApples >= l_predatorMax - 2)
+			m_predatorText.setFillColor(sf::Color(255, 160, 50));
+		else
+			m_predatorText.setFillColor(sf::Color(100, 150, 255));
+
+		sf::FloatRect predBounds = m_predatorText.getGlobalBounds();
+		float predX = m_timerText.getPosition().x - predBounds.width - 25.f;
+		m_predatorText.setPosition(predX, HUD_TEXT_Y);
+		predatorRightEdge = predX;
+	}
+	else
+	{
+		m_predatorText.setString("");
+	}
+
+	// Apples (positioned left of predator counter or timer)
 	m_appleText.setString("Apples: " + std::to_string(l_applesEaten) + "/" + std::to_string(l_applesToWin));
 	sf::FloatRect appleBounds = m_appleText.getGlobalBounds();
-	float applesX = m_timerText.getPosition().x - appleBounds.width - 25.f;
+	float applesX = predatorRightEdge - appleBounds.width - 25.f;
 	m_appleText.setPosition(applesX, HUD_TEXT_Y);
 
 	// Combo flash effect
@@ -105,6 +131,7 @@ void HUD::Render(Window& l_window)
 	l_window.Draw(m_comboText);
 	l_window.Draw(m_levelText);
 	l_window.Draw(m_appleText);
+	l_window.Draw(m_predatorText);
 	l_window.Draw(m_timerText);
 }
 

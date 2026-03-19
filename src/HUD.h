@@ -16,7 +16,8 @@ public:
 	~HUD() = default;
 
 	void Update(int l_score, float l_combo, int l_applesEaten, int l_applesToWin,
-				const std::string& l_levelName, float l_time, float l_dt);
+				const std::string& l_levelName, float l_time, float l_dt,
+				int l_predatorApples = -1, int l_predatorMax = 5);
 	void Render(Window& l_window);
 	void SetVisible(bool l_visible);
 	void SetLevelColors(const sf::Color& l_borderColor, const sf::Color& l_bgColor);
@@ -33,6 +34,7 @@ private:
 	sf::Text m_appleText;
 	sf::Text m_levelText;
 	sf::Text m_timerText;
+	sf::Text m_predatorText;
 	sf::RectangleShape m_background;
 	sf::RectangleShape m_separator;
 	unsigned int m_windowWidth;

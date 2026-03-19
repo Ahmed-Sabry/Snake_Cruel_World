@@ -320,6 +320,41 @@ void AudioManager::GenerateDefaultSounds()
 		StoreSamples("earthquake", samples, RATE);
 	}
 
+	// --- predator_eat: low descending chomp (200ms) ---
+	if (m_buffers.find("predator_eat") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.2f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			float env = expDecay(t, 12.0f);
+			float freq = 200.0f - t * 600.0f;
+			if (freq < 60.0f) freq = 60.0f;
+			float tone = sine(t, freq) + 0.4f * sine(t, freq * 3.0f);
+			float noise = RandomNoise() * 0.3f * expDecay(t, 20.0f);
+			samples[i] = (sf::Int16)(env * 16000.0f * (tone * 0.7f + noise));
+		}
+		StoreSamples("predator_eat", samples, RATE);
+	}
+
+	// --- predator_hunt: menacing ascending alarm (600ms) ---
+	if (m_buffers.find("predator_hunt") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.6f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			float env = (t < 0.05f) ? (t / 0.05f) : expDecay(t - 0.05f, 2.5f);
+			float freq = 100.0f + t * 1200.0f;
+			float sweep = sine(t, freq) + 0.5f * sine(t, freq * 0.5f);
+			float rumble = sine(t, 50.0f) * 0.3f;
+			samples[i] = (sf::Int16)(env * 16000.0f * (sweep * 0.7f + rumble));
+		}
+		StoreSamples("predator_hunt", samples, RATE);
+	}
+
 	// --- apple_miss: descending disappointment tone (200ms) ---
 	if (m_buffers.find("apple_miss") == m_buffers.end())
 	{

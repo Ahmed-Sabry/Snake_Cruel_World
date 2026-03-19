@@ -8,6 +8,7 @@ PlayState::PlayState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_world(l_stateManager.GetWindow(), m_snake),
 	  m_hud(l_stateManager.GetWindow().GetWindowSize()),
+	  m_predatorApplesEaten(0),
 	  m_elapsedTime(0.0f),
 	  m_gameTime(0.0f),
 	  m_applesEaten(0),
@@ -106,6 +107,12 @@ void PlayState::OnEnter()
 
 	if (m_levelConfig.hasEarthquakes)
 		m_earthquake.Reset(m_snake.GetBlockSize());
+
+	if (m_levelConfig.hasPredator)
+	{
+		m_predator.Reset(m_snake.GetBlockSize(), m_snake, m_world);
+		m_predatorApplesEaten = 0;
+	}
 }
 
 void PlayState::OnExit()
@@ -275,6 +282,13 @@ void PlayState::Update(float l_dt)
 			}
 		}
 
+		// Check predator collision with player
+		if (m_levelConfig.hasPredator)
+		{
+			if (m_predator.HitPlayer(m_snake.GetPosition()))
+				m_snake.LoseStatus(true);
+		}
+
 		// Check death
 		if (m_snake.HasLost())
 		{
@@ -296,7 +310,8 @@ void PlayState::Update(float l_dt)
 	m_stateManager.levelTime = m_gameTime;
 	m_hud.Update(m_stateManager.score, m_stateManager.comboMultiplier,
 				 m_applesEaten, m_levelConfig.applesToWin,
-				 m_levelConfig.name, m_gameTime, l_dt);
+				 m_levelConfig.name, m_gameTime, l_dt,
+				 m_levelConfig.hasPredator ? m_predatorApplesEaten : -1);
 
 	// Update visual effects (continuous, not tick-based)
 	m_particles.Update(l_dt);
@@ -427,6 +442,56 @@ void PlayState::Update(float l_dt)
 		}
 	}
 
+	// Predator (Level 8)
+	if (m_levelConfig.hasPredator && m_levelCompleteDelay < 0.0f)
+	{
+		m_predator.Update(l_dt, m_world, m_snake);
+
+		// Check if predator moved onto player head
+		if (m_predator.HitPlayer(m_snake.GetPosition()))
+		{
+			m_snake.LoseStatus(true);
+			OnDeath();
+			return;
+		}
+
+		if (m_predator.JustAteApple())
+		{
+			m_predatorApplesEaten++;
+
+			// World shrinks when predator eats apple
+			Window& window = m_stateManager.GetWindow();
+			m_world.TriggerShrink(window, m_snake);
+			m_lastShrinkCount = m_world.GetShrinkCount();
+			m_stateManager.GetAudio().PlaySound("predator_eat");
+			m_screenShake.Trigger(0.3f, 3.0f);
+			m_world.FlashBorders(0.2f);
+
+			// Score penalty
+			m_stateManager.score = std::max(0, m_stateManager.score - 150);
+			sf::Vector2f ap(m_world.GetApplePos().x * m_snake.GetBlockSize(),
+							m_world.GetApplePos().y * m_snake.GetBlockSize());
+			m_particles.SpawnFloatingText("-150", ap, sf::Color(100, 100, 255));
+
+			// Respawn apple
+			m_world.RespawnApple(m_snake);
+
+			// Lose condition: predator ate 5 apples
+			if (m_predatorApplesEaten >= 5)
+				m_snake.LoseStatus(true);
+
+			// Check if shrink crushed the snake
+			m_world.CheckCollision(window, m_snake);
+			if (m_snake.HasLost()) { OnDeath(); return; }
+		}
+
+		if (m_predator.JustStartedHunting())
+		{
+			m_stateManager.GetAudio().PlaySound("predator_hunt");
+			m_screenShake.Trigger(0.5f, 4.0f);
+		}
+	}
+
 	// Deferred level-complete transition (lets particles render first)
 	if (m_levelCompleteDelay >= 0.0f)
 	{
@@ -485,6 +550,9 @@ void PlayState::Render()
 		}
 	}
 
+	if (m_levelConfig.hasPredator)
+		m_predator.Render(window, m_snake.GetBlockSize());
+
 	m_snake.Render(window);
 	m_particles.Render(window);
 
@@ -530,6 +598,10 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 		m_poisonApple.OnRealAppleEaten();
 		m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
 	}
+
+	// Predator: notify that player got the apple
+	if (m_levelConfig.hasPredator)
+		m_predator.OnPlayerAteApple();
 
 	// Timed apples: reset timer with adjusted duration
 	if (m_levelConfig.hasTimedApples)
