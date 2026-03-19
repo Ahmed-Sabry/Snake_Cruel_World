@@ -304,6 +304,22 @@ void AudioManager::GenerateDefaultSounds()
 		StoreSamples("mirror_flip", samples, RATE);
 	}
 
+	// --- earthquake: deep rumble with stone grinding (800ms) ---
+	if (m_buffers.find("earthquake") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.8f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			float env = (t < 0.1f) ? (t / 0.1f) : expDecay(t - 0.1f, 3.0f);
+			float rumble = sine(t, 35.0f) + 0.7f * sine(t, 55.0f) + 0.3f * sine(t, 80.0f);
+			float grind = RandomNoise() * 0.4f * expDecay(t, 4.0f);
+			samples[i] = (sf::Int16)(env * 18000.0f * (rumble * 0.6f + grind));
+		}
+		StoreSamples("earthquake", samples, RATE);
+	}
+
 	// --- apple_miss: descending disappointment tone (200ms) ---
 	if (m_buffers.find("apple_miss") == m_buffers.end())
 	{

@@ -13,6 +13,7 @@
 #include "MirrorGhost.h"
 #include "TimedApple.h"
 #include "PoisonApple.h"
+#include "Earthquake.h"
 
 class PlayState : public BaseState
 {
@@ -46,6 +47,7 @@ private:
 	MirrorGhost m_mirrorGhost;
 	TimedApple m_timedApple;
 	PoisonApple m_poisonApple;
+	Earthquake m_earthquake;
 	sf::CircleShape m_realPulse; // reused each frame for Phase 2 apple pulse
 	int m_mirrorFlipCounter;
 

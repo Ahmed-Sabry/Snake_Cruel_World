@@ -45,6 +45,13 @@ public:
 	void TriggerShrink(Window& l_window, Snake& l_snake);
 	void SetAppleColor(sf::Color l_color);
 
+	// Per-side border offsets (for earthquake mechanic)
+	void SetBorderOffset(int l_side, float l_offsetPixels);
+	float GetBorderOffset(int l_side) const;
+	void ResetBorderOffsets();
+	float GetEffectiveThickness(int l_side) const;
+	bool IsAppleInBounds(float l_blockSize) const;
+
 	inline float GetBorderThickness() const { return m_borderThickness; }
 	inline float GetMaxX() const { return m_maxX; }
 	inline float GetMaxY() const { return m_maxY; }
@@ -72,6 +79,8 @@ private:
 	int m_shrinkInterval;
 	float m_shrinkTimerSec;
 	float m_shrinkTimerAccum;
+
+	float m_borderOffset[4]; // per-side offset in pixels: 0=top, 1=right, 2=bottom, 3=left
 };
 
 inline float Random(int a, int b)

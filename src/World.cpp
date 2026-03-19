@@ -6,6 +6,7 @@ World::World(Window& l_window, Snake& l_snake)
 	m_topOffset = 0.f;
 	m_flashTimer = 0.0f;
 	m_normalBorderColor = sf::Color(200, 100, 50);
+	ResetBorderOffsets();
 	Reset(l_window, l_snake);
 
 	m_appleRaduis = l_snake.GetBlockSize() / 2;
@@ -25,6 +26,7 @@ World::~World()
 void World::Reset(Window& l_window, Snake& l_snake)
 {
 	m_borderThickness = l_snake.GetBlockSize();
+	ResetBorderOffsets();
 	Borders(l_window);
 	m_count = 0;
 	m_totalApplesEaten = 0;
@@ -72,21 +74,28 @@ void World::SetTopOffset(float l_offset)
 
 void World::Borders(Window& l_window)
 {
+	float winWidth = (float)l_window.GetWindowSize().x;
 	float winHeight = (float)l_window.GetWindowSize().y;
 
+	float effTop    = m_borderThickness + m_borderOffset[0];
+	float effRight  = m_borderThickness + m_borderOffset[1];
+	float effBottom = m_borderThickness + m_borderOffset[2];
+	float effLeft   = m_borderThickness + m_borderOffset[3];
+
 	for (int i = 0; i < 4; i++)
-	{
 		m_borders[i].setFillColor(m_normalBorderColor);
 
-		if (i % 2)																			// if odd
-			m_borders[i].setSize({ m_borderThickness, winHeight - m_topOffset });			// Right & Left
-		else																				// if even
-			m_borders[i].setSize({ (float)l_window.GetWindowSize().x, m_borderThickness }); // Top & Down
-	}
-
+	// Top
+	m_borders[0].setSize({ winWidth, effTop });
 	m_borders[0].setPosition({ 0, m_topOffset });
-	m_borders[2].setPosition({ 0, winHeight - m_borderThickness });
-	m_borders[1].setPosition({ (float)l_window.GetWindowSize().x - m_borderThickness, m_topOffset });
+	// Right
+	m_borders[1].setSize({ effRight, winHeight - m_topOffset });
+	m_borders[1].setPosition({ winWidth - effRight, m_topOffset });
+	// Bottom
+	m_borders[2].setSize({ winWidth, effBottom });
+	m_borders[2].setPosition({ 0, winHeight - effBottom });
+	// Left
+	m_borders[3].setSize({ effLeft, winHeight - m_topOffset });
 	m_borders[3].setPosition({ 0, m_topOffset });
 }
 
@@ -98,10 +107,10 @@ void World::NarrowWorld(Window& l_window, Snake& l_snake)
 
 	// If apple is now inside a wall, respawn it within new bounds
 	float bs = l_snake.GetBlockSize();
-	float xLeft = m_borderThickness / bs;
-	float xRight = m_maxX - (m_borderThickness / bs) - 2 * (m_appleRaduis / bs);
-	float yTop = (m_borderThickness + m_topOffset) / bs;
-	float yBottom = m_maxY - (m_borderThickness / bs) - 2 * (m_appleRaduis / bs);
+	float xLeft = (m_borderThickness + m_borderOffset[3]) / bs;
+	float xRight = m_maxX - (m_borderThickness + m_borderOffset[1]) / bs - 2 * (m_appleRaduis / bs);
+	float yTop = (m_borderThickness + m_borderOffset[0] + m_topOffset) / bs;
+	float yBottom = m_maxY - (m_borderThickness + m_borderOffset[2]) / bs - 2 * (m_appleRaduis / bs);
 
 	if (m_applePos.x < xLeft || m_applePos.x > xRight ||
 		m_applePos.y < yTop || m_applePos.y > yBottom)
@@ -113,10 +122,10 @@ void World::NarrowWorld(Window& l_window, Snake& l_snake)
 void World::RespawnApple(Snake& l_snake)
 {
 	float bs = l_snake.GetBlockSize();
-	int xMin = (int)(m_borderThickness / bs);
-	int xMax = (int)(m_maxX - (m_borderThickness / bs) - 2 * (m_appleRaduis / bs));
-	int yMin = (int)((m_borderThickness + m_topOffset) / bs);
-	int yMax = (int)(m_maxY - (m_borderThickness / bs) - 2 * (m_appleRaduis / bs));
+	int xMin = (int)((m_borderThickness + m_borderOffset[3]) / bs);
+	int xMax = (int)(m_maxX - (m_borderThickness + m_borderOffset[1]) / bs - 2 * (m_appleRaduis / bs));
+	int yMin = (int)((m_borderThickness + m_borderOffset[0] + m_topOffset) / bs);
+	int yMax = (int)(m_maxY - (m_borderThickness + m_borderOffset[2]) / bs - 2 * (m_appleRaduis / bs));
 
 	// If eating this apple will trigger a shrink, add 1-block inward margin
 	// so the snake won't be crushed by the border moving inward
@@ -141,12 +150,14 @@ void World::RespawnApple(Snake& l_snake)
 
 void World::CheckCollision(Window& l_window, Snake& l_snake)
 {
-	float xLeft = m_borderThickness / l_snake.GetBlockSize();
-	float xRight = m_maxX - (m_borderThickness / l_snake.GetBlockSize()) - 1;
-	float yLeft = (m_borderThickness + m_topOffset) / l_snake.GetBlockSize();
-	float yRight = m_maxY - (m_borderThickness / l_snake.GetBlockSize()) - 1;
+	float bs = l_snake.GetBlockSize();
+	float xLeft = (m_borderThickness + m_borderOffset[3]) / bs;
+	float xRight = m_maxX - (m_borderThickness + m_borderOffset[1]) / bs - 1;
+	float yTop = (m_borderThickness + m_borderOffset[0] + m_topOffset) / bs;
+	float yBottom = m_maxY - (m_borderThickness + m_borderOffset[2]) / bs - 1;
 
-	if ((l_snake.GetPosition().x < xLeft) || (l_snake.GetPosition().x > xRight) || (l_snake.GetPosition().y < yLeft) || (l_snake.GetPosition().y > yRight))
+	if ((l_snake.GetPosition().x < xLeft) || (l_snake.GetPosition().x > xRight) ||
+		(l_snake.GetPosition().y < yTop) || (l_snake.GetPosition().y > yBottom))
 	{
 		l_snake.LoseStatus(true);
 		Reset(l_window, l_snake);
@@ -198,6 +209,42 @@ void World::UpdateTimedShrink(float l_dt, Window& l_window, Snake& l_snake)
 void World::TriggerShrink(Window& l_window, Snake& l_snake)
 {
 	NarrowWorld(l_window, l_snake);
+}
+
+void World::SetBorderOffset(int l_side, float l_offsetPixels)
+{
+	if (l_side >= 0 && l_side < 4)
+		m_borderOffset[l_side] = l_offsetPixels;
+}
+
+float World::GetBorderOffset(int l_side) const
+{
+	return (l_side >= 0 && l_side < 4) ? m_borderOffset[l_side] : 0.0f;
+}
+
+void World::ResetBorderOffsets()
+{
+	for (int i = 0; i < 4; i++)
+		m_borderOffset[i] = 0.0f;
+}
+
+float World::GetEffectiveThickness(int l_side) const
+{
+	if (l_side >= 0 && l_side < 4)
+		return m_borderThickness + m_borderOffset[l_side];
+	return m_borderThickness;
+}
+
+bool World::IsAppleInBounds(float l_blockSize) const
+{
+	float bs = l_blockSize;
+	float xLeft = (m_borderThickness + m_borderOffset[3]) / bs;
+	float xRight = m_maxX - (m_borderThickness + m_borderOffset[1]) / bs - 2 * (m_appleRaduis / bs);
+	float yTop = (m_borderThickness + m_borderOffset[0] + m_topOffset) / bs;
+	float yBottom = m_maxY - (m_borderThickness + m_borderOffset[2]) / bs - 2 * (m_appleRaduis / bs);
+
+	return m_applePos.x >= xLeft && m_applePos.x <= xRight &&
+		   m_applePos.y >= yTop && m_applePos.y <= yBottom;
 }
 
 void World::SetAppleColor(sf::Color l_color)

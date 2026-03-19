@@ -78,10 +78,10 @@ void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float 
 	m_pos = { -1, -1 }; // reset so stale position is never kept on failure
 
 	float bs = l_blockSize;
-	int xMin = (int)(l_world.GetBorderThickness() / bs);
-	int xMax = (int)(l_world.GetMaxX() - l_world.GetBorderThickness() / bs - 1);
-	int yMin = (int)((l_world.GetBorderThickness() + l_world.GetTopOffset()) / bs);
-	int yMax = (int)(l_world.GetMaxY() - l_world.GetBorderThickness() / bs - 1);
+	int xMin = (int)(l_world.GetEffectiveThickness(3) / bs);
+	int xMax = (int)(l_world.GetMaxX() - l_world.GetEffectiveThickness(1) / bs - 1);
+	int yMin = (int)((l_world.GetEffectiveThickness(0) + l_world.GetTopOffset()) / bs);
+	int yMax = (int)(l_world.GetMaxY() - l_world.GetEffectiveThickness(2) / bs - 1);
 
 	if (xMin > xMax) xMin = xMax;
 	if (yMin > yMax) yMin = yMax;
