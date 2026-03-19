@@ -78,10 +78,10 @@ void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float 
 	m_pos = { -1, -1 }; // reset so stale position is never kept on failure
 
 	float bs = l_blockSize;
-	int xMin = (int)(l_world.GetBorderThickness() / bs);
-	int xMax = (int)(l_world.GetMaxX() - l_world.GetBorderThickness() / bs - 1);
-	int yMin = (int)((l_world.GetBorderThickness() + l_world.GetTopOffset()) / bs);
-	int yMax = (int)(l_world.GetMaxY() - l_world.GetBorderThickness() / bs - 1);
+	int xMin = (int)(l_world.GetEffectiveThickness(3) / bs);
+	int xMax = (int)(l_world.GetMaxX() - l_world.GetEffectiveThickness(1) / bs - 1);
+	int yMin = (int)((l_world.GetEffectiveThickness(0) + l_world.GetTopOffset()) / bs);
+	int yMax = (int)(l_world.GetMaxY() - l_world.GetEffectiveThickness(2) / bs - 1);
 
 	if (xMin > xMax) xMin = xMax;
 	if (yMin > yMax) yMin = yMax;
@@ -244,4 +244,18 @@ int PoisonApple::GetRealApplesEaten() const
 sf::Vector2f PoisonApple::GetPixelPos(float l_blockSize) const
 {
 	return { m_pos.x * l_blockSize, m_pos.y * l_blockSize };
+}
+
+bool PoisonApple::IsInBounds(const World& l_world, float l_blockSize) const
+{
+	if (m_pos.x < 0) return true; // not spawned
+
+	float bs = l_blockSize;
+	float xMin = l_world.GetEffectiveThickness(3) / bs;
+	float xMax = l_world.GetMaxX() - l_world.GetEffectiveThickness(1) / bs - 1;
+	float yMin = (l_world.GetEffectiveThickness(0) + l_world.GetTopOffset()) / bs;
+	float yMax = l_world.GetMaxY() - l_world.GetEffectiveThickness(2) / bs - 1;
+
+	return m_pos.x >= xMin && m_pos.x <= xMax &&
+		   m_pos.y >= yMin && m_pos.y <= yMax;
 }

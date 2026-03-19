@@ -85,8 +85,10 @@ void PlayState::OnEnter()
 
 	if (m_levelConfig.hasQuicksand)
 	{
+		float maxThick = std::max({m_world.GetEffectiveThickness(0), m_world.GetEffectiveThickness(1),
+								   m_world.GetEffectiveThickness(2), m_world.GetEffectiveThickness(3)});
 		m_quicksand.Reset(m_world.GetMaxX(), m_world.GetMaxY(),
-						  m_world.GetBorderThickness(), m_snake.GetBlockSize(),
+						  maxThick, m_snake.GetBlockSize(),
 						  m_world.GetTopOffset());
 	}
 
@@ -101,6 +103,9 @@ void PlayState::OnEnter()
 		m_poisonApple.Reset(m_snake.GetBlockSize());
 		m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
 	}
+
+	if (m_levelConfig.hasEarthquakes)
+		m_earthquake.Reset(m_snake.GetBlockSize());
 }
 
 void PlayState::OnExit()
@@ -239,10 +244,10 @@ void PlayState::Update(float l_dt)
 		if (m_levelConfig.hasMirrorGhost)
 		{
 			float bs = m_snake.GetBlockSize();
-			float centerX = (m_world.GetBorderThickness() / bs +
-							 m_world.GetMaxX() - m_world.GetBorderThickness() / bs - 1) / 2.0f;
-			float centerY = ((m_world.GetBorderThickness() + m_world.GetTopOffset()) / bs +
-							 m_world.GetMaxY() - m_world.GetBorderThickness() / bs - 1) / 2.0f;
+			float centerX = (m_world.GetEffectiveThickness(3) / bs +
+							 m_world.GetMaxX() - m_world.GetEffectiveThickness(1) / bs - 1) / 2.0f;
+			float centerY = ((m_world.GetEffectiveThickness(0) + m_world.GetTopOffset()) / bs +
+							 m_world.GetMaxY() - m_world.GetEffectiveThickness(2) / bs - 1) / 2.0f;
 			m_mirrorGhost.Update(m_snake, centerX, centerY);
 
 			if (m_mirrorGhost.CheckCollision(m_snake.GetPosition()))
@@ -317,8 +322,10 @@ void PlayState::Update(float l_dt)
 	// Quicksand speed modifier (Level 3)
 	if (m_levelConfig.hasQuicksand)
 	{
+		float maxThick = std::max({m_world.GetEffectiveThickness(0), m_world.GetEffectiveThickness(1),
+								   m_world.GetEffectiveThickness(2), m_world.GetEffectiveThickness(3)});
 		m_quicksand.Update(l_dt, m_world.GetMaxX(), m_world.GetMaxY(),
-						   m_world.GetBorderThickness(), m_snake.GetBlockSize(),
+						   maxThick, m_snake.GetBlockSize(),
 						   m_world.GetTopOffset());
 
 		if (m_quicksand.IsOnQuicksand(m_snake.GetPosition()))
@@ -393,6 +400,33 @@ void PlayState::Update(float l_dt)
 		}
 	}
 
+	// Earthquake (Level 7)
+	if (m_levelConfig.hasEarthquakes && m_levelCompleteDelay < 0.0f)
+	{
+		Window& window = m_stateManager.GetWindow();
+		m_earthquake.Update(l_dt, m_world, window);
+
+		if (m_earthquake.IsWarning())
+			m_screenShake.Trigger(0.1f, 1.5f);
+
+		if (m_earthquake.JustQuaked())
+		{
+			m_screenShake.Trigger(0.6f, 6.0f);
+			m_stateManager.GetAudio().PlaySound("earthquake");
+			m_world.FlashBorders(0.3f);
+
+			// Only respawn apple/poison if they're now inside a wall
+			if (!m_world.IsAppleInBounds(m_snake.GetBlockSize()))
+				m_world.RespawnApple(m_snake);
+
+			if (m_levelConfig.hasPoisonApples && !m_poisonApple.IsInBounds(m_world, m_snake.GetBlockSize()))
+				m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
+
+			m_world.CheckCollision(window, m_snake);
+			if (m_snake.HasLost()) { OnDeath(); return; }
+		}
+	}
+
 	// Deferred level-complete transition (lets particles render first)
 	if (m_levelCompleteDelay >= 0.0f)
 	{
@@ -408,6 +442,9 @@ void PlayState::Render()
 
 	m_world.Render(window);
 
+	if (m_levelConfig.hasEarthquakes)
+		m_earthquake.Render(window, m_world);
+
 	if (m_levelConfig.hasQuicksand)
 		m_quicksand.Render(window, m_snake.GetBlockSize());
 
@@ -422,10 +459,10 @@ void PlayState::Render()
 	if (m_levelConfig.hasMirrorGhost)
 	{
 		float bs = m_snake.GetBlockSize();
-		int bMinX = (int)(m_world.GetBorderThickness() / bs);
-		int bMaxX = (int)(m_world.GetMaxX() - m_world.GetBorderThickness() / bs - 1);
-		int bMinY = (int)((m_world.GetBorderThickness() + m_world.GetTopOffset()) / bs);
-		int bMaxY = (int)(m_world.GetMaxY() - m_world.GetBorderThickness() / bs - 1);
+		int bMinX = (int)(m_world.GetEffectiveThickness(3) / bs);
+		int bMaxX = (int)(m_world.GetMaxX() - m_world.GetEffectiveThickness(1) / bs - 1);
+		int bMinY = (int)((m_world.GetEffectiveThickness(0) + m_world.GetTopOffset()) / bs);
+		int bMaxY = (int)(m_world.GetMaxY() - m_world.GetEffectiveThickness(2) / bs - 1);
 		m_mirrorGhost.Render(window, bs, bMinX, bMaxX, bMinY, bMaxY);
 	}
 

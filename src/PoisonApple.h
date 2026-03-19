@@ -25,6 +25,7 @@ public:
 	int GetGrowAmount() const;
 	int GetRealApplesEaten() const;
 	sf::Vector2f GetPixelPos(float l_blockSize) const;
+	bool IsInBounds(const World& l_world, float l_blockSize) const;
 
 private:
 	sf::CircleShape m_shape;
