@@ -341,6 +341,20 @@ void PlayState::Update(float l_dt)
 		m_poisonApple.Update(l_dt);
 		if (m_poisonApple.GetSpeedMultiplier() > 1.0f)
 			m_speedModifier *= m_poisonApple.GetSpeedMultiplier();
+
+		// Snake color flash when poisoned (driven from Update, not Render)
+		if (m_poisonApple.IsControlInverted())
+		{
+			float flash = std::sin(m_gameTime * 10.0f);
+			if (flash > 0)
+				m_snake.SetColors(sf::Color::Magenta, sf::Color(200, 0, 100));
+			else
+				m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
+		}
+		else
+		{
+			m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
+		}
 	}
 
 	// Timed apples (Level 5)
@@ -415,7 +429,7 @@ void PlayState::Render()
 		m_mirrorGhost.Render(window, bs, bMinX, bMaxX, bMinY, bMaxY);
 	}
 
-	// Poison apple rendering + snake flash
+	// Poison apple rendering + Phase 2 real apple pulse
 	if (m_levelConfig.hasPoisonApples)
 	{
 		m_poisonApple.Render(window, m_snake.GetBlockSize());
@@ -424,28 +438,13 @@ void PlayState::Render()
 		if (m_poisonApple.GetRealApplesEaten() >= 8)
 		{
 			float pulseRadius = (m_snake.GetBlockSize() / 2.0f) + std::sin(m_gameTime * 4.0f) * 1.0f;
-			sf::CircleShape realPulse;
-			realPulse.setRadius(pulseRadius);
 			float baseRadius = m_snake.GetBlockSize() / 2.0f;
-			realPulse.setOrigin(pulseRadius - baseRadius, pulseRadius - baseRadius);
-			realPulse.setFillColor(m_levelConfig.apple);
-			realPulse.setPosition(m_world.GetApplePos().x * m_snake.GetBlockSize(),
-								  m_world.GetApplePos().y * m_snake.GetBlockSize());
-			window.Draw(realPulse);
-		}
-
-		// Snake flash when poisoned, restore when not
-		if (m_poisonApple.IsControlInverted())
-		{
-			float flash = std::sin(m_gameTime * 10.0f);
-			if (flash > 0)
-				m_snake.SetColors(sf::Color::Magenta, sf::Color(200, 0, 100));
-			else
-				m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
-		}
-		else
-		{
-			m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
+			m_realPulse.setRadius(pulseRadius);
+			m_realPulse.setOrigin(pulseRadius - baseRadius, pulseRadius - baseRadius);
+			m_realPulse.setFillColor(m_levelConfig.apple);
+			m_realPulse.setPosition(m_world.GetApplePos().x * m_snake.GetBlockSize(),
+									m_world.GetApplePos().y * m_snake.GetBlockSize());
+			window.Draw(m_realPulse);
 		}
 	}
 

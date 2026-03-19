@@ -46,6 +46,7 @@ private:
 	MirrorGhost m_mirrorGhost;
 	TimedApple m_timedApple;
 	PoisonApple m_poisonApple;
+	sf::CircleShape m_realPulse; // reused each frame for Phase 2 apple pulse
 	int m_mirrorFlipCounter;
 
 	float m_elapsedTime;

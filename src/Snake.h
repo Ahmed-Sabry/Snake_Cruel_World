@@ -49,7 +49,7 @@ public:
 	{
 		return m_blockSize;
 	}
-	inline bool HasLost()
+	inline bool HasLost() const
 	{
 		return m_lose;
 	}
@@ -57,7 +57,7 @@ public:
 	{
 		m_lose = l_state;
 	}
-	inline bool DidSelfCollide()
+	inline bool DidSelfCollide() const
 	{
 		return m_selfCollided;
 	}

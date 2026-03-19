@@ -162,6 +162,7 @@ void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float 
 		py = std::max(yMin, std::min(yMax, py));
 
 		// If overlaps real apple or snake, offset randomly
+		bool placed = false;
 		for (int attempt = 0; attempt < 50; attempt++)
 		{
 			if (px == (int)applePos.x && py == (int)applePos.y)
@@ -177,14 +178,15 @@ void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float 
 			{
 				if (seg.x == px && seg.y == py) { onSnake = true; break; }
 			}
-			if (!onSnake) break;
+			if (!onSnake) { placed = true; break; }
 			px += RandomInt(-2, 2);
 			py += RandomInt(-2, 2);
 			px = std::max(xMin, std::min(xMax, px));
 			py = std::max(yMin, std::min(yMax, py));
 		}
 
-		m_pos = { (float)px, (float)py };
+		if (placed)
+			m_pos = { (float)px, (float)py };
 	}
 }
 
