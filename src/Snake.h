@@ -33,11 +33,11 @@ public:
 	{
 		m_dir = l_dir;
 	}
-	inline Direction GetDirection()
+	inline Direction GetDirection() const
 	{
 		return m_dir;
 	}
-	inline float GetSpeed()
+	inline float GetSpeed() const
 	{
 		return m_speed;
 	}

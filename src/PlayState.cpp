@@ -2,6 +2,7 @@
 #include "AudioManager.h"
 #include <algorithm>
 #include <string>
+#include <cmath>
 
 PlayState::PlayState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
@@ -94,6 +95,12 @@ void PlayState::OnEnter()
 
 	if (m_levelConfig.hasTimedApples)
 		m_timedApple.Reset(m_levelConfig.appleTimerSec);
+
+	if (m_levelConfig.hasPoisonApples)
+	{
+		m_poisonApple.Reset(m_snake.GetBlockSize());
+		m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
+	}
 }
 
 void PlayState::OnExit()
@@ -133,25 +140,42 @@ void PlayState::HandleInput()
 		m_rReleased = true;
 	}
 
-	// Snake direction (arrow keys)
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) && m_snake.GetDirection() != Direction::Down)
-		m_snake.SetDirection(Direction::Up);
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) && m_snake.GetDirection() != Direction::Up)
-		m_snake.SetDirection(Direction::Down);
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) && m_snake.GetDirection() != Direction::Left)
-		m_snake.SetDirection(Direction::Right);
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) && m_snake.GetDirection() != Direction::Right)
-		m_snake.SetDirection(Direction::Left);
+	// Determine desired direction from input
+	Direction inputDir = Direction::None;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+		inputDir = Direction::Up;
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+		inputDir = Direction::Down;
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+		inputDir = Direction::Right;
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+		inputDir = Direction::Left;
 
-	// WASD support
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && m_snake.GetDirection() != Direction::Down)
-		m_snake.SetDirection(Direction::Up);
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) && m_snake.GetDirection() != Direction::Up)
-		m_snake.SetDirection(Direction::Down);
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) && m_snake.GetDirection() != Direction::Left)
-		m_snake.SetDirection(Direction::Right);
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) && m_snake.GetDirection() != Direction::Right)
-		m_snake.SetDirection(Direction::Left);
+	// Poison: invert controls when active
+	if (inputDir != Direction::None && m_levelConfig.hasPoisonApples && m_poisonApple.IsControlInverted())
+	{
+		switch (inputDir)
+		{
+			case Direction::Up:    inputDir = Direction::Down;  break;
+			case Direction::Down:  inputDir = Direction::Up;    break;
+			case Direction::Left:  inputDir = Direction::Right; break;
+			case Direction::Right: inputDir = Direction::Left;  break;
+			default: break;
+		}
+	}
+
+	// Apply direction (prevent 180-degree reversal)
+	if (inputDir != Direction::None)
+	{
+		Direction cur = m_snake.GetDirection();
+		bool valid = true;
+		if (inputDir == Direction::Up && cur == Direction::Down) valid = false;
+		if (inputDir == Direction::Down && cur == Direction::Up) valid = false;
+		if (inputDir == Direction::Left && cur == Direction::Right) valid = false;
+		if (inputDir == Direction::Right && cur == Direction::Left) valid = false;
+		if (valid)
+			m_snake.SetDirection(inputDir);
+	}
 
 	// Cheat code
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
@@ -225,6 +249,27 @@ void PlayState::Update(float l_dt)
 				m_snake.LoseStatus(true);
 		}
 
+		// Check poison apple collision
+		if (m_levelConfig.hasPoisonApples)
+		{
+			if (m_poisonApple.CheckCollision(m_snake.GetPosition()))
+			{
+				m_poisonApple.OnPoisonEaten();
+				m_stateManager.score = std::max(0, m_stateManager.score - 200);
+				UpdateCombo(true);
+
+				sf::Vector2f poisonPixelPos = m_poisonApple.GetPixelPos(m_snake.GetBlockSize());
+				m_particles.SpawnAppleBurst(poisonPixelPos, sf::Color::Magenta);
+				m_particles.SpawnFloatingText("-200", poisonPixelPos, sf::Color(255, 50, 100));
+				m_stateManager.GetAudio().PlaySound("self_collide");
+
+				for (int i = 0; i < m_poisonApple.GetGrowAmount(); i++)
+					m_snake.Extend();
+
+				m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
+			}
+		}
+
 		// Check death
 		if (m_snake.HasLost())
 		{
@@ -288,6 +333,14 @@ void PlayState::Update(float l_dt)
 		// Shrink may have moved borders onto the snake
 		m_world.CheckCollision(window, m_snake);
 		if (m_snake.HasLost()) { OnDeath(); return; }
+	}
+
+	// Poison apples (Level 6)
+	if (m_levelConfig.hasPoisonApples)
+	{
+		m_poisonApple.Update(l_dt);
+		if (m_poisonApple.GetSpeedMultiplier() > 1.0f)
+			m_speedModifier *= m_poisonApple.GetSpeedMultiplier();
 	}
 
 	// Timed apples (Level 5)
@@ -362,6 +415,40 @@ void PlayState::Render()
 		m_mirrorGhost.Render(window, bs, bMinX, bMaxX, bMinY, bMaxY);
 	}
 
+	// Poison apple rendering + snake flash
+	if (m_levelConfig.hasPoisonApples)
+	{
+		m_poisonApple.Render(window, m_snake.GetBlockSize());
+
+		// In Phase 2, make the real apple pulse too
+		if (m_poisonApple.GetRealApplesEaten() >= 8)
+		{
+			float pulseRadius = (m_snake.GetBlockSize() / 2.0f) + std::sin(m_gameTime * 4.0f) * 1.0f;
+			sf::CircleShape realPulse;
+			realPulse.setRadius(pulseRadius);
+			float baseRadius = m_snake.GetBlockSize() / 2.0f;
+			realPulse.setOrigin(pulseRadius - baseRadius, pulseRadius - baseRadius);
+			realPulse.setFillColor(m_levelConfig.apple);
+			realPulse.setPosition(m_world.GetApplePos().x * m_snake.GetBlockSize(),
+								  m_world.GetApplePos().y * m_snake.GetBlockSize());
+			window.Draw(realPulse);
+		}
+
+		// Snake flash when poisoned, restore when not
+		if (m_poisonApple.IsControlInverted())
+		{
+			float flash = std::sin(m_gameTime * 10.0f);
+			if (flash > 0)
+				m_snake.SetColors(sf::Color::Magenta, sf::Color(200, 0, 100));
+			else
+				m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
+		}
+		else
+		{
+			m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
+		}
+	}
+
 	m_snake.Render(window);
 	m_particles.Render(window);
 
@@ -399,6 +486,13 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 			m_stateManager.GetAudio().PlaySound("mirror_flip");
 			m_screenShake.Trigger(0.2f, 2.0f);
 		}
+	}
+
+	// Poison apples: notify real apple eaten, respawn poison
+	if (m_levelConfig.hasPoisonApples)
+	{
+		m_poisonApple.OnRealAppleEaten();
+		m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
 	}
 
 	// Timed apples: reset timer with adjusted duration

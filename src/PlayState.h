@@ -12,6 +12,7 @@
 #include "Quicksand.h"
 #include "MirrorGhost.h"
 #include "TimedApple.h"
+#include "PoisonApple.h"
 
 class PlayState : public BaseState
 {
@@ -44,6 +45,7 @@ private:
 	Quicksand m_quicksand;
 	MirrorGhost m_mirrorGhost;
 	TimedApple m_timedApple;
+	PoisonApple m_poisonApple;
 	int m_mirrorFlipCounter;
 
 	float m_elapsedTime;
