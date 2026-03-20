@@ -21,7 +21,7 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	}
 
 	// Version marker
-	int version = 2;
+	int version = 3;
 	file.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
 	// === V1 block (backwards-compatible) ===
@@ -52,6 +52,9 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 
 	// Active skin index
 	file.write(reinterpret_cast<const char*>(&l_state.activeSkinIndex), sizeof(l_state.activeSkinIndex));
+
+	// === V3 block ===
+	file.write(reinterpret_cast<const char*>(&l_state.introPlayed), sizeof(l_state.introPlayed));
 
 	file.close();
 }
@@ -169,6 +172,14 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			if (stats.deathsPerLevel[i] < 0) stats.deathsPerLevel[i] = 0;
 			if (stats.attemptsPerLevel[i] < 0) stats.attemptsPerLevel[i] = 0;
 		}
+	}
+
+	// === V3 block (only if version >= 3) ===
+	if (version >= 3)
+	{
+		file.read(reinterpret_cast<char*>(&l_state.introPlayed), sizeof(l_state.introPlayed));
+		if (file.fail())
+			l_state.introPlayed = false;
 	}
 
 	file.close();

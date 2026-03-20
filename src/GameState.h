@@ -15,7 +15,8 @@ enum class StateType
 	Settings,
 	Achievements,
 	Statistics,
-	SkinSelect
+	SkinSelect,
+	Cutscene
 };
 
 class StateManager; // forward declaration
