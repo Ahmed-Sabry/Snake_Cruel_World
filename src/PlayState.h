@@ -110,6 +110,7 @@ private:
 
 	// Achievement/statistics tracking
 	int m_quicksandTouches;
+	bool m_wasOnQuicksand;
 	int m_timedAppleMisses;
 	int m_poisonApplesThisLevel;
 	bool m_reachedMinBody;            // self-collision reduced body to 1 segment

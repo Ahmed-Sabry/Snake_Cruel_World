@@ -45,6 +45,7 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_borderHatchTimer(0.0f),
 	  m_borderHatchDuration(0.3f),
 	  m_quicksandTouches(0),
+	  m_wasOnQuicksand(false),
 	  m_timedAppleMisses(0),
 	  m_poisonApplesThisLevel(0),
 	  m_reachedMinBody(false),
@@ -132,6 +133,7 @@ void PlayState::OnEnter()
 
 	// Achievement/statistics tracking resets
 	m_quicksandTouches = 0;
+	m_wasOnQuicksand = false;
 	m_timedAppleMisses = 0;
 	m_poisonApplesThisLevel = 0;
 	m_reachedMinBody = false;
@@ -875,11 +877,14 @@ void PlayState::Update(float l_dt)
 						   maxThick, m_snake.GetBlockSize(),
 						   m_world.GetTopOffset());
 
-		if (m_quicksand.IsOnQuicksand(m_snake.GetPosition()))
+		bool onQuicksand = m_quicksand.IsOnQuicksand(m_snake.GetPosition());
+		if (onQuicksand)
 		{
 			m_speedModifier *= 0.5f;
-			m_quicksandTouches++;
+			if (!m_wasOnQuicksand)
+				m_quicksandTouches++;
 		}
+		m_wasOnQuicksand = onQuicksand;
 	}
 
 	// Timer-based world shrinking (Level 3)

@@ -139,8 +139,13 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 		if (file.fail())
 		{
 			std::cerr << "SaveManager: Error reading v2 data, keeping v1 progress." << std::endl;
-			// v1 data is already loaded and valid, v2 stays at defaults
+			// Reset v2 state to safe defaults — partial reads may leave garbage
+			stats = CumulativeStats{};
+			l_state.activeSkinIndex = 0;
+			file.close();
+			return;
 		}
+
 		int numSkins = (int)GetAllSkins().size();
 		if (l_state.activeSkinIndex < 0 || l_state.activeSkinIndex >= numSkins)
 			l_state.activeSkinIndex = 0;
