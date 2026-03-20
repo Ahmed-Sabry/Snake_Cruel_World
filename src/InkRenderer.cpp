@@ -22,6 +22,24 @@ float InkRenderer::Wobble(unsigned int l_seed, int l_index, float l_corruption)
 	return normalized * l_corruption * 3.0f;
 }
 
+sf::Color InkRenderer::HsvToRgb(float l_h, float l_s, float l_v)
+{
+	float h = std::fmod(l_h, 360.0f);
+	if (h < 0.0f) h += 360.0f;
+	float c = l_v * l_s;
+	float x = c * (1.0f - std::fabs(std::fmod(h / 60.0f, 2.0f) - 1.0f));
+	float m = l_v - c;
+	float r = 0, g = 0, b = 0;
+	if (h < 60)       { r = c; g = x; }
+	else if (h < 120) { r = x; g = c; }
+	else if (h < 180) { g = c; b = x; }
+	else if (h < 240) { g = x; b = c; }
+	else if (h < 300) { r = x; b = c; }
+	else              { r = c; b = x; }
+	return sf::Color((sf::Uint8)((r + m) * 255), (sf::Uint8)((g + m) * 255),
+					 (sf::Uint8)((b + m) * 255));
+}
+
 void InkRenderer::DrawWobblyRect(sf::RenderTarget& l_target,
 								 float l_x, float l_y, float l_w, float l_h,
 								 const sf::Color& l_fillColor,

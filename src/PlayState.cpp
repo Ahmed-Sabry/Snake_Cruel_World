@@ -128,6 +128,13 @@ void PlayState::OnEnter()
 	if (!m_stateManager.endlessMode)
 		m_stateManager.GetStats().OnLevelStart(m_stateManager.currentLevel);
 
+	// Load font for notifications and announcements (once)
+	if (!m_announcementFontLoaded)
+	{
+		if (m_announcementFont.loadFromFile(FONT_PATH))
+			m_announcementFontLoaded = true;
+	}
+
 	// Init achievement notification
 	if (m_announcementFontLoaded)
 		m_achievementNotif.Init(m_announcementFont);
@@ -139,10 +146,20 @@ void PlayState::OnEnter()
 	{
 		m_endlessCtrl = std::make_unique<EndlessModeController>(
 			m_stateManager.highestUnlockedLevel);
-		// Override level config for endless mode
+		// Override level config for endless mode — start with a clean slate
 		m_levelConfig.applesToWin = 99999; // effectively infinite
 		m_levelConfig.shrinkTimerSec = 15.0f;
 		m_levelConfig.shrinkInterval = 0; // timer-based only
+		m_levelConfig.baseSpeed = 10.0f;
+		// Clear all mechanic flags — EndlessModeController toggles them dynamically
+		m_levelConfig.hasBlackouts = false;
+		m_levelConfig.hasQuicksand = false;
+		m_levelConfig.hasMirrorGhost = false;
+		m_levelConfig.hasTimedApples = false;
+		m_levelConfig.hasPoisonApples = false;
+		m_levelConfig.hasEarthquakes = false;
+		m_levelConfig.hasPredator = false;
+		m_levelConfig.hasControlShuffle = false;
 	}
 	else
 	{
@@ -805,10 +822,7 @@ void PlayState::Update(float l_dt)
 	m_stateManager.levelTime = m_gameTime;
 	if (m_endlessCtrl)
 	{
-		// Endless mode: show "Endless Mode" and survival time
-		std::ostringstream oss;
-		int sTime = (int)m_endlessCtrl->GetSurvivalTime();
-		oss << "Survived: " << sTime / 60 << ":" << std::setw(2) << std::setfill('0') << sTime % 60;
+		// Endless mode: show "Endless Mode" and survival time, no apple target
 		m_hud.Update(m_stateManager.score, m_stateManager.comboMultiplier,
 					 m_applesEaten, 0,
 					 "Endless Mode", m_endlessCtrl->GetSurvivalTime(), l_dt,
@@ -1498,7 +1512,8 @@ void PlayState::OnDeath()
 	m_stateManager.totalDeaths++;
 	m_stateManager.levelComplete = false;
 	m_stateManager.GetAudio().PlaySound("wall_death");
-	m_stateManager.GetStats().OnDeath(m_stateManager.currentLevel);
+	if (!m_stateManager.endlessMode)
+		m_stateManager.GetStats().OnDeath(m_stateManager.currentLevel);
 
 	// Achievement checks on death
 	{

@@ -25,4 +25,5 @@ private:
 	bool m_keyReleased;
 	int m_scrollOffset;
 	int m_maxVisibleLines;
+	float m_lineSpacing;
 };

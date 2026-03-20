@@ -35,7 +35,8 @@ StatisticsState::StatisticsState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_keyReleased(true),
 	  m_scrollOffset(0),
-	  m_maxVisibleLines(0)
+	  m_maxVisibleLines(0),
+	  m_lineSpacing(28.f)
 {
 }
 
@@ -71,7 +72,7 @@ void StatisticsState::OnEnter()
 	sf::Color dimColor(100, 90, 85);
 	float lineX = 120.f;
 	float lineY = 110.f;
-	float lineSpacing = 28.f;
+	float lineSpacing = m_lineSpacing;
 
 	auto addLine = [&](const std::string& text, sf::Color color = sf::Color(60, 50, 45),
 					   unsigned int size = 20)
@@ -149,7 +150,7 @@ void StatisticsState::OnEnter()
 	addCentered("[ESC] Back", dimColor, 18);
 
 	m_scrollOffset = 0;
-	m_maxVisibleLines = (int)((winSize.y - 120.f) / lineSpacing);
+	m_maxVisibleLines = std::max(1, (int)((winSize.y - 120.f) / lineSpacing));
 	m_keyReleased = false;
 }
 
@@ -205,7 +206,7 @@ void StatisticsState::Render()
 	window.Draw(m_title);
 
 	// Draw lines with scroll offset
-	float scrollPixels = m_scrollOffset * 28.f;
+	float scrollPixels = m_scrollOffset * m_lineSpacing;
 	for (size_t i = 0; i < m_lines.size(); i++)
 	{
 		sf::Text& line = m_lines[i];

@@ -164,12 +164,21 @@ void GameOverState::OnEnter()
 	m_hasNextLevel = won && !endless && m_stateManager.currentLevel < NUM_LEVELS;
 
 	std::vector<std::string> items;
+	m_menuActions.clear();
 	if (m_hasNextLevel)
+	{
 		items.push_back("Next Level");
+		m_menuActions.push_back(GameOverAction::NextLevel);
+	}
 	items.push_back("Retry");
+	m_menuActions.push_back(GameOverAction::Retry);
 	if (!endless)
+	{
 		items.push_back("Level Select");
+		m_menuActions.push_back(GameOverAction::LevelSelect);
+	}
 	items.push_back("Main Menu");
+	m_menuActions.push_back(GameOverAction::MainMenu);
 	m_itemCount = (int)items.size();
 
 	// Save progress
@@ -245,26 +254,28 @@ void GameOverState::HandleInput()
 	{
 		m_stateManager.GetAudio().PlaySound("menu_select");
 
-		// Determine action from the label text
-		std::string label = m_menuItems[m_selectedItem].getString();
-		if (label == "Next Level")
+		if (m_selectedItem >= 0 && m_selectedItem < (int)m_menuActions.size())
 		{
-			m_stateManager.currentLevel++;
-			m_stateManager.SwitchTo(StateType::Gameplay);
-		}
-		else if (label == "Retry")
-		{
-			m_stateManager.SwitchTo(StateType::Gameplay);
-		}
-		else if (label == "Level Select")
-		{
-			m_stateManager.endlessMode = false;
-			m_stateManager.SwitchTo(StateType::LevelSelect);
-		}
-		else if (label == "Main Menu")
-		{
-			m_stateManager.endlessMode = false;
-			m_stateManager.SwitchTo(StateType::MainMenu);
+			switch (m_menuActions[m_selectedItem])
+			{
+				case GameOverAction::NextLevel:
+					m_stateManager.currentLevel++;
+					m_stateManager.SwitchTo(StateType::Gameplay);
+					break;
+				case GameOverAction::Retry:
+					m_stateManager.SwitchTo(StateType::Gameplay);
+					break;
+				case GameOverAction::LevelSelect:
+					m_stateManager.endlessMode = false;
+					m_stateManager.SwitchTo(StateType::LevelSelect);
+					break;
+				case GameOverAction::MainMenu:
+					m_stateManager.endlessMode = false;
+					m_stateManager.SwitchTo(StateType::MainMenu);
+					break;
+				default:
+					break;
+			}
 		}
 	}
 }

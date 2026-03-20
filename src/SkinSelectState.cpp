@@ -17,27 +17,12 @@ SkinSelectState::SkinSelectState(StateManager& l_stateManager)
 
 bool SkinSelectState::IsSkinUnlocked(int l_skinIndex) const
 {
-	if (l_skinIndex == 0) return true; // Classic always unlocked
+	if (l_skinIndex <= 0) return true; // Classic (0) always unlocked
+	if (l_skinIndex >= (int)m_skins.size()) return false;
 	// Skin i unlocked by 3-starring level i
-	int levelIdx = l_skinIndex - 1;
+	int levelIdx = m_skins[l_skinIndex].unlockLevel - 1;
 	if (levelIdx < 0 || levelIdx >= NUM_LEVELS) return false;
 	return m_stateManager.starRatings[levelIdx] >= 3;
-}
-
-sf::Color SkinSelectState::HsvToRgb(float h, float s, float v) const
-{
-	float c = v * s;
-	float x = c * (1.0f - std::fabs(std::fmod(h / 60.0f, 2.0f) - 1.0f));
-	float m = v - c;
-	float r = 0, g = 0, b = 0;
-	if (h < 60) { r = c; g = x; }
-	else if (h < 120) { r = x; g = c; }
-	else if (h < 180) { g = c; b = x; }
-	else if (h < 240) { g = x; b = c; }
-	else if (h < 300) { r = x; b = c; }
-	else { r = c; b = x; }
-	return sf::Color((sf::Uint8)((r + m) * 255), (sf::Uint8)((g + m) * 255),
-					 (sf::Uint8)((b + m) * 255));
 }
 
 void SkinSelectState::OnEnter()
@@ -140,6 +125,7 @@ void SkinSelectState::HandleInput()
 void SkinSelectState::Update(float l_dt)
 {
 	m_animTimer += l_dt;
+	if (m_animTimer > 10000.0f) m_animTimer -= 10000.0f;
 	int itemCount = (int)m_skins.size();
 
 	for (int i = 0; i < itemCount; i++)
@@ -227,7 +213,7 @@ void SkinSelectState::Render()
 
 			// Apply skin render flags for preview
 			if (skin.renderFlags & static_cast<int>(SkinRenderFlag::Rainbow))
-				col = HsvToRgb(std::fmod(s * 50.0f + m_animTimer * 80.0f, 360.0f), 0.8f, 0.9f);
+				col = InkRenderer::HsvToRgb(std::fmod(s * 50.0f + m_animTimer * 80.0f, 360.0f), 0.8f, 0.9f);
 			if (skin.renderFlags & static_cast<int>(SkinRenderFlag::Gradient))
 			{
 				float t = s / 5.0f;

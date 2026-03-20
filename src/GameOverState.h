@@ -3,6 +3,10 @@
 #include "GameState.h"
 #include "StateManager.h"
 #include "ScreenShake.h"
+#include <vector>
+#include <string>
+
+enum class GameOverAction { NextLevel, Retry, LevelSelect, MainMenu };
 
 class GameOverState : public BaseState
 {
@@ -22,6 +26,7 @@ private:
 	sf::Text m_taunt;
 	sf::Text m_stats[5]; // score, apples, combo, time, collisions
 	sf::Text m_menuItems[4]; // Next Level, Retry, Level Select, Main Menu
+	std::vector<GameOverAction> m_menuActions;
 	int m_selectedItem;
 	int m_itemCount;
 	bool m_hasNextLevel;

@@ -137,11 +137,17 @@ void MenuState::HandleInput()
 	}
 	else if (enterPressed)
 	{
-		if (m_selectedItem >= 0 && m_selectedItem < itemCount &&
-			m_menuItems[m_selectedItem].enabled)
+		if (m_selectedItem >= 0 && m_selectedItem < itemCount)
 		{
-			m_stateManager.GetAudio().PlaySound("menu_select");
-			OnItemSelected(m_selectedItem);
+			if (m_menuItems[m_selectedItem].enabled)
+			{
+				m_stateManager.GetAudio().PlaySound("menu_select");
+				OnItemSelected(m_selectedItem);
+			}
+			else
+			{
+				m_stateManager.GetAudio().PlaySound("menu_navigate");
+			}
 		}
 	}
 }
@@ -162,6 +168,7 @@ void MenuState::OnItemSelected(int l_index)
 	else if (label == "Endless Mode")
 	{
 		m_stateManager.endlessMode = true;
+		m_stateManager.currentLevel = 1; // use Level 1 palette as neutral base
 		m_stateManager.SwitchTo(StateType::Gameplay);
 	}
 	else if (label == "Achievements")
@@ -185,6 +192,7 @@ void MenuState::OnItemSelected(int l_index)
 void MenuState::Update(float l_dt)
 {
 	m_animTimer += l_dt;
+	if (m_animTimer > 10000.0f) m_animTimer -= 10000.0f;
 	int itemCount = (int)m_menuItems.size();
 
 	for (int i = 0; i < itemCount; i++)

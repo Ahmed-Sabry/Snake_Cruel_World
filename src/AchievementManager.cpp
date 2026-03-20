@@ -94,7 +94,8 @@ void AchievementManager::OnLevelComplete(const AchievementContext& l_ctx)
 		Unlock(AchievementId::AgainstAllOdds);
 
 	// Completionist: beat all 10 levels
-	if (l_ctx.highestUnlockedLevel > NUM_LEVELS)
+	// highestUnlockedLevel reaches NUM_LEVELS when the last level is beaten
+	if (l_ctx.highestUnlockedLevel >= NUM_LEVELS)
 		Unlock(AchievementId::Completionist);
 
 	// Perfectionist: 3 stars on all 10 levels
@@ -193,6 +194,9 @@ bool AchievementManager::HasPendingNotification() const
 
 AchievementId AchievementManager::PopNotification()
 {
+	if (m_pendingNotifications.empty())
+		return AchievementId::Flawless; // fallback — callers must check HasPendingNotification() first
+
 	AchievementId id = m_pendingNotifications.front();
 	m_pendingNotifications.pop();
 	return id;
@@ -200,6 +204,7 @@ AchievementId AchievementManager::PopNotification()
 
 void AchievementManager::SetUnlockData(const bool* l_data)
 {
+	if (!l_data) return;
 	std::memcpy(m_unlocked, l_data, sizeof(m_unlocked));
 }
 

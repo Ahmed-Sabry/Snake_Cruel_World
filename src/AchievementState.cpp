@@ -10,7 +10,8 @@ AchievementState::AchievementState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_keyReleased(true),
 	  m_scrollOffset(0),
-	  m_maxVisibleLines(0)
+	  m_maxVisibleLines(0),
+	  m_lineSpacing(28.f)
 {
 }
 
@@ -60,7 +61,6 @@ void AchievementState::OnEnter()
 	sf::Color sectionColor(180, 50, 40);
 	float lineX = 100.f;
 	float lineY = 115.f;
-	float lineSpacing = 28.f;
 
 	auto addSectionHeader = [&](const std::string& text)
 	{
@@ -71,7 +71,7 @@ void AchievementState::OnEnter()
 		t.setFillColor(sectionColor);
 		sf::FloatRect b = t.getLocalBounds();
 		t.setPosition((winSize.x - b.width) / 2.0f, lineY);
-		lineY += lineSpacing + 4.f;
+		lineY += m_lineSpacing + 4.f;
 		m_lines.push_back(std::move(t));
 	};
 
@@ -89,7 +89,7 @@ void AchievementState::OnEnter()
 		t.setCharacterSize(18);
 		t.setFillColor(isUnlocked ? goldColor : dimColor);
 		t.setPosition(lineX, lineY);
-		lineY += lineSpacing;
+		lineY += m_lineSpacing;
 		m_lines.push_back(std::move(t));
 	};
 
@@ -126,7 +126,8 @@ void AchievementState::OnEnter()
 	}
 
 	m_scrollOffset = 0;
-	m_maxVisibleLines = (int)((winSize.y - 120.f) / lineSpacing);
+	m_maxVisibleLines = (int)((winSize.y - 120.f) / m_lineSpacing);
+	if (m_maxVisibleLines < 1) m_maxVisibleLines = 1;
 	m_keyReleased = false;
 }
 
@@ -183,7 +184,7 @@ void AchievementState::Render()
 	window.Draw(m_counter);
 
 	// Draw lines with scroll offset
-	float scrollPixels = m_scrollOffset * 28.f;
+	float scrollPixels = m_scrollOffset * m_lineSpacing;
 	for (size_t i = 0; i < m_lines.size(); i++)
 	{
 		sf::Text& line = m_lines[i];

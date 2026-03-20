@@ -20,7 +20,6 @@ public:
 
 private:
 	bool IsSkinUnlocked(int l_skinIndex) const;
-	sf::Color HsvToRgb(float h, float s, float v) const;
 
 	sf::Font m_font;
 	sf::Text m_title;

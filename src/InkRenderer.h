@@ -85,4 +85,7 @@ public:
 	static float Wobble(unsigned int l_seed, int l_index, float l_corruption);
 	// Simple hash for seeding (public for use by other ink-style renderers)
 	static unsigned int Hash(unsigned int l_a, unsigned int l_b);
+
+	// HSV to RGB color conversion (h: 0-360, s: 0-1, v: 0-1)
+	static sf::Color HsvToRgb(float l_h, float l_s, float l_v);
 };

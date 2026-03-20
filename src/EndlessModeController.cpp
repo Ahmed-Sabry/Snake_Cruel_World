@@ -1,6 +1,7 @@
 #include "EndlessModeController.h"
 #include <algorithm>
 #include <cstdlib>
+#include <ctime>
 #include <cmath>
 
 const char* EndlessModeController::s_mechanicNames[NUM_MECHANICS] = {
@@ -28,16 +29,20 @@ EndlessModeController::EndlessModeController(int l_highestUnlockedLevel)
 	// Build available mechanics from beaten levels
 	// Mechanic i available if player has beaten level i+2
 	// (Level 2 = Blackouts, Level 3 = Quicksand, etc.)
+	// highestUnlockedLevel == N means levels 1..(N-1) are beaten
 	for (int i = 0; i < NUM_MECHANICS; i++)
 	{
 		int requiredLevel = i + 2; // Level that introduces this mechanic
-		if (l_highestUnlockedLevel > requiredLevel)
+		if (l_highestUnlockedLevel >= requiredLevel + 1)
 			m_availableMechanics.push_back(i);
 	}
 
-	// Guarantee at least blackouts + quicksand if level 5+ beaten
+	// Guarantee at least blackouts if nothing else available
 	if (m_availableMechanics.empty())
 		m_availableMechanics.push_back(MECH_BLACKOUTS);
+
+	// Seed RNG for mechanic selection variety
+	std::srand((unsigned int)std::time(nullptr));
 }
 
 MechanicChangeEvent EndlessModeController::Update(float l_dt)

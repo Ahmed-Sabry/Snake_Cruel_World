@@ -246,22 +246,6 @@ void Snake::ClearSkin()
 	m_skinGradientEnd = sf::Color::Transparent;
 }
 
-static sf::Color HsvToRgb(float h, float s, float v)
-{
-	float c = v * s;
-	float x = c * (1.0f - std::fabs(std::fmod(h / 60.0f, 2.0f) - 1.0f));
-	float m = v - c;
-	float r = 0, g = 0, b = 0;
-	if (h < 60) { r = c; g = x; }
-	else if (h < 120) { r = x; g = c; }
-	else if (h < 180) { g = c; b = x; }
-	else if (h < 240) { g = x; b = c; }
-	else if (h < 300) { r = x; b = c; }
-	else { r = c; b = x; }
-	return sf::Color((sf::Uint8)((r + m) * 255), (sf::Uint8)((g + m) * 255),
-					 (sf::Uint8)((b + m) * 255));
-}
-
 void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 {
 	if (m_snakeBody.empty()) return;
@@ -343,16 +327,15 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 		// Base fill color
 		sf::Color fillColor(m_bodyColor.r, m_bodyColor.g, m_bodyColor.b, bodyAlpha);
 
-		// Skin: Rainbow — cycle hue per segment
+		// Skin: Rainbow — cycle hue per segment (takes priority over Gradient)
 		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Rainbow))
 		{
 			float hue = std::fmod(i * 30.0f + m_interpTimer * 80.0f, 360.0f);
-			fillColor = HsvToRgb(hue, 0.8f, 0.9f);
+			fillColor = InkRenderer::HsvToRgb(hue, 0.8f, 0.9f);
 			fillColor.a = bodyAlpha;
 		}
-
-		// Skin: Gradient — lerp body color toward gradient end
-		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Gradient))
+		// Skin: Gradient — lerp body color toward gradient end (skipped if Rainbow active)
+		else if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Gradient))
 		{
 			float t = (float)(i - 1) / std::max(1.0f, (float)(bodySize - 2));
 			fillColor.r = (sf::Uint8)(m_bodyColor.r + t * ((int)m_skinGradientEnd.r - m_bodyColor.r));
@@ -391,7 +374,7 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Rainbow))
 		{
 			float hue = std::fmod(m_interpTimer * 80.0f, 360.0f);
-			headFill = HsvToRgb(hue, 0.9f, 1.0f);
+			headFill = InkRenderer::HsvToRgb(hue, 0.9f, 1.0f);
 		}
 
 		// Skin: Translucent head

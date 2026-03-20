@@ -2,6 +2,7 @@
 #include "StateManager.h"
 #include "StatsManager.h"
 #include "AchievementManager.h"
+#include "SnakeSkin.h"
 #include <iostream>
 #include <cstring>
 
@@ -93,6 +94,8 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 	// Validate v1 data
 	if (l_state.highestUnlockedLevel < 1 || l_state.highestUnlockedLevel > NUM_LEVELS)
 		l_state.highestUnlockedLevel = 1;
+	if (l_state.totalDeaths < 0)
+		l_state.totalDeaths = 0;
 	for (int i = 0; i < NUM_LEVELS; i++)
 	{
 		if (l_state.highScores[i] < 0)
@@ -136,8 +139,21 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			std::cerr << "SaveManager: Error reading v2 data, keeping v1 progress." << std::endl;
 			// v1 data is already loaded and valid, v2 stays at defaults
 		}
-		if (l_state.activeSkinIndex < 0 || l_state.activeSkinIndex > NUM_LEVELS)
+		int numSkins = (int)GetAllSkins().size();
+		if (l_state.activeSkinIndex < 0 || l_state.activeSkinIndex >= numSkins)
 			l_state.activeSkinIndex = 0;
+
+		// Clamp v2 stats to non-negative
+		if (stats.totalApplesEaten < 0) stats.totalApplesEaten = 0;
+		if (stats.totalSegmentsLost < 0) stats.totalSegmentsLost = 0;
+		if (stats.totalPoisonApplesEaten < 0) stats.totalPoisonApplesEaten = 0;
+		if (stats.totalPlaytimeSeconds < 0) stats.totalPlaytimeSeconds = 0;
+		if (stats.bestCombo < 0) stats.bestCombo = 0;
+		if (stats.bestSingleLevelScore < 0) stats.bestSingleLevelScore = 0;
+		if (stats.endlessBestScore < 0) stats.endlessBestScore = 0;
+		if (stats.endlessBestTime < 0.0f) stats.endlessBestTime = 0.0f;
+		if (stats.predatorApplesStolen < 0) stats.predatorApplesStolen = 0;
+		if (stats.predatorKills < 0) stats.predatorKills = 0;
 	}
 
 	file.close();
