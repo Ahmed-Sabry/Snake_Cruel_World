@@ -1,4 +1,5 @@
 #include "TextureGenerator.h"
+#include <algorithm>
 #include <cmath>
 #include <vector>
 

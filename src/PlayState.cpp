@@ -470,6 +470,8 @@ void PlayState::Update(float l_dt)
 			m_deathInkRunActive = false;
 			m_stateManager.SwitchTo(StateType::GameOver);
 		}
+		m_particles.Update(l_dt);
+		return;
 	}
 	if (m_appleBurstTimer > 0.0f)
 		m_appleBurstTimer -= l_dt;
@@ -483,7 +485,7 @@ void PlayState::Update(float l_dt)
 
 	float timeStep = 1.0f / speed;
 
-	if (m_elapsedTime >= timeStep && m_levelCompleteDelay < 0.0f && !m_deathInkRunActive)
+	if (m_elapsedTime >= timeStep && m_levelCompleteDelay < 0.0f)
 	{
 		Window& window = m_stateManager.GetWindow();
 
@@ -995,11 +997,31 @@ void PlayState::Render()
 		sf::Color hatchColor(m_levelConfig.inkTint.r, m_levelConfig.inkTint.g,
 							 m_levelConfig.inkTint.b, (sf::Uint8)(100 * (1.0f - progress)));
 		unsigned int seed = (unsigned int)(m_gameTime * 50.0f);
+
+		// Build border band rects: top, right, bottom, left
+		float winW = (float)window.GetWindowSize().x;
+		float winH = (float)window.GetWindowSize().y;
+		float topOff = m_world.GetTopOffset();
+		float eTop = m_world.GetEffectiveThickness(0);
+		float eRight = m_world.GetEffectiveThickness(1);
+		float eBottom = m_world.GetEffectiveThickness(2);
+		float eLeft = m_world.GetEffectiveThickness(3);
+		sf::FloatRect bands[4] = {
+			{ 0, topOff, winW, eTop },                          // top
+			{ winW - eRight, topOff, eRight, winH - topOff },   // right
+			{ 0, winH - eBottom, winW, eBottom },                // bottom
+			{ 0, topOff, eLeft, winH - topOff }                  // left
+		};
+
 		for (int s = 0; s < strokeCount; s++)
 		{
 			unsigned int h = InkRenderer::Hash(seed, (unsigned int)s);
-			float sx = (float)(h % window.GetWindowSize().x);
-			float sy = (float)((h >> 8) % window.GetWindowSize().y);
+			// Pick a border band based on hash
+			const sf::FloatRect& band = bands[h % 4];
+			float bw = std::max(1.0f, band.width);
+			float bh = std::max(1.0f, band.height);
+			float sx = band.left + (float)(h % (int)bw);
+			float sy = band.top + (float)((h >> 8) % (int)bh);
 			float len = 8.0f + (float)((h >> 16) % 12);
 			bool horiz = (h >> 28) & 1;
 			if (horiz)

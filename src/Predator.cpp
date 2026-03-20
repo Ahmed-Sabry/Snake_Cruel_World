@@ -342,6 +342,8 @@ void Predator::RenderTo(sf::RenderTarget& target, float l_blockSize)
 
 	// Draw body segments with stipple pattern (different from snake's hatch)
 	sf::Color outlineColor(35, 35, 50, 180);
+	sf::Color stippleColor(outlineColor.r, outlineColor.g, outlineColor.b, 100);
+	sf::VertexArray stippleDots(sf::Points);
 	for (int i = (int)m_body.size() - 1; i >= 0; i--)
 	{
 		sf::Color color = (i == 0) ? headColor : bodyColor;
@@ -354,19 +356,17 @@ void Predator::RenderTo(sf::RenderTarget& target, float l_blockSize)
 									color, outlineColor, 1.0f,
 									0.2f, (unsigned int)(i * 41 + 300));
 
-		// Stipple dots overlay (differentiates from player snake's hatch)
+		// Accumulate stipple dots for batch drawing
 		int dotCount = 4;
-		sf::CircleShape dot(0.8f);
 		for (int d = 0; d < dotCount; d++)
 		{
 			unsigned int h = InkRenderer::Hash((unsigned int)(i * 41 + 300), (unsigned int)d);
 			float dx = (float)(h % (int)segSize);
 			float dy = (float)((h >> 8) % (int)segSize);
-			dot.setPosition(px + dx, py + dy);
-			dot.setFillColor(sf::Color(outlineColor.r, outlineColor.g, outlineColor.b, 100));
-			target.draw(dot);
+			stippleDots.append(sf::Vertex(sf::Vector2f(px + dx, py + dy), stippleColor));
 		}
 	}
+	target.draw(stippleDots);
 
 	// Draw eyes with tracking pupils
 	{

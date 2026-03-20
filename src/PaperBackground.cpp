@@ -42,7 +42,7 @@ void PaperBackground::Generate(const LevelConfig& l_config, unsigned int l_windo
 	DrawMarginDoodle(m_renderTexture, l_config, l_windowWidth, l_windowHeight);
 
 	m_renderTexture.display();
-	m_sprite.setTexture(m_renderTexture.getTexture());
+	m_sprite.setTexture(m_renderTexture.getTexture(), true);
 	m_sprite.setPosition(0, 0);
 	m_generated = true;
 }

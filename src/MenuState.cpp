@@ -2,6 +2,7 @@
 #include "AudioManager.h"
 #include "LevelConfig.h"
 #include "InkRenderer.h"
+#include <algorithm>
 #include <iostream>
 
 MenuState::MenuState(StateManager& l_stateManager)
@@ -197,7 +198,7 @@ void MenuState::Render()
 
 			// Animated wobble circle (different seed each frame for nervous feel)
 			InkRenderer::DrawWobblyCircle(target, cx, cy,
-										  (rx + ry) * 0.5f,
+										  std::max(rx, ry),
 										  sf::Color::Transparent,
 										  sf::Color(180, 50, 40, 80),
 										  1.0f, 0.3f,
