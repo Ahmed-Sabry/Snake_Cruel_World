@@ -62,7 +62,7 @@ void GameOverState::OnEnter()
 
 	Window& window = m_stateManager.GetWindow();
 	sf::Vector2u winSize = window.GetWindowSize();
-	window.SetBackground(sf::Color(10, 5, 8));
+	window.SetBackground(sf::Color(235, 225, 210)); // Paper tone
 
 	bool won = m_stateManager.levelComplete;
 
@@ -70,7 +70,7 @@ void GameOverState::OnEnter()
 	m_title.setFont(m_font);
 	m_title.setString(won ? "Level Complete!" : "You Died.");
 	m_title.setCharacterSize(48);
-	m_title.setFillColor(won ? sf::Color(100, 255, 100) : sf::Color(200, 50, 50));
+	m_title.setFillColor(won ? sf::Color(40, 120, 50) : sf::Color(180, 50, 40));
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
 	m_title.setPosition((winSize.x - titleBounds.width) / 2.0f, 80.f);
 
@@ -92,7 +92,7 @@ void GameOverState::OnEnter()
 	m_taunt.setFont(m_font);
 	m_taunt.setString(taunt);
 	m_taunt.setCharacterSize(20);
-	m_taunt.setFillColor(sf::Color(180, 140, 140));
+	m_taunt.setFillColor(sf::Color(120, 100, 90)); // Pencil-gray ink
 	sf::FloatRect tauntBounds = m_taunt.getLocalBounds();
 	m_taunt.setPosition((winSize.x - tauntBounds.width) / 2.0f, 150.f);
 
@@ -118,7 +118,7 @@ void GameOverState::OnEnter()
 		m_stats[i].setFont(m_font);
 		m_stats[i].setString(statLabels[i]);
 		m_stats[i].setCharacterSize(20);
-		m_stats[i].setFillColor(sf::Color(200, 190, 190));
+		m_stats[i].setFillColor(sf::Color(60, 50, 45)); // Ink tone
 		sf::FloatRect bounds = m_stats[i].getLocalBounds();
 		m_stats[i].setPosition((winSize.x - bounds.width) / 2.0f, statsStartY + i * 35.f);
 	}
@@ -140,7 +140,7 @@ void GameOverState::OnEnter()
 		for (int i = 0; i < 3; i++)
 			starStr += (i < stars) ? "* " : "- ";
 		m_stats[4].setString(starStr);
-		m_stats[4].setFillColor(sf::Color(255, 215, 0));
+		m_stats[4].setFillColor(sf::Color(200, 170, 30)); // Gold ink
 		sf::FloatRect bounds = m_stats[4].getLocalBounds();
 		m_stats[4].setPosition((winSize.x - bounds.width) / 2.0f, statsStartY + 4 * 35.f);
 	}
@@ -256,9 +256,9 @@ void GameOverState::Update(float l_dt)
 	for (int i = 0; i < m_itemCount; i++)
 	{
 		if (i == m_selectedItem)
-			m_menuItems[i].setFillColor(sf::Color(255, 100, 80));
+			m_menuItems[i].setFillColor(sf::Color(180, 50, 40));
 		else
-			m_menuItems[i].setFillColor(sf::Color(180, 170, 170));
+			m_menuItems[i].setFillColor(sf::Color(100, 90, 80));
 	}
 }
 

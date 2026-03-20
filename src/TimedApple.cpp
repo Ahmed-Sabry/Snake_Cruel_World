@@ -1,4 +1,5 @@
 #include "TimedApple.h"
+#include "InkRenderer.h"
 #include <cmath>
 #include <algorithm>
 
@@ -32,30 +33,34 @@ void TimedApple::Render(Window& l_window, sf::Vector2f l_applePixelPos, float l_
 {
 	if (m_expired || m_timerSec <= 0.0f) return;
 
+	sf::RenderTarget& target = l_window.GetRenderWindow();
+
 	float fraction = m_timeRemaining / m_timerSec;
 	float maxRadius = l_appleRadius + 8.0f;
-	float radius = maxRadius * fraction;
 
-	if (radius < 1.0f) return;
-
-	m_ring.setRadius(radius);
-	m_ring.setOrigin(radius, radius);
-	m_ring.setPosition(l_applePixelPos.x + l_appleRadius, l_applePixelPos.y + l_appleRadius);
-	m_ring.setFillColor(sf::Color::Transparent);
-
-	// Color based on urgency
+	// Color based on urgency — ink-toned
 	sf::Color ringColor;
-	float pulse = (std::sin(m_timeRemaining * 8.0f) + 1.0f) / 2.0f;
 	if (fraction > 0.5f)
-		ringColor = sf::Color(255, 200, 0);
+		ringColor = sf::Color(140, 110, 30); // Warm sepia
 	else if (fraction > 0.25f)
-		ringColor = sf::Color(255, 140, 0);
+		ringColor = sf::Color(180, 80, 20);  // Rust
 	else
-		ringColor = sf::Color(255, 50, 30, (sf::Uint8)(180 + (int)(75.0f * pulse)));
+	{
+		// Trembling red — pulse alpha
+		float pulse = (std::sin(m_timeRemaining * 8.0f) + 1.0f) / 2.0f;
+		ringColor = sf::Color(200, 40, 20, (sf::Uint8)(160 + (int)(95.0f * pulse)));
+	}
 
-	m_ring.setOutlineColor(ringColor);
-	m_ring.setOutlineThickness(2.0f);
-	l_window.Draw(m_ring);
+	// Dashed arc ring that "erases" as time depletes
+	float cx = l_applePixelPos.x + l_appleRadius;
+	float cy = l_applePixelPos.y + l_appleRadius;
+
+	float corruption = (fraction < 0.25f) ? 0.3f : 0.1f;
+	unsigned int seed = (unsigned int)(m_timeRemaining * 100.0f);
+
+	InkRenderer::DrawDashedArc(target, cx, cy, maxRadius,
+							   fraction, ringColor, 2.0f,
+							   corruption, seed);
 }
 
 bool TimedApple::HasExpired() const

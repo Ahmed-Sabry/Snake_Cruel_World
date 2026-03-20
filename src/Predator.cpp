@@ -1,6 +1,7 @@
 #include "Predator.h"
 #include "World.h"
 #include "RandomUtils.h"
+#include "InkRenderer.h"
 #include <cmath>
 #include <algorithm>
 
@@ -302,17 +303,19 @@ void Predator::Render(Window& l_window, float l_blockSize)
 {
 	if (m_body.empty()) return;
 
-	// Determine colors based on mode
+	sf::RenderTarget& target = l_window.GetRenderWindow();
+
+	// Ink-toned colors based on mode
 	sf::Color headColor, bodyColor;
 	if (m_mode == PredatorMode::HUNTING_APPLE)
 	{
-		headColor = sf::Color(70, 130, 200);
-		bodyColor = sf::Color(50, 100, 170);
+		headColor = sf::Color(40, 70, 120);
+		bodyColor = sf::Color(30, 55, 100);
 	}
 	else
 	{
-		headColor = sf::Color(220, 50, 50);
-		bodyColor = sf::Color(180, 30, 30);
+		headColor = sf::Color(160, 40, 30);
+		bodyColor = sf::Color(130, 25, 20);
 	}
 
 	// Pulse during mode transition
@@ -321,41 +324,55 @@ void Predator::Render(Window& l_window, float l_blockSize)
 		float pulse = std::sin(m_modeTransitionTimer * 15.0f);
 		if (pulse > 0.0f)
 		{
-			// Flash to the opposite color scheme
 			if (m_mode == PredatorMode::HUNTING_PLAYER)
 			{
-				headColor = sf::Color(70, 130, 200);
-				bodyColor = sf::Color(50, 100, 170);
+				headColor = sf::Color(40, 70, 120);
+				bodyColor = sf::Color(30, 55, 100);
 			}
 			else
 			{
-				headColor = sf::Color(220, 50, 50);
-				bodyColor = sf::Color(180, 30, 30);
+				headColor = sf::Color(160, 40, 30);
+				bodyColor = sf::Color(130, 25, 20);
 			}
 		}
 	}
 
-	// Draw body segments (back to front so head draws on top)
+	// Draw body segments with stipple pattern (different from snake's hatch)
+	sf::Color outlineColor(30, 25, 20, 180);
 	for (int i = (int)m_body.size() - 1; i >= 0; i--)
 	{
 		sf::Color color = (i == 0) ? headColor : bodyColor;
-		m_bodyRect.setFillColor(color);
-		m_bodyRect.setPosition(
-			m_body[i].x * l_blockSize + 1,
-			m_body[i].y * l_blockSize + 1);
-		l_window.Draw(m_bodyRect);
+		float px = m_body[i].x * l_blockSize + 1.0f;
+		float py = m_body[i].y * l_blockSize + 1.0f;
+		float segSize = l_blockSize - 2.0f;
+
+		// Wobbly rect with stipple dots inside (drawn as the fill)
+		InkRenderer::DrawWobblyRect(target, px, py, segSize, segSize,
+									color, outlineColor, 1.0f,
+									0.2f, (unsigned int)(i * 41 + 300));
+
+		// Stipple dots overlay (differentiates from player snake's hatch)
+		int dotCount = 4;
+		for (int d = 0; d < dotCount; d++)
+		{
+			unsigned int h = InkRenderer::Hash((unsigned int)(i * 41 + 300), (unsigned int)d);
+			float dx = (float)(h % (int)segSize);
+			float dy = (float)((h >> 8) % (int)segSize);
+			sf::CircleShape dot(0.8f);
+			dot.setPosition(px + dx, py + dy);
+			dot.setFillColor(sf::Color(outlineColor.r, outlineColor.g, outlineColor.b, 100));
+			target.draw(dot);
+		}
 	}
 
-	// Draw eyes on head
+	// Draw eyes with tracking pupils
 	{
 		float cx = m_body[0].x * l_blockSize + l_blockSize / 2.0f;
 		float cy = m_body[0].y * l_blockSize + l_blockSize / 2.0f;
 
-		// Offset eyes based on direction (scaled to block size)
 		float ex1 = 0, ey1 = 0, ex2 = 0, ey2 = 0;
-		float fwd = l_blockSize * 0.1875f;  // forward offset
-		float side = l_blockSize * 0.1875f; // side offset
-		m_eyeShape.setRadius(l_blockSize * 0.125f);
+		float fwd = l_blockSize * 0.1875f;
+		float side = l_blockSize * 0.1875f;
 
 		switch (m_direction)
 		{
@@ -381,11 +398,34 @@ void Predator::Render(Window& l_window, float l_blockSize)
 				break;
 		}
 
-		float r = m_eyeShape.getRadius();
-		m_eyeShape.setPosition(ex1 - r, ey1 - r);
+		// Eye whites (larger circles)
+		float eyeR = l_blockSize * 0.15f;
+		m_eyeShape.setRadius(eyeR);
+		m_eyeShape.setFillColor(sf::Color(240, 240, 230));
+		m_eyeShape.setPosition(ex1 - eyeR, ey1 - eyeR);
 		l_window.Draw(m_eyeShape);
-		m_eyeShape.setPosition(ex2 - r, ey2 - r);
+		m_eyeShape.setPosition(ex2 - eyeR, ey2 - eyeR);
 		l_window.Draw(m_eyeShape);
+
+		// Pupils — offset toward direction of movement for tracking look
+		float pupilR = l_blockSize * 0.07f;
+		float pupilOffset = eyeR * 0.3f;
+		float pdx = 0, pdy = 0;
+		switch (m_direction)
+		{
+			case Direction::Up:    pdy = -pupilOffset; break;
+			case Direction::Down:  pdy = pupilOffset;  break;
+			case Direction::Left:  pdx = -pupilOffset; break;
+			case Direction::Right: pdx = pupilOffset;  break;
+			default: break;
+		}
+
+		sf::CircleShape pupil(pupilR);
+		pupil.setFillColor(sf::Color(20, 15, 10));
+		pupil.setPosition(ex1 - pupilR + pdx, ey1 - pupilR + pdy);
+		target.draw(pupil);
+		pupil.setPosition(ex2 - pupilR + pdx, ey2 - pupilR + pdy);
+		target.draw(pupil);
 	}
 }
 

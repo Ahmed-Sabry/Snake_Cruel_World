@@ -1,5 +1,6 @@
 #include "Quicksand.h"
 #include "RandomUtils.h"
+#include "InkRenderer.h"
 
 Quicksand::Quicksand()
 	: m_relocateTimer(0.0f),
@@ -67,21 +68,47 @@ void Quicksand::GeneratePatches(float l_maxX, float l_maxY, float l_borderThickn
 
 void Quicksand::Render(Window& l_window, float l_blockSize)
 {
-	m_patchRect.setSize(sf::Vector2f(l_blockSize - 1, l_blockSize - 1));
+	sf::RenderTarget& target = l_window.GetRenderWindow();
 
 	for (const auto& patch : m_patches)
 	{
+		// Draw stipple dots for each cell in the 3x3 patch
 		for (int dy = 0; dy < 3; dy++)
 		{
 			for (int dx = 0; dx < 3; dx++)
 			{
-				// Slight alpha variation for visual texture
-				int alphaVar = ((patch.x + dx + patch.y + dy) % 3) * 15;
-				m_patchRect.setFillColor(sf::Color(140, 100, 40, (sf::Uint8)(105 + alphaVar)));
-				m_patchRect.setPosition((patch.x + dx) * l_blockSize, (patch.y + dy) * l_blockSize);
-				l_window.Draw(m_patchRect);
+				float px = (patch.x + dx) * l_blockSize;
+				float py = (patch.y + dy) * l_blockSize;
+
+				// Dense stipple dots (ink-on-paper look)
+				int dotCount = 12 + ((patch.x + dx + patch.y + dy) % 5);
+				unsigned int seed = (unsigned int)(patch.x * 31 + patch.y * 97 + dx * 7 + dy * 13);
+
+				for (int d = 0; d < dotCount; d++)
+				{
+					unsigned int h = InkRenderer::Hash(seed, (unsigned int)d);
+					float ox = (float)(h % (int)l_blockSize);
+					float oy = (float)((h >> 8) % (int)l_blockSize);
+					int alpha = 60 + (int)((h >> 16) % 60);
+
+					sf::CircleShape dot(1.0f);
+					dot.setPosition(px + ox, py + oy);
+					dot.setFillColor(sf::Color(120, 80, 30, (sf::Uint8)alpha));
+					target.draw(dot);
+				}
 			}
 		}
+
+		// Draw a subtle wobbly outline around the 3x3 patch
+		float patchPx = patch.x * l_blockSize;
+		float patchPy = patch.y * l_blockSize;
+		float patchSize = 3.0f * l_blockSize;
+		InkRenderer::DrawWobblyRect(target,
+									patchPx, patchPy, patchSize, patchSize,
+									sf::Color::Transparent,
+									sf::Color(120, 80, 30, 40),
+									0.5f, 0.2f,
+									(unsigned int)(patch.x * 100 + patch.y));
 	}
 }
 

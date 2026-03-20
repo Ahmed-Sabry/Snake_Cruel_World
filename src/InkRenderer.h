@@ -82,9 +82,8 @@ public:
 						 bool l_filled,
 						 unsigned int l_seed = 0);
 
-private:
 	// Deterministic wobble offset based on seed and index
 	static float Wobble(unsigned int l_seed, int l_index, float l_corruption);
-	// Simple hash for seeding
+	// Simple hash for seeding (public for use by other ink-style renderers)
 	static unsigned int Hash(unsigned int l_a, unsigned int l_b);
 };

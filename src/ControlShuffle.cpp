@@ -260,46 +260,46 @@ void ControlShuffle::Render(Window& l_window)
 	float barH = 6.0f;
 	float bottomY = (float)winSize.y - 30.0f;
 
-	// --- Warning state: countdown bar ---
+	// --- Warning state: ink-smear countdown bar ---
 	if (m_state == ShuffleState::Warning)
 	{
 		float progress = m_timer / GetWarningDuration(); // 0→1
 		float barW = barMaxW * (1.0f - progress);        // depletes left-to-right
 
-		// Color: white → yellow → red
-		sf::Uint8 r = 255;
-		sf::Uint8 g, b;
+		// Ink color gradient: dark ink → rust → red
+		sf::Uint8 r, g, b;
 		if (progress < 0.5f)
 		{
-			g = 255;
-			b = (sf::Uint8)(255 * (1.0f - progress * 2.0f)); // 255→0
+			r = (sf::Uint8)(60 + 80 * progress * 2.0f);
+			g = (sf::Uint8)(50 - 30 * progress * 2.0f);
+			b = (sf::Uint8)(45 - 35 * progress * 2.0f);
 		}
 		else
 		{
-			g = (sf::Uint8)(255 * (1.0f - (progress - 0.5f) * 2.0f)); // 255→0
-			b = 0;
+			r = (sf::Uint8)(140 + 60 * (progress - 0.5f) * 2.0f);
+			g = (sf::Uint8)(20 - 10 * (progress - 0.5f) * 2.0f);
+			b = (sf::Uint8)(10);
 		}
 
-		// Background bar (dark outline)
+		// Background bar (paper-toned)
 		float bgX = ((float)winSize.x - barMaxW) / 2.0f;
 		m_warningBarBg.setSize(sf::Vector2f(barMaxW, barH));
 		m_warningBarBg.setPosition(bgX, bottomY);
-		m_warningBarBg.setFillColor(sf::Color(60, 60, 60, 180));
+		m_warningBarBg.setFillColor(sf::Color(220, 210, 195, 120));
 		l_window.Draw(m_warningBarBg);
 
-		// Filling bar
+		// Ink-smear bar (looks like a brush stroke depleting)
 		m_warningBar.setSize(sf::Vector2f(barW, barH));
 		m_warningBar.setPosition(bgX, bottomY);
-		m_warningBar.setFillColor(sf::Color(r, g, b, 230));
+		m_warningBar.setFillColor(sf::Color(r, g, b, 200));
 		l_window.Draw(m_warningBar);
 
 		return;
 	}
 
-	// --- Indicating state: mapping text ---
+	// --- Indicating state: mapping text on paper ---
 	if (m_state == ShuffleState::Indicating && m_indicatorTimer > 0.0f)
 	{
-		// Fade-out alpha in the last 0.5 seconds
 		float alpha = std::min(1.0f, m_indicatorTimer / 0.5f);
 		sf::Uint8 a = (sf::Uint8)(255 * alpha);
 
@@ -311,7 +311,6 @@ void ControlShuffle::Render(Window& l_window)
 
 		if (count == 4)
 		{
-			// Show all 4 mappings
 			for (int i = 0; i < 4; i++)
 			{
 				if (i > 0)
@@ -323,7 +322,6 @@ void ControlShuffle::Render(Window& l_window)
 		}
 		else
 		{
-			// Partial indicator: show only 2, mark others as "??"
 			for (int i = 0; i < 4; i++)
 			{
 				if (i > 0)
@@ -343,10 +341,11 @@ void ControlShuffle::Render(Window& l_window)
 			}
 		}
 
+		// Ink-toned text
 		m_indicatorText.setString(text);
-		m_indicatorText.setFillColor(sf::Color(255, 255, 255, a));
+		m_indicatorText.setFillColor(sf::Color(50, 40, 35, a));
 
-		// Position at bottom-center
+		// Position at bottom-center with paper-toned background
 		sf::FloatRect textBounds = m_indicatorText.getLocalBounds();
 		float padding = 12.0f;
 		float bgW = textBounds.width + padding * 2;
@@ -356,7 +355,7 @@ void ControlShuffle::Render(Window& l_window)
 
 		m_indicatorBg.setSize(sf::Vector2f(bgW, bgH));
 		m_indicatorBg.setPosition(bgX, bgY);
-		m_indicatorBg.setFillColor(sf::Color(40, 10, 50, (sf::Uint8)(180 * alpha)));
+		m_indicatorBg.setFillColor(sf::Color(235, 225, 210, (sf::Uint8)(200 * alpha)));
 
 		m_indicatorText.setPosition(bgX + padding - textBounds.left, bgY + padding - textBounds.top);
 

@@ -1,6 +1,7 @@
 #include "Earthquake.h"
 #include "World.h"
 #include "RandomUtils.h"
+#include "InkRenderer.h"
 #include <cmath>
 #include <algorithm>
 
@@ -279,29 +280,66 @@ void Earthquake::Render(Window& l_window, const World& /*l_world*/)
 	if (m_cracks.empty() || m_crackAlpha <= 0.0f)
 		return;
 
+	sf::RenderTarget& target = l_window.GetRenderWindow();
 	sf::Uint8 alpha = (sf::Uint8)std::min(255.0f, std::max(0.0f, m_crackAlpha));
 
-	// Bright flash during quaking phase start
+	// Ink-toned crack color (dark ink, not bright orange)
 	sf::Color crackColor;
 	if (m_state == QuakeState::Quaking && m_timer < 0.1f)
-		crackColor = sf::Color(255, 200, 100, alpha);
+		crackColor = sf::Color(80, 30, 15, alpha); // Dark ember flash
 	else
-		crackColor = sf::Color(255, 140, 0, alpha);
+		crackColor = sf::Color(60, 20, 10, alpha); // Dark ink crack
 
-	for (const auto& crack : m_cracks)
+	for (size_t c = 0; c < m_cracks.size(); c++)
 	{
+		const auto& crack = m_cracks[c];
 		sf::Vector2f diff = crack.end - crack.start;
 		float len = std::sqrt(diff.x * diff.x + diff.y * diff.y);
 		if (len < 1.0f) continue;
 
-		float angle = std::atan2(diff.y, diff.x) * 180.0f / 3.14159265f;
+		// Main crack as jagged polyline (5-7 points with perpendicular offsets)
+		int segments = 5 + (int)(c % 3);
+		sf::VertexArray jaggedLine(sf::LineStrip, (size_t)segments + 1);
 
-		m_crackRect.setSize({ len, crack.width });
-		m_crackRect.setOrigin({ 0.0f, crack.width / 2.0f });
-		m_crackRect.setPosition(crack.start);
-		m_crackRect.setRotation(angle);
-		m_crackRect.setFillColor(crackColor);
-		l_window.Draw(m_crackRect);
+		float perpX = -diff.y / len;
+		float perpY = diff.x / len;
+
+		for (int i = 0; i <= segments; i++)
+		{
+			float t = (float)i / (float)segments;
+			float px = crack.start.x + diff.x * t;
+			float py = crack.start.y + diff.y * t;
+
+			// Perpendicular jagged offset (skip endpoints)
+			if (i > 0 && i < segments)
+			{
+				float jag = InkRenderer::Hash((unsigned int)c, (unsigned int)i);
+				jag = ((float)((int)jag % 2000) / 1000.0f - 1.0f) * 8.0f;
+				px += perpX * jag;
+				py += perpY * jag;
+			}
+
+			jaggedLine[(size_t)i].position = sf::Vector2f(px, py);
+			jaggedLine[(size_t)i].color = crackColor;
+		}
+		target.draw(jaggedLine);
+
+		// Branch crack (small side crack at ~40% along main)
+		if (len > 30.0f)
+		{
+			float branchT = 0.3f + (float)(c % 4) * 0.1f;
+			float bx = crack.start.x + diff.x * branchT;
+			float by = crack.start.y + diff.y * branchT;
+			float branchLen = len * 0.3f;
+
+			float branchAngle = ((c % 2 == 0) ? 1.0f : -1.0f) * 0.7f;
+			float bdx = (diff.x / len * std::cos(branchAngle) - diff.y / len * std::sin(branchAngle)) * branchLen;
+			float bdy = (diff.x / len * std::sin(branchAngle) + diff.y / len * std::cos(branchAngle)) * branchLen;
+
+			sf::Color branchColor(crackColor.r, crackColor.g, crackColor.b, (sf::Uint8)(alpha * 0.6f));
+			InkRenderer::DrawWobblyLine(target, bx, by, bx + bdx, by + bdy,
+										branchColor, 1.0f, 0.4f, (unsigned int)(c * 17), 4);
+		}
 	}
 }
 
