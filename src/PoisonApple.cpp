@@ -1,5 +1,6 @@
 #include "PoisonApple.h"
 #include "World.h"
+#include "InkRenderer.h"
 #include "RandomUtils.h"
 #include <cmath>
 #include <algorithm>
@@ -31,7 +32,7 @@ void PoisonApple::Reset(float l_blockSize)
 
 	float radius = l_blockSize / 2.0f;
 	m_shape.setRadius(radius);
-	m_shape.setFillColor(sf::Color::Green);
+	m_shape.setFillColor(sf::Color(65, 130, 45));
 }
 
 void PoisonApple::Update(float l_dt)
@@ -61,16 +62,55 @@ void PoisonApple::Update(float l_dt)
 
 void PoisonApple::Render(Window& l_window, float l_blockSize)
 {
+	RenderTo(l_window.GetRenderWindow(), l_blockSize);
+}
+
+void PoisonApple::RenderTo(sf::RenderTarget& target, float l_blockSize)
+{
 	if (m_pos.x < 0) return;
 
 	float baseRadius = l_blockSize / 2.0f;
-	float radius = baseRadius + std::sin(m_pulseTimer * 4.0f) * 1.0f;
+	float cx = m_pos.x * l_blockSize + baseRadius;
+	float cy = m_pos.y * l_blockSize + baseRadius;
 
-	m_shape.setRadius(radius);
-	m_shape.setOrigin(radius - baseRadius, radius - baseRadius);
-	m_shape.setFillColor(sf::Color::Green);
-	m_shape.setPosition(m_pos.x * l_blockSize, m_pos.y * l_blockSize);
-	l_window.Draw(m_shape);
+	// Nervous wobble — higher frequency than real apple to be subtly different
+	float wobbleRadius = baseRadius + std::sin(m_pulseTimer * 6.0f) * 1.2f;
+
+	// Ink-style wobbly circle — muted poison green, distinct from golden real apple
+	sf::Color poisonFill(65, 130, 45);
+	sf::Color outlineColor(30, 55, 25, 200);
+
+	// Higher corruption = more nervous line (the "tell")
+	float nervousCorruption = 0.35f;
+
+	InkRenderer::DrawWobblyCircle(target, cx, cy, wobbleRadius,
+								  poisonFill, outlineColor, 1.5f,
+								  nervousCorruption,
+								  (unsigned int)(m_pulseTimer * 3.0f), // Shifting seed = jittery
+								  16);
+
+	// Micro-drip effect every ~2 seconds
+	float dripPhase = std::fmod(m_pulseTimer, 2.0f);
+	if (dripPhase < 0.5f)
+	{
+		float dripAlpha = (0.5f - dripPhase) / 0.5f;
+		float dripY = cy + wobbleRadius + dripPhase * 8.0f;
+		sf::RectangleShape drip(sf::Vector2f(1.0f, 4.0f));
+		drip.setPosition(cx, dripY);
+		drip.setFillColor(sf::Color(25, 70, 20, (sf::Uint8)(180 * dripAlpha)));
+		target.draw(drip);
+	}
+
+	// Phase 2 visual tell: faint crossed lines inside
+	if (m_realApplesEaten >= 8)
+	{
+		sf::Color crossColor(20, 50, 20, 50);
+		float cr = wobbleRadius * 0.5f;
+		InkRenderer::DrawWobblyLine(target, cx - cr, cy - cr, cx + cr, cy + cr,
+									crossColor, 0.8f, 0.15f, 901);
+		InkRenderer::DrawWobblyLine(target, cx + cr, cy - cr, cx - cr, cy + cr,
+									crossColor, 0.8f, 0.15f, 902);
+	}
 }
 
 void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float l_blockSize)
@@ -95,16 +135,13 @@ void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float 
 		// Phase 1: spawn closer to snake than the real apple
 		float realDist = std::abs(head.x - applePos.x) + std::abs(head.y - applePos.y);
 
-		// Try up to 100 times to find a valid closer position
 		for (int attempt = 0; attempt < 100; attempt++)
 		{
 			int px = RandomInt(xMin, xMax);
 			int py = RandomInt(yMin, yMax);
 
-			// Must not overlap real apple
 			if (px == (int)applePos.x && py == (int)applePos.y) continue;
 
-			// Must not overlap snake body
 			bool onSnake = false;
 			for (const auto& seg : body)
 			{
@@ -120,7 +157,7 @@ void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float 
 			}
 		}
 
-		// Fallback: just place it somewhere valid
+		// Fallback
 		for (int attempt = 0; attempt < 50; attempt++)
 		{
 			int px = RandomInt(xMin, xMax);
@@ -154,11 +191,9 @@ void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float 
 		int px = head.x + dx * ahead;
 		int py = head.y + dy * ahead;
 
-		// Clamp to playable bounds
 		px = std::max(xMin, std::min(xMax, px));
 		py = std::max(yMin, std::min(yMax, py));
 
-		// If overlaps real apple or snake, offset randomly
 		bool placed = false;
 		for (int attempt = 0; attempt < 50; attempt++)
 		{
@@ -183,7 +218,25 @@ void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float 
 		}
 
 		if (placed)
+		{
 			m_pos = { (float)px, (float)py };
+		}
+		else
+		{
+			// Fallback: full-random placement like Phase 1
+			for (int fallback = 0; fallback < 200; fallback++)
+			{
+				px = RandomInt(xMin, xMax);
+				py = RandomInt(yMin, yMax);
+				if (px == (int)applePos.x && py == (int)applePos.y) continue;
+				bool onSnake = false;
+				for (const auto& seg : body)
+				{
+					if (seg.x == px && seg.y == py) { onSnake = true; break; }
+				}
+				if (!onSnake) { m_pos = { (float)px, (float)py }; break; }
+			}
+		}
 	}
 }
 
@@ -197,22 +250,17 @@ void PoisonApple::OnPoisonEaten()
 	m_consecutivePoisons++;
 	m_extraGrowth = 0;
 
-	// Always: invert controls for 4 seconds
 	m_controlInverted = true;
 	m_invertTimer = 4.0f;
 
 	if (m_consecutivePoisons >= 2)
 	{
-		// Speed boost
 		m_speedBoostAmount = (m_consecutivePoisons >= 3) ? 1.5f : 1.3f;
 		m_speedBoostTimer = 6.0f;
 	}
 
 	if (m_consecutivePoisons >= 3)
-	{
-		// Extra growth
 		m_extraGrowth = 3;
-	}
 }
 
 void PoisonApple::OnRealAppleEaten()
@@ -248,7 +296,7 @@ sf::Vector2f PoisonApple::GetPixelPos(float l_blockSize) const
 
 bool PoisonApple::IsInBounds(const World& l_world, float l_blockSize) const
 {
-	if (m_pos.x < 0) return true; // not spawned
+	if (m_pos.x < 0) return true;
 
 	float bs = l_blockSize;
 	float xMin = l_world.GetEffectiveThickness(3) / bs;

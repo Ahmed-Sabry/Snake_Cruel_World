@@ -1,8 +1,13 @@
 #include "PlayState.h"
 #include "AudioManager.h"
+#include "InkRenderer.h"
 #include <algorithm>
 #include <string>
 #include <cmath>
+
+namespace {
+	constexpr float kAppleBurstDuration = 0.2f;
+}
 
 PlayState::PlayState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
@@ -24,7 +29,16 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_cruelPhase(0),
 	  m_screenFlipped(false),
 	  m_phaseAnnouncementTimer(0.0f),
-	  m_announcementFontLoaded(false)
+	  m_announcementFontLoaded(false),
+	  m_postProcessorInited(false),
+	  m_pageTurnTimer(0.0f),
+	  m_pageTurnDuration(0.5f),
+	  m_deathInkRunTimer(0.0f),
+	  m_deathInkRunDuration(0.3f),
+	  m_deathInkRunActive(false),
+	  m_appleBurstTimer(0.0f),
+	  m_borderHatchTimer(0.0f),
+	  m_borderHatchDuration(0.3f)
 {
 }
 
@@ -39,8 +53,8 @@ void PlayState::OnEnter()
 	m_stateManager.currentLevel = idx + 1;
 	m_levelConfig = levels[idx];
 
-	// Apply level palette
-	window.SetBackground(m_levelConfig.background);
+	// Apply level palette — use paper tone as window clear color for ink style fallback
+	window.SetBackground(m_levelConfig.paperTone);
 
 	// Reset game state
 	m_snake.Reset();
@@ -54,7 +68,7 @@ void PlayState::OnEnter()
 
 	m_world.RespawnApple(m_snake);
 	m_world.SetBorderColor(m_levelConfig.border);
-	m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
+	m_hud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
 
 	// Apply remaining level-specific configuration
 	m_world.SetAppleColor(m_levelConfig.apple);
@@ -120,13 +134,44 @@ void PlayState::OnEnter()
 	}
 
 	if (m_levelConfig.hasControlShuffle)
+	{
 		m_controlShuffle.Reset();
+		m_controlShuffle.SetColors(m_levelConfig.paperTone, m_levelConfig.inkTint);
+	}
 
 	m_psychedelicTimer = 0.0f;
 
 	// Level 10 "Cruel World": override to Phase 1 after all mechanics initialized
 	if (m_levelConfig.id == 10)
 		InitCruelWorldPhases();
+
+	// --- Initialize "Living Ink" visual systems ---
+	m_snake.SetUseInkStyle(true);
+	m_snake.SetCorruption(m_levelConfig.corruption);
+	m_snake.SetInkTint(m_levelConfig.inkTint);
+
+	m_world.SetUseInkStyle(true);
+	m_world.SetCorruption(m_levelConfig.corruption);
+	m_world.SetInkTint(m_levelConfig.inkTint);
+	m_world.SetAccentColor(m_levelConfig.accentColor);
+
+	// Generate paper background
+	sf::Vector2u winSize = window.GetWindowSize();
+	m_paperBackground.Generate(m_levelConfig, winSize.x, winSize.y);
+
+	// Initialize post-processor (only once)
+	if (!m_postProcessorInited)
+	{
+		m_postProcessorInited = m_postProcessor.Init(winSize.x, winSize.y);
+	}
+	m_postProcessor.Configure(m_levelConfig);
+
+	// Start page-turn entry animation
+	m_pageTurnTimer = m_pageTurnDuration;
+	m_deathInkRunActive = false;
+	m_deathInkRunTimer = 0.0f;
+	m_appleBurstTimer = 0.0f;
+	m_borderHatchTimer = 0.0f;
 }
 
 void PlayState::InitCruelWorldPhases()
@@ -161,12 +206,29 @@ void PlayState::InitCruelWorldPhases()
 	m_world.SetShrinkInterval(4);
 	m_world.SetShrinkTimerSec(0.0f);
 
-	// Phase 1 theme: warm maroon (same as Level 1 "False Hope")
-	m_levelConfig.background = sf::Color(30, 15, 20);
-	m_levelConfig.border = sf::Color(200, 100, 50);
-	m_stateManager.GetWindow().SetBackground(m_levelConfig.background);
+	// Phase 1 theme: L1 "False Hope" callback
+	m_levelConfig.background = sf::Color(28, 22, 30);
+	m_levelConfig.border = sf::Color(175, 120, 75);
 	m_world.SetBorderColor(m_levelConfig.border);
-	m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
+
+	// Phase 1 ink style: clean notebook, low corruption (not the L10 default of 1.0)
+	m_levelConfig.paperTone = sf::Color(248, 242, 228);
+	m_levelConfig.inkTint = sf::Color(45, 40, 55);
+	m_levelConfig.accentColor = sf::Color(170, 65, 55);
+	m_levelConfig.corruption = 0.20f;
+	m_hud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
+	m_stateManager.GetWindow().SetBackground(m_levelConfig.paperTone);
+
+	// Update snake/world with Phase 1 ink params (overrides the L10 defaults set by OnEnter)
+	m_snake.SetCorruption(m_levelConfig.corruption);
+	m_snake.SetInkTint(m_levelConfig.inkTint);
+	m_world.SetCorruption(m_levelConfig.corruption);
+	m_world.SetInkTint(m_levelConfig.inkTint);
+
+	// Regenerate paper background for Phase 1 look
+	sf::Vector2u winSize = m_stateManager.GetWindow().GetWindowSize();
+	m_paperBackground.Generate(m_levelConfig, winSize.x, winSize.y);
+	m_postProcessor.Configure(m_levelConfig);
 }
 
 void PlayState::AdvanceCruelPhase()
@@ -190,12 +252,10 @@ void PlayState::AdvanceCruelPhase()
 			m_levelConfig.shrinkInterval = 3;
 			m_world.SetShrinkInterval(3);
 
-			// Theme: cold blue-gray (Level 8 palette)
-			m_levelConfig.background = sf::Color(15, 15, 25);
-			m_levelConfig.border = sf::Color(60, 70, 100);
-			window.SetBackground(m_levelConfig.background);
+			// Theme: cold blue-gray (Level 8 callback)
+			m_levelConfig.background = sf::Color(14, 16, 26);
+			m_levelConfig.border = sf::Color(55, 65, 95);
 			m_world.SetBorderColor(m_levelConfig.border);
-			m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
 
 			m_phaseAnnouncementText = "It gets worse.";
 			m_phaseAnnouncementTimer = 2.0f;
@@ -223,12 +283,10 @@ void PlayState::AdvanceCruelPhase()
 			m_levelConfig.shrinkInterval = 2;
 			m_world.SetShrinkInterval(2);
 
-			// Theme: sickly poisonous green
-			m_levelConfig.background = sf::Color(10, 30, 10);
-			m_levelConfig.border = sf::Color(40, 120, 30);
-			window.SetBackground(m_levelConfig.background);
+			// Theme: sickly poisonous green (Level 6 callback)
+			m_levelConfig.background = sf::Color(10, 25, 10);
+			m_levelConfig.border = sf::Color(40, 110, 30);
 			m_world.SetBorderColor(m_levelConfig.border);
-			m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
 
 			m_phaseAnnouncementText = "It gets worse.";
 			m_phaseAnnouncementTimer = 2.0f;
@@ -243,6 +301,7 @@ void PlayState::AdvanceCruelPhase()
 
 			m_earthquake.Reset(m_snake.GetBlockSize());
 			m_controlShuffle.Reset();
+			m_controlShuffle.SetColors(m_levelConfig.paperTone, m_levelConfig.inkTint);
 			m_mirrorGhost.Reset();
 			m_mirrorFlipCounter = 0;
 
@@ -253,12 +312,10 @@ void PlayState::AdvanceCruelPhase()
 			m_world.SetShrinkInterval(2);
 			m_world.SetShrinkTimerSec(5.0f);
 
-			// Theme: near-black with crimson borders
+			// Theme: scorched earth -- near-black with crimson borders
 			m_levelConfig.background = sf::Color(8, 5, 5);
-			m_levelConfig.border = sf::Color(180, 20, 20);
-			window.SetBackground(m_levelConfig.background);
+			m_levelConfig.border = sf::Color(170, 30, 20);
 			m_world.SetBorderColor(m_levelConfig.border);
-			m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
 
 			m_phaseAnnouncementText = "Everything. All at once.";
 			m_phaseAnnouncementTimer = 2.0f;
@@ -272,6 +329,48 @@ void PlayState::AdvanceCruelPhase()
 	// Common phase transition effects
 	m_screenShake.Trigger(0.5f, 5.0f);
 	m_stateManager.GetAudio().PlaySound("phase_advance");
+
+	// Update ink-style visuals for the new phase
+	// Map L10 phases to escalating corruption and different paper tones
+	static const sf::Color phasePaper[] = {
+		sf::Color(248, 242, 228), // Phase 1: L1 cream callback
+		sf::Color(205, 210, 225), // Phase 2: L8 cold gray callback
+		sf::Color(195, 205, 185), // Phase 3: L6 sickly green callback
+		sf::Color(195, 170, 155), // Phase 4: scorched parchment
+	};
+	static const sf::Color phaseInk[] = {
+		sf::Color(45, 40, 55),    // Phase 1: blue-black ballpoint
+		sf::Color(40, 45, 70),    // Phase 2: slate blue
+		sf::Color(25, 55, 20),    // Phase 3: forest green
+		sf::Color(85, 25, 15),    // Phase 4: blood red
+	};
+	static const float phaseCorruption[] = { 0.20f, 0.45f, 0.70f, 1.0f };
+
+	int pi = std::min(m_cruelPhase, 3);
+	m_levelConfig.paperTone = phasePaper[pi];
+	m_levelConfig.inkTint = phaseInk[pi];
+	m_levelConfig.corruption = phaseCorruption[pi];
+
+	// Update HUD and window for new phase
+	m_hud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
+	window.SetBackground(m_levelConfig.paperTone);
+
+	// Regenerate paper background for new phase
+	sf::Vector2u winSize = m_stateManager.GetWindow().GetWindowSize();
+	m_paperBackground.Generate(m_levelConfig, winSize.x, winSize.y);
+
+	// Update ink params on snake and world
+	m_snake.SetCorruption(m_levelConfig.corruption);
+	m_snake.SetInkTint(m_levelConfig.inkTint);
+	m_world.SetCorruption(m_levelConfig.corruption);
+	m_world.SetInkTint(m_levelConfig.inkTint);
+
+	// Update control shuffle indicator colors for new phase
+	if (m_levelConfig.hasControlShuffle)
+		m_controlShuffle.SetColors(m_levelConfig.paperTone, m_levelConfig.inkTint);
+
+	// Reconfigure post-processor for new corruption level
+	m_postProcessor.Configure(m_levelConfig);
 }
 
 void PlayState::OnExit()
@@ -361,6 +460,27 @@ void PlayState::Update(float l_dt)
 {
 	m_elapsedTime += l_dt;
 	m_gameTime += l_dt;
+	m_snake.UpdateVisuals(l_dt);
+	m_postProcessor.Update(l_dt);
+
+	// Transition animation timers
+	if (m_pageTurnTimer > 0.0f)
+		m_pageTurnTimer -= l_dt;
+	if (m_deathInkRunActive)
+	{
+		m_deathInkRunTimer += l_dt;
+		if (m_deathInkRunTimer >= m_deathInkRunDuration)
+		{
+			m_deathInkRunActive = false;
+			m_stateManager.SwitchTo(StateType::GameOver);
+		}
+		m_particles.Update(l_dt);
+		return;
+	}
+	if (m_appleBurstTimer > 0.0f)
+		m_appleBurstTimer -= l_dt;
+	if (m_borderHatchTimer > 0.0f)
+		m_borderHatchTimer -= l_dt;
 
 	float speed = m_levelConfig.baseSpeed;
 	// Speed creep: +0.5 every 5 apples
@@ -408,6 +528,7 @@ void PlayState::Update(float l_dt)
 			m_stateManager.GetAudio().PlaySound("world_shrink");
 			m_screenShake.Trigger(0.3f, 3.0f);
 			m_world.FlashBorders(0.2f);
+			m_borderHatchTimer = m_borderHatchDuration; // Trigger hatch fill animation
 		}
 
 		// Check for self-collision
@@ -446,8 +567,11 @@ void PlayState::Update(float l_dt)
 				UpdateCombo(true);
 
 				sf::Vector2f poisonPixelPos = m_poisonApple.GetPixelPos(m_snake.GetBlockSize());
-				m_particles.SpawnAppleBurst(poisonPixelPos, sf::Color::Magenta);
-				m_particles.SpawnFloatingText("-200", poisonPixelPos, sf::Color(255, 50, 100));
+				m_particles.SpawnAppleBurst(poisonPixelPos, sf::Color(
+					std::min(255, (int)m_levelConfig.inkTint.r + 80),
+					m_levelConfig.inkTint.g,
+					std::min(255, (int)m_levelConfig.inkTint.b + 30)));
+				m_particles.SpawnFloatingText("-200", poisonPixelPos, sf::Color(180, 40, 50));
 				m_stateManager.GetAudio().PlaySound("self_collide");
 
 				for (int i = 0; i < m_poisonApple.GetGrowAmount(); i++)
@@ -544,7 +668,9 @@ void PlayState::Update(float l_dt)
 		{
 			float flash = std::sin(m_gameTime * 10.0f);
 			if (flash > 0)
-				m_snake.SetColors(sf::Color::Magenta, sf::Color(200, 0, 100));
+				m_snake.SetColors(
+					sf::Color(m_levelConfig.snakeHead.r, std::min(255, (int)m_levelConfig.snakeHead.g + 40), m_levelConfig.snakeHead.b),
+					sf::Color(std::min(255, (int)m_levelConfig.snakeBody.r + 30), m_levelConfig.snakeBody.g, std::min(255, (int)m_levelConfig.snakeBody.b + 30)));
 			else
 				m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
 		}
@@ -646,7 +772,7 @@ void PlayState::Update(float l_dt)
 			m_stateManager.score = std::max(0, m_stateManager.score - 150);
 			sf::Vector2f ap(m_world.GetApplePos().x * m_snake.GetBlockSize(),
 							m_world.GetApplePos().y * m_snake.GetBlockSize());
-			m_particles.SpawnFloatingText("-150", ap, sf::Color(100, 100, 255));
+			m_particles.SpawnFloatingText("-150", ap, sf::Color(70, 80, 150));
 
 			// Respawn apple
 			m_world.RespawnApple(m_snake);
@@ -687,7 +813,10 @@ void PlayState::Update(float l_dt)
 	{
 		float pulse = std::sin(m_gameTime * 20.0f);
 		sf::Uint8 g = (sf::Uint8)(200 + 55 * pulse);
-		m_world.SetBorderColor(sf::Color(100, g, 255));
+		m_world.SetBorderColor(sf::Color(
+			m_levelConfig.accentColor.r,
+			(sf::Uint8)std::max(0, std::min(255, (int)m_levelConfig.accentColor.g + (int)(g - 200))),
+			(sf::Uint8)std::min(255, (int)m_levelConfig.accentColor.b + 50)));
 	}
 	else if (m_levelConfig.hasControlShuffle)
 	{
@@ -699,17 +828,13 @@ void PlayState::Update(float l_dt)
 	{
 		m_psychedelicTimer += l_dt;
 
-		// Background: cycle between dark purple (40,10,50) and dark teal (10,40,50)
-		float t = (std::sin(m_psychedelicTimer * 0.8f) + 1.0f) / 2.0f;
-		m_stateManager.GetWindow().SetBackground(sf::Color(
-			(sf::Uint8)(10 + t * 30), (sf::Uint8)(40 - t * 30), 50));
-
+		// Background tint cycles between purple and teal (applied as overlay in Render)
 		// Apple: RGB cycling via phase-shifted sin waves
 		float ap = m_psychedelicTimer * 2.0f;
 		m_world.SetAppleColor(sf::Color(
-			(sf::Uint8)(128 + 127 * std::sin(ap)),
-			(sf::Uint8)(128 + 127 * std::sin(ap + 2.094f)),
-			(sf::Uint8)(128 + 127 * std::sin(ap + 4.189f))));
+			(sf::Uint8)(100 + 80 * std::sin(ap)),
+			(sf::Uint8)(100 + 80 * std::sin(ap + 2.094f)),
+			(sf::Uint8)(100 + 80 * std::sin(ap + 4.189f))));
 	}
 
 	// Level 10 phase announcement timer
@@ -728,31 +853,93 @@ void PlayState::Update(float l_dt)
 void PlayState::Render()
 {
 	Window& window = m_stateManager.GetWindow();
+	bool usePostProcess = m_postProcessor.IsAvailable();
+
+	// Begin post-processing capture (game scene renders to offscreen RT)
+	if (usePostProcess)
+	{
+		m_postProcessor.Begin();
+
+		// Propagate screen shake view (offset + rotation) from window to the RT
+		// so shake effects are visible in the post-processed output
+		sf::View shakeView = window.GetRenderWindow().getView();
+		m_postProcessor.GetTarget().setView(shakeView);
+	}
+
+	sf::RenderTarget& target = usePostProcess
+		? m_postProcessor.GetTarget()
+		: (sf::RenderTarget&)window.GetRenderWindow();
 
 	// Level 10: screen flip (The Cruel Twist at apple 19)
 	sf::View savedView;
 	if (m_screenFlipped)
 	{
-		savedView = window.GetRenderWindow().getView();
-		sf::View flipped = savedView;
-		flipped.setRotation(180.f);
-		window.SetView(flipped);
+		if (usePostProcess)
+		{
+			savedView = m_postProcessor.GetTarget().getView();
+			sf::View flipped = savedView;
+			flipped.setRotation(savedView.getRotation() + 180.f);
+			m_postProcessor.GetTarget().setView(flipped);
+		}
+		else
+		{
+			savedView = window.GetRenderWindow().getView();
+			sf::View flipped = savedView;
+			flipped.setRotation(savedView.getRotation() + 180.f);
+			window.SetView(flipped);
+		}
 	}
 
-	m_world.Render(window);
+	// Draw paper background with page-turn entry animation
+	if (m_paperBackground.IsGenerated())
+	{
+		if (m_pageTurnTimer > 0.0f)
+		{
+			// Page slides in from the right
+			float progress = m_pageTurnTimer / m_pageTurnDuration; // 1.0 → 0.0
+			float slideOffset = progress * (float)window.GetWindowSize().x;
+
+			// Save view, offset for slide
+			sf::View slideView = target.getView();
+			sf::View offsetView = slideView;
+			offsetView.move(slideOffset, 0);
+			target.setView(offsetView);
+			m_paperBackground.Render(target);
+			target.setView(slideView);
+		}
+		else
+		{
+			m_paperBackground.Render(target);
+		}
+	}
+
+	// Level 9: Psychedelic tint overlay cycling on paper background
+	if (m_levelConfig.id == 9 && m_psychedelicTimer > 0.0f)
+	{
+		float t = (std::sin(m_psychedelicTimer * 0.8f) + 1.0f) / 2.0f;
+		sf::Uint8 r = (sf::Uint8)(80 + t * 60);
+		sf::Uint8 g = (sf::Uint8)(30 + (1.0f - t) * 60);
+		sf::Uint8 b = (sf::Uint8)(100 + t * 30);
+		sf::RectangleShape psychOverlay(sf::Vector2f(
+			(float)window.GetWindowSize().x, (float)window.GetWindowSize().y));
+		psychOverlay.setFillColor(sf::Color(r, g, b, 40)); // Subtle tint wash
+		target.draw(psychOverlay);
+	}
+
+	m_world.RenderInk(target, m_gameTime);
 
 	if (m_levelConfig.hasEarthquakes)
-		m_earthquake.Render(window, m_world);
+		m_earthquake.RenderTo(target, m_world);
 
 	if (m_levelConfig.hasQuicksand)
-		m_quicksand.Render(window, m_snake.GetBlockSize());
+		m_quicksand.RenderTo(target, m_snake.GetBlockSize());
 
 	if (m_levelConfig.hasTimedApples)
 	{
 		sf::Vector2f applePixelPos(
 			m_world.GetApplePos().x * m_snake.GetBlockSize(),
 			m_world.GetApplePos().y * m_snake.GetBlockSize());
-		m_timedApple.Render(window, applePixelPos, m_snake.GetBlockSize() / 2.0f);
+		m_timedApple.RenderTo(target, applePixelPos, m_snake.GetBlockSize() / 2.0f);
 	}
 
 	if (m_levelConfig.hasMirrorGhost)
@@ -762,13 +949,13 @@ void PlayState::Render()
 		int bMaxX = (int)(m_world.GetMaxX() - m_world.GetEffectiveThickness(1) / bs - 1);
 		int bMinY = (int)((m_world.GetEffectiveThickness(0) + m_world.GetTopOffset()) / bs);
 		int bMaxY = (int)(m_world.GetMaxY() - m_world.GetEffectiveThickness(2) / bs - 1);
-		m_mirrorGhost.Render(window, bs, bMinX, bMaxX, bMinY, bMaxY);
+		m_mirrorGhost.RenderTo(target, bs, bMinX, bMaxX, bMinY, bMaxY);
 	}
 
 	// Poison apple rendering + Phase 2 real apple pulse
 	if (m_levelConfig.hasPoisonApples)
 	{
-		m_poisonApple.Render(window, m_snake.GetBlockSize());
+		m_poisonApple.RenderTo(target, m_snake.GetBlockSize());
 
 		// In Phase 2, make the real apple pulse too
 		if (m_poisonApple.GetRealApplesEaten() >= 8)
@@ -780,23 +967,106 @@ void PlayState::Render()
 			m_realPulse.setFillColor(m_levelConfig.apple);
 			m_realPulse.setPosition(m_world.GetApplePos().x * m_snake.GetBlockSize(),
 									m_world.GetApplePos().y * m_snake.GetBlockSize());
-			window.Draw(m_realPulse);
+			target.draw(m_realPulse);
 		}
 	}
 
 	if (m_levelConfig.hasPredator)
-		m_predator.Render(window, m_snake.GetBlockSize());
+		m_predator.RenderTo(target, m_snake.GetBlockSize());
 
-	m_snake.Render(window);
-	m_particles.Render(window);
+	// Snake: render with ink style to the post-process target
+	m_snake.RenderInk(target);
+
+	// Apple burst outline effect (expanding circle on eat)
+	if (m_appleBurstTimer > 0.0f)
+	{
+		float progress = 1.0f - (m_appleBurstTimer / kAppleBurstDuration); // 0→1
+		float burstRadius = m_snake.GetBlockSize() * (1.0f + progress * 1.5f);
+		sf::Uint8 burstAlpha = (sf::Uint8)(180 * (1.0f - progress));
+		sf::Color burstOutline(m_appleBurstColor.r, m_appleBurstColor.g,
+							   m_appleBurstColor.b, burstAlpha);
+		float cx = m_appleBurstPos.x + m_snake.GetBlockSize() * 0.5f;
+		float cy = m_appleBurstPos.y + m_snake.GetBlockSize() * 0.5f;
+		InkRenderer::DrawWobblyCircle(target, cx, cy, burstRadius,
+									  sf::Color::Transparent, burstOutline,
+									  1.5f, m_levelConfig.corruption * 0.5f,
+									  (unsigned int)(m_gameTime * 100.0f), 12);
+	}
+
+	// Border hatch fill animation (rapid strokes appearing in new border area)
+	if (m_borderHatchTimer > 0.0f)
+	{
+		float progress = 1.0f - (m_borderHatchTimer / m_borderHatchDuration); // 0→1
+		int strokeCount = (int)(progress * 15);
+		sf::Color hatchColor(m_levelConfig.inkTint.r, m_levelConfig.inkTint.g,
+							 m_levelConfig.inkTint.b, (sf::Uint8)(100 * (1.0f - progress)));
+		unsigned int seed = (unsigned int)(m_gameTime * 50.0f);
+
+		// Build border band rects: top, right, bottom, left
+		float winW = (float)window.GetWindowSize().x;
+		float winH = (float)window.GetWindowSize().y;
+		float topOff = m_world.GetTopOffset();
+		float eTop = m_world.GetEffectiveThickness(0);
+		float eRight = m_world.GetEffectiveThickness(1);
+		float eBottom = m_world.GetEffectiveThickness(2);
+		float eLeft = m_world.GetEffectiveThickness(3);
+		sf::FloatRect bands[4] = {
+			{ 0, topOff, winW, eTop },                          // top
+			{ winW - eRight, topOff, eRight, winH - topOff },   // right
+			{ 0, winH - eBottom, winW, eBottom },                // bottom
+			{ 0, topOff, eLeft, winH - topOff }                  // left
+		};
+
+		for (int s = 0; s < strokeCount; s++)
+		{
+			unsigned int h = InkRenderer::Hash(seed, (unsigned int)s);
+			// Pick a border band based on hash
+			const sf::FloatRect& band = bands[h % 4];
+			float bw = std::max(1.0f, band.width);
+			float bh = std::max(1.0f, band.height);
+			float sx = band.left + (float)(h % (int)bw);
+			float sy = band.top + (float)((h >> 8) % (int)bh);
+			float len = 8.0f + (float)((h >> 16) % 12);
+			bool horiz = (h >> 28) & 1;
+			if (horiz)
+				InkRenderer::DrawWobblyLine(target, sx, sy, sx + len, sy,
+											hatchColor, 1.0f, 0.3f, h);
+			else
+				InkRenderer::DrawWobblyLine(target, sx, sy, sx, sy + len,
+											hatchColor, 1.0f, 0.3f, h);
+		}
+	}
+
+	m_particles.RenderTo(target);
 
 	if (m_levelConfig.hasBlackouts)
-		m_blackout.Render(window, m_snake.GetBlockSize());
+		m_blackout.RenderTo(target, window.GetWindowSize(), m_snake.GetBlockSize());
 
 	// Restore un-flipped view for HUD and UI overlays (never upside-down)
 	if (m_screenFlipped)
-		window.SetView(savedView);
+	{
+		if (usePostProcess)
+			m_postProcessor.GetTarget().setView(savedView);
+		else
+			window.SetView(savedView);
+	}
 
+	// End post-processing capture and apply shader chain
+	if (usePostProcess)
+	{
+		m_postProcessor.End();
+
+		// Reset window view to default before drawing post-processed result,
+		// otherwise screen shake offset gets applied twice (once in RT, once on window)
+		window.SetView(window.GetDefaultView());
+		m_postProcessor.Apply(window);
+	}
+	else
+	{
+		window.SetView(window.GetDefaultView());
+	}
+
+	// HUD and overlays render directly to window (no post-processing, stays crisp)
 	if (m_levelConfig.hasControlShuffle)
 		m_controlShuffle.Render(window);
 
@@ -826,7 +1096,12 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 		l_applePos.y * m_snake.GetBlockSize());
 	m_particles.SpawnAppleBurst(applePixelPos, m_levelConfig.apple);
 	m_particles.SpawnFloatingText("+" + std::to_string(points), applePixelPos,
-								  sf::Color(255, 255, 100));
+								  m_levelConfig.accentColor);
+
+	// Apple burst outline effect
+	m_appleBurstTimer = kAppleBurstDuration;
+	m_appleBurstPos = applePixelPos;
+	m_appleBurstColor = m_levelConfig.apple;
 
 	// Mirror ghost: flip axis every 5 apples
 	if (m_levelConfig.hasMirrorGhost)
@@ -934,7 +1209,16 @@ void PlayState::OnDeath()
 	m_stateManager.totalDeaths++;
 	m_stateManager.levelComplete = false;
 	m_stateManager.GetAudio().PlaySound("wall_death");
-	m_stateManager.SwitchTo(StateType::GameOver);
+
+	// Trigger ink-run death effect
+	m_deathInkRunActive = true;
+	m_deathInkRunTimer = 0.0f;
+
+	// Spawn ink drip particles at snake head
+	float bs = m_snake.GetBlockSize();
+	sf::Vector2f headPixel(m_snake.GetPosition().x * bs, m_snake.GetPosition().y * bs);
+	m_particles.SpawnInkDrips(headPixel, m_levelConfig.inkTint, 8);
+
 }
 
 void PlayState::UpdateCombo(bool l_reset)
@@ -1018,7 +1302,7 @@ void PlayState::RenderPhaseAnnouncement(Window& l_window)
 	text.setFont(m_announcementFont);
 	text.setString(m_phaseAnnouncementText);
 	text.setCharacterSize(48);
-	text.setFillColor(sf::Color(220, 30, 30, a));
+	text.setFillColor(sf::Color(180, 40, 30, a));
 
 	sf::FloatRect bounds = text.getLocalBounds();
 	text.setOrigin(bounds.left + bounds.width / 2.0f,

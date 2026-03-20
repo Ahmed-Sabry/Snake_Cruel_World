@@ -20,6 +20,7 @@ public:
 	void Reset();
 	void Update(float l_dt);
 	void Render(Window& l_window);
+	void SetColors(const sf::Color& l_paperTone, const sf::Color& l_inkTint);
 
 	Direction MapDirection(Direction l_input) const;
 	void OnAppleEaten(int l_totalApples);
@@ -55,4 +56,7 @@ private:
 	sf::RectangleShape m_indicatorBg;
 	sf::RectangleShape m_warningBarBg;
 	sf::RectangleShape m_warningBar;
+
+	sf::Color m_paperTone{sf::Color::White};
+	sf::Color m_inkTint{sf::Color::Black};
 };

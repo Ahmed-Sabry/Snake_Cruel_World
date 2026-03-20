@@ -17,6 +17,7 @@ public:
 	void Reset(float l_maxX, float l_maxY, float l_borderThickness, float l_blockSize, float l_topOffset);
 	void Update(float l_dt, float l_maxX, float l_maxY, float l_borderThickness, float l_blockSize, float l_topOffset);
 	void Render(Window& l_window, float l_blockSize);
+	void RenderTo(sf::RenderTarget& l_target, float l_blockSize);
 	bool IsOnQuicksand(const Position& l_pos) const;
 
 private:

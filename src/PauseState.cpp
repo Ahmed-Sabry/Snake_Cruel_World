@@ -51,16 +51,17 @@ void PauseState::OnEnter()
 	Window& window = m_stateManager.GetWindow();
 	sf::Vector2u winSize = window.GetWindowSize();
 
-	// Dark overlay
+	// "Notebook closed" overlay — darker paper tone
 	m_overlay.setSize(sf::Vector2f((float)winSize.x, (float)winSize.y));
-	m_overlay.setFillColor(sf::Color(0, 0, 0, 160));
+	m_overlay.setFillColor(sf::Color(210, 200, 180, 200));
 	m_overlay.setPosition(0, 0);
 
-	// Title
+	// Title in red ink, slightly crooked
 	m_title.setFont(m_font);
 	m_title.setString("PAUSED");
 	m_title.setCharacterSize(48);
-	m_title.setFillColor(sf::Color(200, 50, 50));
+	m_title.setFillColor(sf::Color(180, 50, 40));
+	m_title.setRotation(1.5f);
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
 	m_title.setPosition((winSize.x - titleBounds.width) / 2.0f, 200.f);
 
@@ -68,7 +69,7 @@ void PauseState::OnEnter()
 	m_cruelTip.setFont(m_font);
 	m_cruelTip.setString(s_cruelTips[rand() % s_tipCount]);
 	m_cruelTip.setCharacterSize(18);
-	m_cruelTip.setFillColor(sf::Color(160, 120, 120));
+	m_cruelTip.setFillColor(sf::Color(140, 120, 110)); // Pencil-gray tone
 	sf::FloatRect tipBounds = m_cruelTip.getLocalBounds();
 	m_cruelTip.setPosition((winSize.x - tipBounds.width) / 2.0f, 280.f);
 
@@ -168,9 +169,9 @@ void PauseState::Update(float l_dt)
 	for (int i = 0; i < m_itemCount; i++)
 	{
 		if (i == m_selectedItem)
-			m_menuItems[i].setFillColor(sf::Color(255, 100, 80));
+			m_menuItems[i].setFillColor(sf::Color(180, 50, 40));
 		else
-			m_menuItems[i].setFillColor(sf::Color(180, 170, 170));
+			m_menuItems[i].setFillColor(sf::Color(100, 90, 80));
 	}
 }
 

@@ -1,4 +1,5 @@
 #include "BlackoutEffect.h"
+#include <cmath>
 
 BlackoutEffect::BlackoutEffect()
 	: m_cycleTimer(0.0f),
@@ -46,26 +47,50 @@ void BlackoutEffect::Update(float l_dt, const Snake& l_snake)
 
 void BlackoutEffect::Render(Window& l_window, float l_blockSize)
 {
+	RenderTo(l_window.GetRenderWindow(), l_window.GetWindowSize(), l_blockSize);
+}
+
+void BlackoutEffect::RenderTo(sf::RenderTarget& l_target, sf::Vector2u l_winSize, float l_blockSize)
+{
 	if (!m_isDark) return;
 
-	// Dark overlay covers entire window
-	sf::Vector2u winSize = l_window.GetWindowSize();
-	m_overlay.setSize(sf::Vector2f((float)winSize.x, (float)winSize.y));
+	// Use default view so overlay covers screen even during screen shake
+	sf::View savedView = l_target.getView();
+	l_target.setView(l_target.getDefaultView());
+	m_overlay.setSize(sf::Vector2f((float)l_winSize.x, (float)l_winSize.y));
 	m_overlay.setPosition(0.0f, 0.0f);
-	m_overlay.setFillColor(sf::Color(0, 0, 0, 240));
-	l_window.Draw(m_overlay);
+	m_overlay.setFillColor(sf::Color(30, 20, 15, 235)); // Dark sepia instead of pure black
 
-	// Head glow: 3 concentric circles, innermost brightest
-	for (int i = 2; i >= 0; i--)
+	l_target.draw(m_overlay);
+	l_target.setView(savedView);
+
+	// Head glow: warm candlelight illuminating the notebook page
+	// 5 concentric circles for smoother gradient, warm orange tint
+	for (int i = 4; i >= 0; i--)
 	{
-		float radius = l_blockSize * (1.0f + i * 1.5f);
+		float radius = l_blockSize * (0.8f + i * 1.2f);
 		m_headGlow.setRadius(radius);
 		m_headGlow.setOrigin(radius, radius);
 		m_headGlow.setPosition(m_headPixelPos);
-		int alpha = 25 - i * 8; // 25, 17, 9
-		m_headGlow.setFillColor(sf::Color(255, 120, 80, alpha));
-		l_window.Draw(m_headGlow);
+
+		// Warm candlelight colors with noisy flicker
+		float flicker = 1.0f + std::sin(m_cycleTimer * 12.0f + (float)i * 1.5f) * 0.15f;
+		int baseAlpha = 30 - i * 5; // 30, 25, 20, 15, 10
+		int alpha = (int)(baseAlpha * flicker);
+		if (alpha < 0) alpha = 0;
+		if (alpha > 255) alpha = 255;
+
+		m_headGlow.setFillColor(sf::Color(255, 140, 60, (sf::Uint8)alpha));
+		l_target.draw(m_headGlow);
 	}
+
+	// Inner bright core
+	float coreRadius = l_blockSize * 0.6f;
+	m_headGlow.setRadius(coreRadius);
+	m_headGlow.setOrigin(coreRadius, coreRadius);
+	m_headGlow.setPosition(m_headPixelPos);
+	m_headGlow.setFillColor(sf::Color(255, 200, 120, 35));
+	l_target.draw(m_headGlow);
 }
 
 bool BlackoutEffect::IsBlackout() const

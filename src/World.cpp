@@ -1,11 +1,19 @@
 #include "World.h"
+#include "InkRenderer.h"
 #include <algorithm>
+#include <cmath>
 
 World::World(Window& l_window, Snake& l_snake)
 {
 	m_topOffset = 0.f;
 	m_flashTimer = 0.0f;
 	m_normalBorderColor = sf::Color(200, 100, 50);
+	m_useInkStyle = false;
+	m_corruption = 0.05f;
+	m_inkTint = sf::Color(60, 50, 45);
+	m_accentColor = sf::Color(180, 60, 50);
+	m_appleColor = sf::Color::Green;
+	m_appleSeed = 42;
 	ResetBorderOffsets();
 	Reset(l_window, l_snake);
 
@@ -146,6 +154,7 @@ void World::RespawnApple(Snake& l_snake)
 
 	m_apple.setPosition(sf::Vector2f(x * bs, y * bs));
 	m_applePos = { x, y };
+	m_appleSeed = (unsigned int)(x * 31 + y * 97 + m_totalApplesEaten * 1013);
 }
 
 void World::CheckCollision(Window& l_window, Snake& l_snake)
@@ -250,12 +259,120 @@ bool World::IsAppleInBounds(float l_blockSize) const
 void World::SetAppleColor(sf::Color l_color)
 {
 	m_apple.setFillColor(l_color);
+	m_appleColor = l_color;
 }
 
 void World::Render(Window& l_window)
 {
+	if (m_useInkStyle)
+	{
+		RenderInk(l_window.GetRenderWindow(), 0.0f);
+		return;
+	}
+
 	for (int i = 0; i < 4; i++)
 		l_window.Draw(m_borders[i]);
 
 	l_window.Draw(m_apple);
+}
+
+void World::RenderInk(sf::RenderTarget& l_target, float l_gameTime)
+{
+	RenderInkBorders(l_target);
+	RenderInkApple(l_target, l_gameTime);
+}
+
+void World::RenderInkBorders(sf::RenderTarget& l_target)
+{
+	// Draw borders with cross-hatch fill and torn edges
+	sf::Color borderFill = m_normalBorderColor;
+	if (m_flashTimer > 0.0f)
+		borderFill = sf::Color::Red;
+
+	for (int i = 0; i < 4; i++)
+	{
+		sf::Vector2f pos = m_borders[i].getPosition();
+		sf::Vector2f size = m_borders[i].getSize();
+
+		// Fill with cross-hatching
+		sf::Color hatchColor(m_inkTint.r, m_inkTint.g, m_inkTint.b,
+							 (sf::Uint8)(borderFill.a > 0 ? 100 : 0));
+
+		// Draw base fill
+		sf::RectangleShape base(size);
+		base.setPosition(pos);
+		base.setFillColor(borderFill);
+		l_target.draw(base);
+
+		// Overlay cross-hatch lines
+		InkRenderer::DrawCrossHatch(l_target, pos.x, pos.y, size.x, size.y,
+									hatchColor, 4.0f, 45.0f, m_corruption,
+									(unsigned int)(i * 997));
+
+		// Draw torn edge on inner side
+		switch (i)
+		{
+			case 0: // Top border - torn at bottom edge
+				InkRenderer::DrawTornEdge(l_target, pos.x, pos.y + size.y, size.x,
+										  true, true, borderFill, m_corruption, 100 + i);
+				break;
+			case 1: // Right border - torn at left edge
+				InkRenderer::DrawTornEdge(l_target, pos.x, pos.y, size.y,
+										  false, true, borderFill, m_corruption, 100 + i);
+				break;
+			case 2: // Bottom border - torn at top edge
+				InkRenderer::DrawTornEdge(l_target, pos.x, pos.y, size.x,
+										  true, false, borderFill, m_corruption, 100 + i);
+				break;
+			case 3: // Left border - torn at right edge
+				InkRenderer::DrawTornEdge(l_target, pos.x + size.x, pos.y, size.y,
+										  false, false, borderFill, m_corruption, 100 + i);
+				break;
+			default:
+				break;
+		}
+	}
+
+	// Draw margin line (red vertical line at inner edge of left border)
+	float leftInner = m_borders[3].getPosition().x + m_borders[3].getSize().x;
+	sf::RectangleShape marginLine(sf::Vector2f(2.0f,
+		(float)m_borders[3].getSize().y));
+	marginLine.setPosition(leftInner, m_borders[3].getPosition().y);
+	marginLine.setFillColor(sf::Color(200, 60, 60, 120));
+	l_target.draw(marginLine);
+}
+
+void World::RenderInkApple(sf::RenderTarget& l_target, float l_gameTime)
+{
+	float bs = m_appleRaduis * 2.0f;
+	float cx = m_applePos.x * bs + m_appleRaduis;
+	float cy = m_applePos.y * bs + m_appleRaduis;
+
+	// Breathing animation
+	float breathScale = 1.0f + std::sin(l_gameTime * 3.14f) * 0.05f;
+	float radius = m_appleRaduis * breathScale;
+
+	// Wobbly circle
+	InkRenderer::DrawWobblyCircle(l_target, cx, cy, radius,
+								  m_appleColor,
+								  sf::Color(m_inkTint.r, m_inkTint.g, m_inkTint.b, 200),
+								  1.5f, m_corruption, m_appleSeed, 16);
+
+	// Small leaf (V shape at top)
+	sf::Color leafColor(m_inkTint.r, m_inkTint.g, m_inkTint.b, 180);
+	InkRenderer::DrawWobblyLine(l_target,
+								cx, cy - radius,
+								cx + 3.0f, cy - radius - 4.0f,
+								leafColor, 1.0f, m_corruption * 0.5f, m_appleSeed + 1);
+	InkRenderer::DrawWobblyLine(l_target,
+								cx, cy - radius,
+								cx - 2.0f, cy - radius - 3.0f,
+								leafColor, 1.0f, m_corruption * 0.5f, m_appleSeed + 2);
+
+	// Tiny highlight dot
+	sf::CircleShape highlight(1.5f);
+	highlight.setOrigin(1.5f, 1.5f);
+	highlight.setPosition(cx - radius * 0.3f, cy - radius * 0.3f);
+	highlight.setFillColor(sf::Color(255, 255, 255, 80));
+	l_target.draw(highlight);
 }

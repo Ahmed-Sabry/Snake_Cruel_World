@@ -16,6 +16,8 @@
 #include "Earthquake.h"
 #include "Predator.h"
 #include "ControlShuffle.h"
+#include "PaperBackground.h"
+#include "PostProcessor.h"
 
 class PlayState : public BaseState
 {
@@ -81,4 +83,25 @@ private:
 	std::string m_phaseAnnouncementText;
 	sf::Font m_announcementFont;
 	bool m_announcementFontLoaded;
+
+	// "Living Ink" visual systems
+	PaperBackground m_paperBackground;
+	PostProcessor m_postProcessor;
+	bool m_postProcessorInited;
+
+	// Transition animations
+	float m_pageTurnTimer;       // Page-turn entry animation (slides bg from right)
+	float m_pageTurnDuration;
+	float m_deathInkRunTimer;    // Ink-run death effect (ink drips downward)
+	float m_deathInkRunDuration;
+	bool m_deathInkRunActive;
+
+	// Apple burst outline effect
+	float m_appleBurstTimer;
+	sf::Vector2f m_appleBurstPos;
+	sf::Color m_appleBurstColor;
+
+	// Border hatch fill animation on shrink
+	float m_borderHatchTimer;
+	float m_borderHatchDuration;
 };

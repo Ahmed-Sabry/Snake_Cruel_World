@@ -2,6 +2,7 @@
 
 #include "GameState.h"
 #include "StateManager.h"
+#include "PaperBackground.h"
 
 class MenuState : public BaseState
 {
@@ -24,6 +25,6 @@ private:
 	int m_itemCount;
 	bool m_keyReleased;
 
-	// Ouroboros animation
 	float m_animTimer;
+	PaperBackground m_paperBg;
 };
