@@ -2,6 +2,8 @@
 
 #include "Window.h"
 #include "AudioManager.h"
+#include "StatsManager.h"
+#include "AchievementManager.h"
 #include "StateManager.h"
 #include "SaveManager.h"
 
@@ -24,6 +26,8 @@ public:
 private:
 	Window m_window;
 	AudioManager m_audioManager;
+	StatsManager m_statsManager;
+	AchievementManager m_achievementManager;
 	StateManager m_stateManager;
 
 	sf::Clock m_clock;

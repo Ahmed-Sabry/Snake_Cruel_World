@@ -109,7 +109,10 @@ void HUD::Update(int l_score, float l_combo, int l_applesEaten, int l_applesToWi
 	}
 
 	// Apples (positioned left of predator counter or timer)
-	m_appleText.setString("Apples: " + std::to_string(l_applesEaten) + "/" + std::to_string(l_applesToWin));
+	if (l_applesToWin > 0)
+		m_appleText.setString("Apples: " + std::to_string(l_applesEaten) + "/" + std::to_string(l_applesToWin));
+	else
+		m_appleText.setString("Apples: " + std::to_string(l_applesEaten));
 	sf::FloatRect appleBounds = m_appleText.getGlobalBounds();
 	float applesX = predatorRightEdge - appleBounds.width - 25.f;
 	m_appleText.setPosition(applesX, HUD_TEXT_Y);

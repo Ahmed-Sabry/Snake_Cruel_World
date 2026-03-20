@@ -1,8 +1,13 @@
 #include "PlayState.h"
 #include "AudioManager.h"
 #include "InkRenderer.h"
+#include "StatsManager.h"
+#include "AchievementManager.h"
+#include "SnakeSkin.h"
 #include <algorithm>
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <cmath>
 
 namespace {
@@ -38,7 +43,14 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_deathInkRunActive(false),
 	  m_appleBurstTimer(0.0f),
 	  m_borderHatchTimer(0.0f),
-	  m_borderHatchDuration(0.3f)
+	  m_borderHatchDuration(0.3f),
+	  m_quicksandTouches(0),
+	  m_wasOnQuicksand(false),
+	  m_timedAppleMisses(0),
+	  m_poisonApplesThisLevel(0),
+	  m_reachedMinBody(false),
+	  m_screenFlipStartTime(0.0f),
+	  m_endlessWarningTimer(0.0f)
 {
 }
 
@@ -74,6 +86,29 @@ void PlayState::OnEnter()
 	m_world.SetAppleColor(m_levelConfig.apple);
 	m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
 
+	// Apply active skin based on three-tier rule:
+	// - First playthrough (level not yet beaten): level colors only
+	// - Replayed levels (already beaten): skin applies
+	// - Endless mode: skin always applies
+	{
+		int skinIdx = m_stateManager.activeSkinIndex;
+		bool shouldApplySkin = false;
+
+		if (skinIdx > 0)
+		{
+			if (m_stateManager.endlessMode)
+				shouldApplySkin = true;
+			else
+				shouldApplySkin = (m_stateManager.currentLevel < m_stateManager.highestUnlockedLevel);
+		}
+
+		auto skins = GetAllSkins();
+		if (shouldApplySkin && skinIdx < (int)skins.size())
+			m_snake.ApplySkin(skins[skinIdx]);
+		else
+			m_snake.ClearSkin();
+	}
+
 	m_elapsedTime = 0.0f;
 	m_gameTime = 0.0f;
 	m_applesEaten = 0;
@@ -95,6 +130,56 @@ void PlayState::OnEnter()
 	m_stateManager.levelComplete = false;
 
 	m_mirrorFlipCounter = 0;
+
+	// Achievement/statistics tracking resets
+	m_quicksandTouches = 0;
+	m_wasOnQuicksand = false;
+	m_timedAppleMisses = 0;
+	m_poisonApplesThisLevel = 0;
+	m_reachedMinBody = false;
+	m_screenFlipStartTime = 0.0f;
+
+	// Notify stats of level start (skip for endless — tracked separately)
+	if (!m_stateManager.endlessMode)
+		m_stateManager.GetStats().OnLevelStart(m_stateManager.currentLevel);
+
+	// Load font for notifications and announcements (once)
+	if (!m_announcementFontLoaded)
+	{
+		if (m_announcementFont.loadFromFile(FONT_PATH))
+			m_announcementFontLoaded = true;
+	}
+
+	// Init achievement notification
+	if (m_announcementFontLoaded)
+		m_achievementNotif.Init(m_announcementFont);
+
+	// Endless mode setup
+	m_endlessWarningTimer = 0.0f;
+	m_endlessWarningText.clear();
+	if (m_stateManager.endlessMode)
+	{
+		m_endlessCtrl = std::make_unique<EndlessModeController>(
+			m_stateManager.highestUnlockedLevel);
+		// Override level config for endless mode — start with a clean slate
+		m_levelConfig.applesToWin = 99999; // effectively infinite
+		m_levelConfig.shrinkTimerSec = 15.0f;
+		m_levelConfig.shrinkInterval = 0; // timer-based only
+		m_levelConfig.baseSpeed = 10.0f;
+		// Clear all mechanic flags — EndlessModeController toggles them dynamically
+		m_levelConfig.hasBlackouts = false;
+		m_levelConfig.hasQuicksand = false;
+		m_levelConfig.hasMirrorGhost = false;
+		m_levelConfig.hasTimedApples = false;
+		m_levelConfig.hasPoisonApples = false;
+		m_levelConfig.hasEarthquakes = false;
+		m_levelConfig.hasPredator = false;
+		m_levelConfig.hasControlShuffle = false;
+	}
+	else
+	{
+		m_endlessCtrl.reset();
+	}
 
 	m_particles.Clear();
 	m_screenShake.Reset(m_stateManager.GetWindow());
@@ -181,12 +266,7 @@ void PlayState::InitCruelWorldPhases()
 	m_phaseAnnouncementTimer = 0.0f;
 	m_phaseAnnouncementText.clear();
 
-	// Load announcement font once
-	if (!m_announcementFontLoaded)
-	{
-		if (m_announcementFont.loadFromFile(FONT_PATH))
-			m_announcementFontLoaded = true;
-	}
+	// Font is loaded in OnEnter() — no need to load here
 
 	// Phase 1: only timed apples active
 	m_levelConfig.hasBlackouts = false;
@@ -460,8 +540,125 @@ void PlayState::Update(float l_dt)
 {
 	m_elapsedTime += l_dt;
 	m_gameTime += l_dt;
+	m_stateManager.GetStats().UpdatePlaytime(l_dt);
 	m_snake.UpdateVisuals(l_dt);
 	m_postProcessor.Update(l_dt);
+
+	// Poll achievement notifications
+	{
+		AchievementManager& achMgr = m_stateManager.GetAchievements();
+		while (achMgr.HasPendingNotification())
+		{
+			AchievementId id = achMgr.PopNotification();
+			auto allAch = GetAllAchievements();
+			int idx = static_cast<int>(id);
+			if (idx >= 0 && idx < (int)allAch.size())
+				m_achievementNotif.Push(allAch[idx]);
+		}
+		m_achievementNotif.Update(l_dt);
+	}
+
+	// Endless mode: mechanic cycling
+	if (m_endlessCtrl)
+	{
+		auto event = m_endlessCtrl->Update(l_dt);
+
+		// Show warning text
+		if (!event.warningText.empty())
+		{
+			m_endlessWarningText = event.warningText;
+			m_endlessWarningTimer = 2.5f;
+			m_stateManager.GetAudio().PlaySound("endless_warning");
+		}
+
+		if (m_endlessWarningTimer > 0.0f)
+			m_endlessWarningTimer -= l_dt;
+
+		if (event.changed)
+		{
+			// Deactivate old mechanic
+			if (event.deactivatedMechanic >= 0)
+			{
+				switch (event.deactivatedMechanic)
+				{
+					case EndlessModeController::MECH_BLACKOUTS:
+						m_levelConfig.hasBlackouts = false; break;
+					case EndlessModeController::MECH_QUICKSAND:
+						m_levelConfig.hasQuicksand = false; break;
+					case EndlessModeController::MECH_MIRROR_GHOST:
+						m_levelConfig.hasMirrorGhost = false; break;
+					case EndlessModeController::MECH_TIMED_APPLES:
+						m_levelConfig.hasTimedApples = false; break;
+					case EndlessModeController::MECH_POISON_APPLES:
+						m_levelConfig.hasPoisonApples = false; break;
+					case EndlessModeController::MECH_EARTHQUAKES:
+						m_levelConfig.hasEarthquakes = false; break;
+					case EndlessModeController::MECH_PREDATOR:
+						m_levelConfig.hasPredator = false; break;
+					case EndlessModeController::MECH_CONTROL_SHUFFLE:
+						m_levelConfig.hasControlShuffle = false; break;
+					default: break;
+				}
+			}
+
+			// Activate new mechanic
+			if (event.activatedMechanic >= 0)
+			{
+				switch (event.activatedMechanic)
+				{
+					case EndlessModeController::MECH_BLACKOUTS:
+						m_levelConfig.hasBlackouts = true;
+						m_blackout.Reset();
+						break;
+					case EndlessModeController::MECH_QUICKSAND:
+					{
+						m_levelConfig.hasQuicksand = true;
+						float maxThick = std::max({m_world.GetEffectiveThickness(0),
+							m_world.GetEffectiveThickness(1), m_world.GetEffectiveThickness(2),
+							m_world.GetEffectiveThickness(3)});
+						m_quicksand.Reset(m_world.GetMaxX(), m_world.GetMaxY(),
+							maxThick, m_snake.GetBlockSize(), m_world.GetTopOffset());
+						break;
+					}
+					case EndlessModeController::MECH_MIRROR_GHOST:
+						m_levelConfig.hasMirrorGhost = true;
+						m_mirrorGhost.Reset();
+						break;
+					case EndlessModeController::MECH_TIMED_APPLES:
+						m_levelConfig.hasTimedApples = true;
+						m_timedApple.Reset(6.0f);
+						break;
+					case EndlessModeController::MECH_POISON_APPLES:
+						m_levelConfig.hasPoisonApples = true;
+						m_poisonApple.Reset(m_snake.GetBlockSize());
+						m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
+						break;
+					case EndlessModeController::MECH_EARTHQUAKES:
+						m_levelConfig.hasEarthquakes = true;
+						break;
+					case EndlessModeController::MECH_PREDATOR:
+						m_levelConfig.hasPredator = true;
+						m_predator.Reset(m_snake.GetBlockSize(), m_snake, m_world);
+						m_predatorApplesEaten = 0;
+						break;
+					case EndlessModeController::MECH_CONTROL_SHUFFLE:
+						m_levelConfig.hasControlShuffle = true;
+						m_controlShuffle.Reset();
+						break;
+					default: break;
+				}
+				m_stateManager.GetAudio().PlaySound("endless_cycle");
+				m_screenShake.Trigger(0.3f, 3.0f);
+			}
+
+			// Apply speed multiplier
+			float baseSpeed = 10.0f + (m_applesEaten / 5) * 0.5f;
+			m_snake.SetSpeed(baseSpeed * m_endlessCtrl->GetSpeedMultiplier());
+
+			// Update visual corruption
+			m_snake.SetCorruption(m_endlessCtrl->GetCorruption());
+		}
+	}
 
 	// Transition animation timers
 	if (m_pageTurnTimer > 0.0f)
@@ -534,6 +731,7 @@ void PlayState::Update(float l_dt)
 		// Check for self-collision
 		if (m_snake.DidSelfCollide())
 		{
+			int segmentsLost = (int)m_snake.GetLastCutSegments().size();
 			m_stateManager.selfCollisions++;
 			m_stateManager.score = std::max(0, m_stateManager.score - 50);
 			UpdateCombo(true);
@@ -541,6 +739,18 @@ void PlayState::Update(float l_dt)
 			m_particles.SpawnSelfCollisionCut(m_snake.GetLastCutSegments(), m_snake.GetBlockSize(),
 										 m_levelConfig.snakeBody);
 			m_snake.ClearSelfCollideFlag();
+			m_stateManager.GetStats().OnSelfCollision(segmentsLost);
+
+			// Track if body was reduced to 1 segment (for Ouroboros achievement)
+			if (m_snake.GetBodySize() <= 1)
+				m_reachedMinBody = true;
+
+			// Achievement check
+			{
+				AchievementContext ctx{};
+				ctx.stats = &m_stateManager.GetStats().GetStats();
+				m_stateManager.GetAchievements().OnSelfCollision(ctx);
+			}
 		}
 
 		// Mirror ghost update (tick-based, same rate as snake movement)
@@ -578,6 +788,17 @@ void PlayState::Update(float l_dt)
 					m_snake.Extend();
 
 				m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
+
+				m_poisonApplesThisLevel++;
+				m_stateManager.GetStats().OnPoisonAppleEaten();
+
+				// Achievement check
+				{
+					AchievementContext ctx{};
+					ctx.poisonApplesThisLevel = m_poisonApplesThisLevel;
+					ctx.stats = &m_stateManager.GetStats().GetStats();
+					m_stateManager.GetAchievements().OnPoisonAppleEaten(ctx);
+				}
 			}
 		}
 
@@ -585,7 +806,10 @@ void PlayState::Update(float l_dt)
 		if (m_levelConfig.hasPredator)
 		{
 			if (m_predator.HitPlayer(m_snake.GetPosition()))
+			{
 				m_snake.LoseStatus(true);
+				m_stateManager.GetStats().OnPredatorKilledPlayer();
+			}
 		}
 
 		// Check death (entity collisions — not forgiven by grace)
@@ -607,10 +831,21 @@ void PlayState::Update(float l_dt)
 
 	// Update HUD
 	m_stateManager.levelTime = m_gameTime;
-	m_hud.Update(m_stateManager.score, m_stateManager.comboMultiplier,
-				 m_applesEaten, m_levelConfig.applesToWin,
-				 m_levelConfig.name, m_gameTime, l_dt,
-				 m_levelConfig.hasPredator ? m_predatorApplesEaten : -1);
+	if (m_endlessCtrl)
+	{
+		// Endless mode: show "Endless Mode" and survival time, no apple target
+		m_hud.Update(m_stateManager.score, m_stateManager.comboMultiplier,
+					 m_applesEaten, 0,
+					 "Endless Mode", m_endlessCtrl->GetSurvivalTime(), l_dt,
+					 m_levelConfig.hasPredator ? m_predatorApplesEaten : -1);
+	}
+	else
+	{
+		m_hud.Update(m_stateManager.score, m_stateManager.comboMultiplier,
+					 m_applesEaten, m_levelConfig.applesToWin,
+					 m_levelConfig.name, m_gameTime, l_dt,
+					 m_levelConfig.hasPredator ? m_predatorApplesEaten : -1);
+	}
 
 	// Update visual effects (continuous, not tick-based)
 	m_particles.Update(l_dt);
@@ -642,8 +877,14 @@ void PlayState::Update(float l_dt)
 						   maxThick, m_snake.GetBlockSize(),
 						   m_world.GetTopOffset());
 
-		if (m_quicksand.IsOnQuicksand(m_snake.GetPosition()))
+		bool onQuicksand = m_quicksand.IsOnQuicksand(m_snake.GetPosition());
+		if (onQuicksand)
+		{
 			m_speedModifier *= 0.5f;
+			if (!m_wasOnQuicksand)
+				m_quicksandTouches++;
+		}
+		m_wasOnQuicksand = onQuicksand;
 	}
 
 	// Timer-based world shrinking (Level 3)
@@ -698,6 +939,7 @@ void PlayState::Update(float l_dt)
 			else
 			{
 				// Penalty: apple missed, world shrinks
+				m_timedAppleMisses++;
 				Window& window = m_stateManager.GetWindow();
 				m_world.TriggerShrink(window, m_snake);
 				m_lastShrinkCount = m_world.GetShrinkCount();
@@ -752,6 +994,7 @@ void PlayState::Update(float l_dt)
 		if (m_predator.HitPlayer(m_snake.GetPosition()))
 		{
 			m_snake.LoseStatus(true);
+			m_stateManager.GetStats().OnPredatorKilledPlayer();
 			OnDeath();
 			return;
 		}
@@ -759,6 +1002,7 @@ void PlayState::Update(float l_dt)
 		if (m_predator.JustAteApple())
 		{
 			m_predatorApplesEaten++;
+			m_stateManager.GetStats().OnPredatorAteApple();
 
 			// World shrinks when predator eats apple
 			Window& window = m_stateManager.GetWindow();
@@ -1072,6 +1316,28 @@ void PlayState::Render()
 
 	m_hud.Render(window);
 
+	// Achievement notification popup
+	if (m_achievementNotif.IsShowing())
+	{
+		sf::RenderTarget& target = window.GetRenderWindow();
+		m_achievementNotif.Render(target, (float)window.GetWindowSize().x);
+	}
+
+	// Endless mode warning text
+	if (m_endlessWarningTimer > 0.0f && !m_endlessWarningText.empty() && m_announcementFontLoaded)
+	{
+		sf::Text warningText;
+		warningText.setFont(m_announcementFont);
+		warningText.setString(m_endlessWarningText);
+		warningText.setCharacterSize(28);
+		float alpha = std::min(1.0f, m_endlessWarningTimer * 2.0f) * 255;
+		warningText.setFillColor(sf::Color(180, 50, 40, (sf::Uint8)alpha));
+		sf::FloatRect wb = warningText.getLocalBounds();
+		warningText.setPosition((window.GetWindowSize().x - wb.width) / 2.0f,
+								window.GetWindowSize().y / 2.0f - 50.0f);
+		window.Draw(warningText);
+	}
+
 	// Level 10 phase announcement overlay (always right-side-up, on top)
 	if (m_levelConfig.id == 10 && m_phaseAnnouncementTimer > 0.0f)
 	{
@@ -1088,6 +1354,29 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 	int points = CalculatePoints(100);
 	m_stateManager.score += points;
 	m_stateManager.applesEaten = m_applesEaten;
+
+	// Stats tracking
+	m_stateManager.GetStats().OnAppleEaten();
+	m_stateManager.GetStats().OnComboAchieved(m_consecutiveApples);
+
+	// Achievement checks on apple eaten
+	{
+		AchievementContext ctx{};
+		ctx.levelId = m_stateManager.currentLevel;
+		ctx.comboMultiplier = m_stateManager.comboMultiplier;
+		ctx.blackoutActive = m_levelConfig.hasBlackouts && m_blackout.IsBlackout();
+		ctx.applesEaten = m_applesEaten;
+		ctx.applesToWin = m_levelConfig.applesToWin;
+		// Check predator distance to apple for AppleThief
+		if (m_levelConfig.hasPredator && !m_predator.GetBody().empty())
+		{
+			sf::Vector2f ap = m_world.GetApplePos();
+			Position ph = m_predator.GetBody()[0];
+			ctx.predatorDistToApple = (float)(std::abs(ph.x - (int)ap.x) + std::abs(ph.y - (int)ap.y));
+		}
+		ctx.stats = &m_stateManager.GetStats().GetStats();
+		m_stateManager.GetAchievements().OnAppleEaten(ctx);
+	}
 
 	// Audio + visual feedback
 	m_stateManager.GetAudio().PlaySound("apple_eat");
@@ -1153,6 +1442,7 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 		if (m_applesEaten == 19 && !m_screenFlipped)
 		{
 			m_screenFlipped = true;
+			m_screenFlipStartTime = m_gameTime;
 			m_screenShake.Trigger(0.8f, 8.0f);
 			m_stateManager.GetAudio().PlaySound("phase_advance");
 		}
@@ -1201,6 +1491,33 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 
 		m_stateManager.levelComplete = true;
 		m_levelCompleteDelay = 0.5f;
+
+		// Stats tracking
+		m_stateManager.GetStats().OnLevelComplete(
+			m_stateManager.currentLevel, m_stateManager.levelTime,
+			m_stateManager.score);
+
+		// Achievement checks on level complete
+		{
+			AchievementContext ctx{};
+			ctx.levelId = m_stateManager.currentLevel;
+			ctx.score = m_stateManager.score;
+			ctx.levelTime = m_gameTime;
+			ctx.selfCollisions = m_stateManager.selfCollisions;
+			ctx.applesEaten = m_applesEaten;
+			ctx.applesToWin = m_levelConfig.applesToWin;
+			ctx.predatorApplesEaten = m_predatorApplesEaten;
+			ctx.quicksandTouches = m_quicksandTouches;
+			ctx.timedAppleMisses = m_timedAppleMisses;
+			ctx.screenFlipped = m_screenFlipped;
+			ctx.screenFlipStartTime = m_screenFlipStartTime;
+			ctx.reachedMinBodyFromCollision = m_reachedMinBody;
+			ctx.stats = &m_stateManager.GetStats().GetStats();
+			ctx.starRatings = m_stateManager.starRatings;
+			ctx.highestUnlockedLevel = m_stateManager.highestUnlockedLevel;
+			m_stateManager.GetAchievements().OnLevelComplete(ctx);
+			m_stateManager.GetAchievements().OnStatsUpdate(ctx);
+		}
 	}
 }
 
@@ -1209,6 +1526,28 @@ void PlayState::OnDeath()
 	m_stateManager.totalDeaths++;
 	m_stateManager.levelComplete = false;
 	m_stateManager.GetAudio().PlaySound("wall_death");
+	if (!m_stateManager.endlessMode)
+		m_stateManager.GetStats().OnDeath(m_stateManager.currentLevel);
+
+	// Achievement checks on death
+	{
+		AchievementContext ctx{};
+		ctx.levelId = m_stateManager.currentLevel;
+		ctx.levelTime = m_gameTime;
+		ctx.totalDeaths = m_stateManager.totalDeaths;
+		ctx.stats = &m_stateManager.GetStats().GetStats();
+		m_stateManager.GetAchievements().OnDeath(ctx);
+
+		// Also check stats-based achievements
+		m_stateManager.GetAchievements().OnStatsUpdate(ctx);
+	}
+
+	// Endless mode: record stats
+	if (m_endlessCtrl)
+	{
+		m_stateManager.GetStats().OnEndlessGameOver(
+			m_stateManager.score, m_endlessCtrl->GetSurvivalTime());
+	}
 
 	// Trigger ink-run death effect
 	m_deathInkRunActive = true;
@@ -1218,7 +1557,6 @@ void PlayState::OnDeath()
 	float bs = m_snake.GetBlockSize();
 	sf::Vector2f headPixel(m_snake.GetPosition().x * bs, m_snake.GetPosition().y * bs);
 	m_particles.SpawnInkDrips(headPixel, m_levelConfig.inkTint, 8);
-
 }
 
 void PlayState::UpdateCombo(bool l_reset)

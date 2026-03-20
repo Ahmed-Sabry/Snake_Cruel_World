@@ -13,6 +13,8 @@ Snake::Snake()
 	m_corruption = 0.05f;
 	m_inkTint = sf::Color(60, 50, 45);
 	m_interpTimer = 0.0f;
+	m_skinRenderFlags = 0;
+	m_skinGradientEnd = sf::Color::Transparent;
 
 	m_bodyRect.setSize({ m_blockSize - 1, m_blockSize - 1 });
 
@@ -229,6 +231,23 @@ void Snake::RenderClassic(Window& l_window)
 	}
 }
 
+void Snake::ApplySkin(const SnakeSkin& l_skin)
+{
+	if (l_skin.id == 0) { ClearSkin(); return; }
+	m_headColor = l_skin.headColor;
+	m_bodyColor = l_skin.bodyColor;
+	m_skinRenderFlags = l_skin.renderFlags;
+	m_skinGradientEnd = l_skin.gradientEnd;
+}
+
+void Snake::ClearSkin()
+{
+	m_headColor = sf::Color::Red;
+	m_bodyColor = sf::Color::Magenta;
+	m_skinRenderFlags = 0;
+	m_skinGradientEnd = sf::Color::Transparent;
+}
+
 void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 {
 	if (m_snakeBody.empty()) return;
@@ -307,16 +326,39 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 		float alphaFrac = 1.0f - ((float)(i - 1) / std::max(1.0f, (float)(bodySize - 1))) * 0.25f;
 		sf::Uint8 bodyAlpha = (sf::Uint8)(255 * alphaFrac);
 
-		// Alternating fill color with slight variation
+		// Base fill color
 		sf::Color fillColor(m_bodyColor.r, m_bodyColor.g, m_bodyColor.b, bodyAlpha);
+
+		// Skin: Rainbow — cycle hue per segment (takes priority over Gradient)
+		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Rainbow))
+		{
+			float hue = std::fmod(i * 30.0f + m_interpTimer * 80.0f, 360.0f);
+			fillColor = InkRenderer::HsvToRgb(hue, 0.8f, 0.9f);
+			fillColor.a = bodyAlpha;
+		}
+		// Skin: Gradient — lerp body color toward gradient end (skipped if Rainbow active)
+		else if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Gradient))
+		{
+			float t = (float)(i - 1) / std::max(1.0f, (float)(bodySize - 2));
+			fillColor.r = (sf::Uint8)(m_bodyColor.r + t * ((int)m_skinGradientEnd.r - m_bodyColor.r));
+			fillColor.g = (sf::Uint8)(m_bodyColor.g + t * ((int)m_skinGradientEnd.g - m_bodyColor.g));
+			fillColor.b = (sf::Uint8)(m_bodyColor.b + t * ((int)m_skinGradientEnd.b - m_bodyColor.b));
+			fillColor.a = bodyAlpha;
+		}
+
+		// Skin: Translucent — halve alpha
+		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Translucent))
+			fillColor.a = (sf::Uint8)(fillColor.a / 2);
+
 		sf::Color outlineColor(m_inkTint.r, m_inkTint.g, m_inkTint.b, bodyAlpha);
+		float outlineThick = (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::ThickOutline)) ? 2.0f : 1.0f;
 
 		float segSize = bs - 2.0f;
 		float segOffset = 1.0f;
 
 		InkRenderer::DrawWobblyRect(l_target,
 									x + segOffset, y + segOffset, segSize, segSize,
-									fillColor, outlineColor, 1.0f,
+									fillColor, outlineColor, outlineThick,
 									m_corruption,
 									(unsigned int)(i * 73 + 17)); // Stable seed per segment
 	}
@@ -329,11 +371,24 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 
 		// Head is slightly larger and more prominent
 		sf::Color headFill = m_headColor;
+
+		// Skin: Rainbow head
+		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Rainbow))
+		{
+			float hue = std::fmod(m_interpTimer * 80.0f, 360.0f);
+			headFill = InkRenderer::HsvToRgb(hue, 0.9f, 1.0f);
+		}
+
+		// Skin: Translucent head
+		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Translucent))
+			headFill.a = 128;
+
 		sf::Color headOutline(m_inkTint.r, m_inkTint.g, m_inkTint.b, 255);
+		float headOutlineThick = (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::ThickOutline)) ? 2.5f : 1.5f;
 
 		InkRenderer::DrawWobblyRect(l_target,
 									hx, hy, bs - 1, bs - 1,
-									headFill, headOutline, 1.5f,
+									headFill, headOutline, headOutlineThick,
 									m_corruption, 7);
 
 		// --- Draw eyes ---
@@ -369,19 +424,24 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 				break;
 		}
 
+		// Skin: InvertEyes — dark pupils on light eyes
+		bool invertEyes = (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::InvertEyes)) != 0;
+		sf::Color eyeColor = invertEyes ? sf::Color::White : headOutline;
+		sf::Color pupilColor = invertEyes ? sf::Color(30, 30, 30) : sf::Color::White;
+
 		sf::CircleShape eye(eyeRadius);
 		eye.setOrigin(eyeRadius, eyeRadius);
-		eye.setFillColor(headOutline);
+		eye.setFillColor(eyeColor);
 
 		eye.setPosition(ex1, ey1);
 		l_target.draw(eye);
 		eye.setPosition(ex2, ey2);
 		l_target.draw(eye);
 
-		// Pupil (tiny white dot)
+		// Pupil
 		sf::CircleShape pupil(1.0f);
 		pupil.setOrigin(1.0f, 1.0f);
-		pupil.setFillColor(sf::Color::White);
+		pupil.setFillColor(pupilColor);
 
 		pupil.setPosition(ex1, ey1);
 		l_target.draw(pupil);

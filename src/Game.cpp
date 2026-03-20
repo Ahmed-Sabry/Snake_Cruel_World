@@ -4,12 +4,20 @@
 #include "PauseState.h"
 #include "GameOverState.h"
 #include "LevelSelectState.h"
+#include "AchievementState.h"
+#include "StatisticsState.h"
+#include "SkinSelectState.h"
+#include <cstdlib>
+#include <ctime>
 
 Game::Game() :
 	m_window({ 1366, 768 }, "Hello Cruel World"),
-	m_stateManager(m_window, m_audioManager)
+	m_stateManager(m_window, m_audioManager, m_statsManager, m_achievementManager)
 {
+	m_achievementManager.SetAudioManager(&m_audioManager);
+
 	m_elapsedTime = 0.0f;
+	std::srand((unsigned int)std::time(nullptr));
 
 	// Load sound effects from files (silently skips missing files)
 	static const std::pair<const char*, const char*> soundAssets[] = {
@@ -24,6 +32,10 @@ Game::Game() :
 		{ "blackout_on",    "content/audio/sfx/blackout_on.ogg" },
 		{ "mirror_flip",    "content/audio/sfx/mirror_flip.ogg" },
 		{ "apple_miss",     "content/audio/sfx/apple_miss.ogg" },
+		{ "achievement_unlock", "content/audio/sfx/achievement_unlock.ogg" },
+		{ "skin_select",    "content/audio/sfx/skin_select.ogg" },
+		{ "endless_cycle",  "content/audio/sfx/endless_cycle.ogg" },
+		{ "endless_warning","content/audio/sfx/endless_warning.ogg" },
 	};
 	for (const auto& [id, path] : soundAssets)
 		m_audioManager.LoadSound(id, path);
@@ -37,9 +49,12 @@ Game::Game() :
 	m_stateManager.RegisterState<PauseState>(StateType::Pause);
 	m_stateManager.RegisterState<GameOverState>(StateType::GameOver);
 	m_stateManager.RegisterState<LevelSelectState>(StateType::LevelSelect);
+	m_stateManager.RegisterState<AchievementState>(StateType::Achievements);
+	m_stateManager.RegisterState<StatisticsState>(StateType::Statistics);
+	m_stateManager.RegisterState<SkinSelectState>(StateType::SkinSelect);
 
 	// Load saved progress
-	SaveManager::Load(m_stateManager);
+	SaveManager::Load(m_stateManager, m_statsManager, m_achievementManager);
 
 	// Start at main menu
 	m_stateManager.SwitchTo(StateType::MainMenu);
@@ -48,7 +63,7 @@ Game::Game() :
 Game::~Game()
 {
 	// Save progress on exit
-	SaveManager::Save(m_stateManager);
+	SaveManager::Save(m_stateManager, m_statsManager, m_achievementManager);
 }
 
 void Game::Update()

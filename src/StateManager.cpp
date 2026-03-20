@@ -1,7 +1,9 @@
 #include "StateManager.h"
 
-StateManager::StateManager(Window& l_window, AudioManager& l_audio)
-	: m_window(l_window), m_audio(l_audio)
+StateManager::StateManager(Window& l_window, AudioManager& l_audio,
+						   StatsManager& l_stats, AchievementManager& l_achievements)
+	: m_window(l_window), m_audio(l_audio),
+	  m_stats(l_stats), m_achievements(l_achievements)
 {
 }
 
@@ -116,6 +118,16 @@ Window& StateManager::GetWindow()
 AudioManager& StateManager::GetAudio()
 {
 	return m_audio;
+}
+
+StatsManager& StateManager::GetStats()
+{
+	return m_stats;
+}
+
+AchievementManager& StateManager::GetAchievements()
+{
+	return m_achievements;
 }
 
 void StateManager::ExecuteSwitchTo(StateType l_type)

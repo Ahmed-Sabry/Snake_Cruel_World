@@ -18,6 +18,9 @@
 #include "ControlShuffle.h"
 #include "PaperBackground.h"
 #include "PostProcessor.h"
+#include "AchievementNotification.h"
+#include "EndlessModeController.h"
+#include <memory>
 
 class PlayState : public BaseState
 {
@@ -104,4 +107,20 @@ private:
 	// Border hatch fill animation on shrink
 	float m_borderHatchTimer;
 	float m_borderHatchDuration;
+
+	// Achievement/statistics tracking
+	int m_quicksandTouches;
+	bool m_wasOnQuicksand;
+	int m_timedAppleMisses;
+	int m_poisonApplesThisLevel;
+	bool m_reachedMinBody;            // self-collision reduced body to 1 segment
+	float m_screenFlipStartTime;      // timestamp when Level 10 screen flipped
+
+	// Achievement notification popup
+	AchievementNotification m_achievementNotif;
+
+	// Endless mode
+	std::unique_ptr<EndlessModeController> m_endlessCtrl;
+	float m_endlessWarningTimer;
+	std::string m_endlessWarningText;
 };
