@@ -1,7 +1,6 @@
 #include "EndlessModeController.h"
 #include <algorithm>
 #include <cstdlib>
-#include <ctime>
 #include <cmath>
 
 const char* EndlessModeController::s_mechanicNames[NUM_MECHANICS] = {
@@ -40,9 +39,6 @@ EndlessModeController::EndlessModeController(int l_highestUnlockedLevel)
 	// Guarantee at least blackouts if nothing else available
 	if (m_availableMechanics.empty())
 		m_availableMechanics.push_back(MECH_BLACKOUTS);
-
-	// Seed RNG for mechanic selection variety
-	std::srand((unsigned int)std::time(nullptr));
 }
 
 MechanicChangeEvent EndlessModeController::Update(float l_dt)

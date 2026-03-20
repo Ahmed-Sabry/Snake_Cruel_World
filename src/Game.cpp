@@ -7,6 +7,8 @@
 #include "AchievementState.h"
 #include "StatisticsState.h"
 #include "SkinSelectState.h"
+#include <cstdlib>
+#include <ctime>
 
 Game::Game() :
 	m_window({ 1366, 768 }, "Hello Cruel World"),
@@ -15,6 +17,7 @@ Game::Game() :
 	m_achievementManager.SetAudioManager(&m_audioManager);
 
 	m_elapsedTime = 0.0f;
+	std::srand((unsigned int)std::time(nullptr));
 
 	// Load sound effects from files (silently skips missing files)
 	static const std::pair<const char*, const char*> soundAssets[] = {

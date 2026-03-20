@@ -23,6 +23,7 @@ private:
 
 	sf::Font m_font;
 	sf::Text m_title;
+	sf::Text m_footer;
 	std::vector<sf::Text> m_skinLabels;
 	std::vector<SnakeSkin> m_skins;
 	int m_selectedItem;

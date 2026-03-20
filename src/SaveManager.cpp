@@ -6,6 +6,8 @@
 #include <iostream>
 #include <cstring>
 
+static_assert(sizeof(bool) == 1, "Save format assumes sizeof(bool) == 1");
+
 const std::string SaveManager::s_saveFile = "save.dat";
 
 void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,

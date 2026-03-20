@@ -251,12 +251,7 @@ void PlayState::InitCruelWorldPhases()
 	m_phaseAnnouncementTimer = 0.0f;
 	m_phaseAnnouncementText.clear();
 
-	// Load announcement font once
-	if (!m_announcementFontLoaded)
-	{
-		if (m_announcementFont.loadFromFile(FONT_PATH))
-			m_announcementFontLoaded = true;
-	}
+	// Font is loaded in OnEnter() — no need to load here
 
 	// Phase 1: only timed apples active
 	m_levelConfig.hasBlackouts = false;

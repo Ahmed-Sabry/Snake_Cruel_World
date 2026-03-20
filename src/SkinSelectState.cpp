@@ -68,6 +68,15 @@ void SkinSelectState::OnEnter()
 
 	m_keyReleased = false;
 	m_animTimer = 0.0f;
+
+	// Footer
+	m_footer.setFont(m_font);
+	m_footer.setString("[Enter] Select    [ESC] Back");
+	m_footer.setCharacterSize(16);
+	m_footer.setFillColor(sf::Color(100, 90, 85));
+	sf::FloatRect fb = m_footer.getLocalBounds();
+	m_footer.setPosition((winSize.x - fb.width) / 2.0f,
+						 (float)winSize.y - 30.f);
 }
 
 void SkinSelectState::OnExit()
@@ -234,14 +243,5 @@ void SkinSelectState::Render()
 		}
 	}
 
-	// Footer
-	sf::Text footer;
-	footer.setFont(m_font);
-	footer.setString("[Enter] Select    [ESC] Back");
-	footer.setCharacterSize(16);
-	footer.setFillColor(sf::Color(100, 90, 85));
-	sf::FloatRect fb = footer.getLocalBounds();
-	footer.setPosition((window.GetWindowSize().x - fb.width) / 2.0f,
-					   (float)window.GetWindowSize().y - 30.f);
-	window.Draw(footer);
+	window.Draw(m_footer);
 }
