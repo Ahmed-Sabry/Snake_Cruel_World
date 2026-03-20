@@ -7,11 +7,11 @@ uniform vec2 resolution;
 
 void main()
 {
-    vec2 uv = gl_FragCoord.xy / resolution;
-    uv.y = 1.0 - uv.y; // Flip Y for SFML coordinate system
+    // Use SFML's built-in texture coordinates for the scene
+    vec2 uv = gl_TexCoord[0].xy;
     vec4 sceneColor = texture2D(scene, uv);
 
-    // Tile paper texture at 256px intervals
+    // Tile paper texture at 256px intervals using screen position
     vec2 paperUV = gl_FragCoord.xy / 256.0;
     vec4 paper = texture2D(paperTex, paperUV);
 

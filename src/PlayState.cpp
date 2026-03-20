@@ -49,8 +49,8 @@ void PlayState::OnEnter()
 	m_stateManager.currentLevel = idx + 1;
 	m_levelConfig = levels[idx];
 
-	// Apply level palette
-	window.SetBackground(m_levelConfig.background);
+	// Apply level palette — use paper tone as window clear color for ink style fallback
+	window.SetBackground(m_levelConfig.paperTone);
 
 	// Reset game state
 	m_snake.Reset();
@@ -202,9 +202,25 @@ void PlayState::InitCruelWorldPhases()
 	// Phase 1 theme: warm maroon (same as Level 1 "False Hope")
 	m_levelConfig.background = sf::Color(30, 15, 20);
 	m_levelConfig.border = sf::Color(200, 100, 50);
-	m_stateManager.GetWindow().SetBackground(m_levelConfig.background);
 	m_world.SetBorderColor(m_levelConfig.border);
 	m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
+
+	// Phase 1 ink style: clean notebook, low corruption (not the L10 default of 1.0)
+	m_levelConfig.paperTone = sf::Color(245, 235, 220);
+	m_levelConfig.inkTint = sf::Color(60, 50, 45);
+	m_levelConfig.corruption = 0.15f;
+	m_stateManager.GetWindow().SetBackground(m_levelConfig.paperTone);
+
+	// Update snake/world with Phase 1 ink params (overrides the L10 defaults set by OnEnter)
+	m_snake.SetCorruption(m_levelConfig.corruption);
+	m_snake.SetInkTint(m_levelConfig.inkTint);
+	m_world.SetCorruption(m_levelConfig.corruption);
+	m_world.SetInkTint(m_levelConfig.inkTint);
+
+	// Regenerate paper background for Phase 1 look
+	sf::Vector2u winSize = m_stateManager.GetWindow().GetWindowSize();
+	m_paperBackground.Generate(m_levelConfig, winSize.x, winSize.y);
+	m_postProcessor.Configure(m_levelConfig);
 }
 
 void PlayState::AdvanceCruelPhase()
@@ -231,7 +247,6 @@ void PlayState::AdvanceCruelPhase()
 			// Theme: cold blue-gray (Level 8 palette)
 			m_levelConfig.background = sf::Color(15, 15, 25);
 			m_levelConfig.border = sf::Color(60, 70, 100);
-			window.SetBackground(m_levelConfig.background);
 			m_world.SetBorderColor(m_levelConfig.border);
 			m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
 
@@ -264,7 +279,6 @@ void PlayState::AdvanceCruelPhase()
 			// Theme: sickly poisonous green
 			m_levelConfig.background = sf::Color(10, 30, 10);
 			m_levelConfig.border = sf::Color(40, 120, 30);
-			window.SetBackground(m_levelConfig.background);
 			m_world.SetBorderColor(m_levelConfig.border);
 			m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
 
@@ -294,7 +308,6 @@ void PlayState::AdvanceCruelPhase()
 			// Theme: near-black with crimson borders
 			m_levelConfig.background = sf::Color(8, 5, 5);
 			m_levelConfig.border = sf::Color(180, 20, 20);
-			window.SetBackground(m_levelConfig.background);
 			m_world.SetBorderColor(m_levelConfig.border);
 			m_hud.SetLevelColors(m_levelConfig.border, m_levelConfig.background);
 
@@ -331,6 +344,9 @@ void PlayState::AdvanceCruelPhase()
 	m_levelConfig.paperTone = phasePaper[pi];
 	m_levelConfig.inkTint = phaseInk[pi];
 	m_levelConfig.corruption = phaseCorruption[pi];
+
+	// Update window clear color to match paper tone
+	window.SetBackground(m_levelConfig.paperTone);
 
 	// Regenerate paper background for new phase
 	sf::Vector2u winSize = m_stateManager.GetWindow().GetWindowSize();
@@ -863,13 +879,20 @@ void PlayState::Render()
 	sf::View savedView;
 	if (m_screenFlipped)
 	{
-		savedView = window.GetRenderWindow().getView();
-		sf::View flipped = savedView;
-		flipped.setRotation(180.f);
 		if (usePostProcess)
+		{
+			savedView = m_postProcessor.GetTarget().getView();
+			sf::View flipped = savedView;
+			flipped.setRotation(180.f);
 			m_postProcessor.GetTarget().setView(flipped);
+		}
 		else
+		{
+			savedView = window.GetRenderWindow().getView();
+			sf::View flipped = savedView;
+			flipped.setRotation(180.f);
 			window.SetView(flipped);
+		}
 	}
 
 	m_world.RenderInk(target, m_gameTime);

@@ -27,8 +27,7 @@ vec3 hsv2rgb(vec3 c)
 
 void main()
 {
-    vec2 uv = gl_FragCoord.xy / resolution;
-    uv.y = 1.0 - uv.y;
+    vec2 uv = gl_TexCoord[0].xy;
     vec4 color = texture2D(scene, uv);
 
     // Compute hue shift varying by position and time

@@ -7,10 +7,10 @@ uniform float vignetteRadius;   // 0.7 to 0.4
 
 void main()
 {
-    vec2 uv = gl_FragCoord.xy / resolution;
-    uv.y = 1.0 - uv.y;
+    vec2 uv = gl_TexCoord[0].xy;
     vec4 color = texture2D(scene, uv);
 
+    // Use normalized UV for distance (0,0 = top-left, 1,1 = bottom-right)
     vec2 center = vec2(0.5);
     float dist = distance(uv, center);
     float vignette = smoothstep(vignetteRadius, vignetteRadius + 0.3, dist);

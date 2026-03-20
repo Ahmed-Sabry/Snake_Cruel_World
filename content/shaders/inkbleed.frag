@@ -8,8 +8,7 @@ uniform float wobbleAmount; // 0.0 to 2.0 pixels
 
 void main()
 {
-    vec2 uv = gl_FragCoord.xy / resolution;
-    uv.y = 1.0 - uv.y;
+    vec2 uv = gl_TexCoord[0].xy;
 
     // Offset UV by noise to create bleeding effect
     float nx = sin(uv.y * 50.0 + time * 2.0) * wobbleAmount / resolution.x;

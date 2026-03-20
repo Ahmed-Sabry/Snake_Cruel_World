@@ -7,8 +7,7 @@ uniform float amount; // 1.0 to 3.0 pixels
 
 void main()
 {
-    vec2 uv = gl_FragCoord.xy / resolution;
-    uv.y = 1.0 - uv.y;
+    vec2 uv = gl_TexCoord[0].xy;
 
     vec2 dir = uv - vec2(0.5);
     float dist = length(dir);
