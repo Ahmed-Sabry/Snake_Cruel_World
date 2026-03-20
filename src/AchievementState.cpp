@@ -4,6 +4,7 @@
 #include "AudioManager.h"
 #include "LevelConfig.h"
 #include "InkRenderer.h"
+#include <algorithm>
 #include <iostream>
 
 AchievementState::AchievementState(StateManager& l_stateManager)
@@ -126,8 +127,13 @@ void AchievementState::OnEnter()
 	}
 
 	m_scrollOffset = 0;
-	m_maxVisibleLines = (int)((winSize.y - 120.f) / m_lineSpacing);
-	if (m_maxVisibleLines < 1) m_maxVisibleLines = 1;
+	// Derive max scroll from actual content height (lineY includes header/gap offsets)
+	float contentHeight = lineY + m_lineSpacing - 115.f; // 115.f = initial lineY
+	float viewportHeight = winSize.y - 120.f;
+	int totalContentLines = std::max(1, (int)(contentHeight / m_lineSpacing));
+	m_maxVisibleLines = std::max(1, (int)(viewportHeight / m_lineSpacing));
+	// Store max scroll offset for HandleInput (reuse m_maxVisibleLines field)
+	m_maxVisibleLines = std::max(0, totalContentLines - m_maxVisibleLines);
 	m_keyReleased = false;
 }
 
@@ -161,8 +167,7 @@ void AchievementState::HandleInput()
 	}
 	else if (downPressed)
 	{
-		int maxScroll = std::max(0, (int)m_lines.size() - m_maxVisibleLines);
-		if (m_scrollOffset < maxScroll)
+		if (m_scrollOffset < m_maxVisibleLines)
 			m_scrollOffset++;
 	}
 }

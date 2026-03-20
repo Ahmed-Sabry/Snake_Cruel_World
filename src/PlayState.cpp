@@ -628,6 +628,7 @@ void PlayState::Update(float l_dt)
 						break;
 					case EndlessModeController::MECH_POISON_APPLES:
 						m_levelConfig.hasPoisonApples = true;
+						m_poisonApple.Reset(m_snake.GetBlockSize());
 						m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
 						break;
 					case EndlessModeController::MECH_EARTHQUAKES:

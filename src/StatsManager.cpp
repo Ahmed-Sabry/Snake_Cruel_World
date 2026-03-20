@@ -38,7 +38,7 @@ void StatsManager::OnLevelStart(int l_levelId)
 void StatsManager::OnLevelComplete(int l_levelId, float l_time, int l_score)
 {
 	int idx = l_levelId - 1;
-	if (idx >= 0 && idx < NUM_LEVELS)
+	if (idx >= 0 && idx < NUM_LEVELS && l_time > 0.0f)
 	{
 		if (m_stats.fastestLevelTimes[idx] <= 0.0f || l_time < m_stats.fastestLevelTimes[idx])
 			m_stats.fastestLevelTimes[idx] = l_time;

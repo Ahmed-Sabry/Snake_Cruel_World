@@ -242,6 +242,8 @@ void Snake::ApplySkin(const SnakeSkin& l_skin)
 
 void Snake::ClearSkin()
 {
+	m_headColor = sf::Color::Red;
+	m_bodyColor = sf::Color::Magenta;
 	m_skinRenderFlags = 0;
 	m_skinGradientEnd = sf::Color::Transparent;
 }

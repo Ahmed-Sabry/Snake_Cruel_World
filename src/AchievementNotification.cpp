@@ -143,8 +143,63 @@ void AchievementNotification::Render(sf::RenderTarget& l_target, float l_windowW
 	m_nameText.setPosition(boxX + 40.f, boxY + 6.f);
 	l_target.draw(m_nameText);
 
-	// Description
-	m_descText.setString(m_currentDesc);
+	// Description — word-wrap to fit within the card
+	{
+		float maxWidth = boxWidth - 60.f;
+		constexpr int maxLines = 2;
+		std::string wrapped;
+		std::string currentLine;
+		std::string word;
+
+		for (size_t i = 0; i <= m_currentDesc.size(); i++)
+		{
+			char c = (i < m_currentDesc.size()) ? m_currentDesc[i] : ' ';
+			if (c == ' ' || i == m_currentDesc.size())
+			{
+				if (word.empty()) continue;
+				std::string test = currentLine.empty() ? word : (currentLine + " " + word);
+				m_descText.setString(test);
+				if (m_descText.getLocalBounds().width > maxWidth && !currentLine.empty())
+				{
+					int lineCount = 1;
+					for (char ch : wrapped) { if (ch == '\n') lineCount++; }
+					if (lineCount >= maxLines)
+					{
+						// Truncate with ellipsis
+						if (!wrapped.empty() && wrapped.back() != '\n')
+						{
+							while (wrapped.size() > 3)
+							{
+								m_descText.setString(wrapped + "...");
+								if (m_descText.getLocalBounds().width <= maxWidth) break;
+								wrapped.pop_back();
+							}
+							wrapped += "...";
+						}
+						break;
+					}
+					if (!wrapped.empty()) wrapped += '\n';
+					wrapped += currentLine;
+					currentLine = word;
+				}
+				else
+				{
+					currentLine = test;
+				}
+				word.clear();
+			}
+			else
+			{
+				word += c;
+			}
+		}
+		if (!currentLine.empty())
+		{
+			if (!wrapped.empty()) wrapped += '\n';
+			wrapped += currentLine;
+		}
+		m_descText.setString(wrapped);
+	}
 	m_descText.setFillColor(sf::Color(100, 90, 85));
 	m_descText.setPosition(boxX + 40.f, boxY + 30.f);
 	l_target.draw(m_descText);

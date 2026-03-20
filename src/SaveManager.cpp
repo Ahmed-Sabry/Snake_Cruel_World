@@ -156,6 +156,14 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 		if (stats.endlessBestTime < 0.0f) stats.endlessBestTime = 0.0f;
 		if (stats.predatorApplesStolen < 0) stats.predatorApplesStolen = 0;
 		if (stats.predatorKills < 0) stats.predatorKills = 0;
+
+		// Clamp per-level arrays to non-negative
+		for (int i = 0; i < NUM_LEVELS; i++)
+		{
+			if (stats.fastestLevelTimes[i] < 0.0f) stats.fastestLevelTimes[i] = 0.0f;
+			if (stats.deathsPerLevel[i] < 0) stats.deathsPerLevel[i] = 0;
+			if (stats.attemptsPerLevel[i] < 0) stats.attemptsPerLevel[i] = 0;
+		}
 	}
 
 	file.close();
