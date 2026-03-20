@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cstdlib>
+#include <iterator>
 #include <vector>
 
 const char* GameOverState::s_deathTaunts[] = {
