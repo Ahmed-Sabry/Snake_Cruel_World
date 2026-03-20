@@ -47,16 +47,19 @@ void BlackoutEffect::Update(float l_dt, const Snake& l_snake)
 
 void BlackoutEffect::Render(Window& l_window, float l_blockSize)
 {
+	RenderTo(l_window.GetRenderWindow(), l_window.GetWindowSize(), l_blockSize);
+}
+
+void BlackoutEffect::RenderTo(sf::RenderTarget& l_target, sf::Vector2u l_winSize, float l_blockSize)
+{
 	if (!m_isDark) return;
 
-	sf::Vector2u winSize = l_window.GetWindowSize();
-
 	// Dark overlay — like ink spilled across the page
-	m_overlay.setSize(sf::Vector2f((float)winSize.x, (float)winSize.y));
+	m_overlay.setSize(sf::Vector2f((float)l_winSize.x, (float)l_winSize.y));
 	m_overlay.setPosition(0.0f, 0.0f);
 	m_overlay.setFillColor(sf::Color(30, 20, 15, 235)); // Dark sepia instead of pure black
 
-	l_window.Draw(m_overlay);
+	l_target.draw(m_overlay);
 
 	// Head glow: warm candlelight illuminating the notebook page
 	// 5 concentric circles for smoother gradient, warm orange tint
@@ -75,7 +78,7 @@ void BlackoutEffect::Render(Window& l_window, float l_blockSize)
 		if (alpha > 255) alpha = 255;
 
 		m_headGlow.setFillColor(sf::Color(255, 140, 60, (sf::Uint8)alpha));
-		l_window.Draw(m_headGlow);
+		l_target.draw(m_headGlow);
 	}
 
 	// Inner bright core
@@ -84,7 +87,7 @@ void BlackoutEffect::Render(Window& l_window, float l_blockSize)
 	m_headGlow.setOrigin(coreRadius, coreRadius);
 	m_headGlow.setPosition(m_headPixelPos);
 	m_headGlow.setFillColor(sf::Color(255, 200, 120, 35));
-	l_window.Draw(m_headGlow);
+	l_target.draw(m_headGlow);
 }
 
 bool BlackoutEffect::IsBlackout() const

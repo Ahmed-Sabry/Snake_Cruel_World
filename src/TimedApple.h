@@ -10,6 +10,7 @@ public:
 	void Reset(float l_timerSec);
 	void Update(float l_dt);
 	void Render(Window& l_window, sf::Vector2f l_applePixelPos, float l_appleRadius);
+	void RenderTo(sf::RenderTarget& l_target, sf::Vector2f l_applePixelPos, float l_appleRadius);
 
 	bool HasExpired() const;
 	void OnAppleEaten(float l_newTimerSec);

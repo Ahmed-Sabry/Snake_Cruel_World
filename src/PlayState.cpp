@@ -310,6 +310,40 @@ void PlayState::AdvanceCruelPhase()
 	// Common phase transition effects
 	m_screenShake.Trigger(0.5f, 5.0f);
 	m_stateManager.GetAudio().PlaySound("phase_advance");
+
+	// Update ink-style visuals for the new phase
+	// Map L10 phases to escalating corruption and different paper tones
+	static const sf::Color phasePaper[] = {
+		sf::Color(245, 235, 220), // Phase 1: warm cream
+		sf::Color(210, 215, 225), // Phase 2: cold gray
+		sf::Color(200, 210, 190), // Phase 3: sickly green
+		sf::Color(200, 180, 170), // Phase 4: scorched
+	};
+	static const sf::Color phaseInk[] = {
+		sf::Color(60, 50, 45),    // Phase 1: graphite
+		sf::Color(40, 45, 70),    // Phase 2: slate blue
+		sf::Color(20, 50, 20),    // Phase 3: forest
+		sf::Color(80, 20, 15),    // Phase 4: blood
+	};
+	static const float phaseCorruption[] = { 0.15f, 0.40f, 0.65f, 1.0f };
+
+	int pi = std::min(m_cruelPhase, 3);
+	m_levelConfig.paperTone = phasePaper[pi];
+	m_levelConfig.inkTint = phaseInk[pi];
+	m_levelConfig.corruption = phaseCorruption[pi];
+
+	// Regenerate paper background for new phase
+	sf::Vector2u winSize = m_stateManager.GetWindow().GetWindowSize();
+	m_paperBackground.Generate(m_levelConfig, winSize.x, winSize.y);
+
+	// Update ink params on snake and world
+	m_snake.SetCorruption(m_levelConfig.corruption);
+	m_snake.SetInkTint(m_levelConfig.inkTint);
+	m_world.SetCorruption(m_levelConfig.corruption);
+	m_world.SetInkTint(m_levelConfig.inkTint);
+
+	// Reconfigure post-processor for new corruption level
+	m_postProcessor.Configure(m_levelConfig);
 }
 
 void PlayState::OnExit()
@@ -754,11 +788,7 @@ void PlayState::Update(float l_dt)
 	{
 		m_psychedelicTimer += l_dt;
 
-		// Background: cycle between dark purple (40,10,50) and dark teal (10,40,50)
-		float t = (std::sin(m_psychedelicTimer * 0.8f) + 1.0f) / 2.0f;
-		m_stateManager.GetWindow().SetBackground(sf::Color(
-			(sf::Uint8)(10 + t * 30), (sf::Uint8)(40 - t * 30), 50));
-
+		// Background tint cycles between purple and teal (applied as overlay in Render)
 		// Apple: RGB cycling via phase-shifted sin waves
 		float ap = m_psychedelicTimer * 2.0f;
 		m_world.SetAppleColor(sf::Color(
@@ -816,6 +846,19 @@ void PlayState::Render()
 		}
 	}
 
+	// Level 9: Psychedelic tint overlay cycling on paper background
+	if (m_levelConfig.id == 9 && m_psychedelicTimer > 0.0f)
+	{
+		float t = (std::sin(m_psychedelicTimer * 0.8f) + 1.0f) / 2.0f;
+		sf::Uint8 r = (sf::Uint8)(80 + t * 60);
+		sf::Uint8 g = (sf::Uint8)(30 + (1.0f - t) * 60);
+		sf::Uint8 b = (sf::Uint8)(100 + t * 30);
+		sf::RectangleShape psychOverlay(sf::Vector2f(
+			(float)window.GetWindowSize().x, (float)window.GetWindowSize().y));
+		psychOverlay.setFillColor(sf::Color(r, g, b, 40)); // Subtle tint wash
+		target.draw(psychOverlay);
+	}
+
 	// Level 10: screen flip (The Cruel Twist at apple 19)
 	sf::View savedView;
 	if (m_screenFlipped)
@@ -832,17 +875,17 @@ void PlayState::Render()
 	m_world.RenderInk(target, m_gameTime);
 
 	if (m_levelConfig.hasEarthquakes)
-		m_earthquake.Render(window, m_world);
+		m_earthquake.RenderTo(target, m_world);
 
 	if (m_levelConfig.hasQuicksand)
-		m_quicksand.Render(window, m_snake.GetBlockSize());
+		m_quicksand.RenderTo(target, m_snake.GetBlockSize());
 
 	if (m_levelConfig.hasTimedApples)
 	{
 		sf::Vector2f applePixelPos(
 			m_world.GetApplePos().x * m_snake.GetBlockSize(),
 			m_world.GetApplePos().y * m_snake.GetBlockSize());
-		m_timedApple.Render(window, applePixelPos, m_snake.GetBlockSize() / 2.0f);
+		m_timedApple.RenderTo(target, applePixelPos, m_snake.GetBlockSize() / 2.0f);
 	}
 
 	if (m_levelConfig.hasMirrorGhost)
@@ -852,13 +895,13 @@ void PlayState::Render()
 		int bMaxX = (int)(m_world.GetMaxX() - m_world.GetEffectiveThickness(1) / bs - 1);
 		int bMinY = (int)((m_world.GetEffectiveThickness(0) + m_world.GetTopOffset()) / bs);
 		int bMaxY = (int)(m_world.GetMaxY() - m_world.GetEffectiveThickness(2) / bs - 1);
-		m_mirrorGhost.Render(window, bs, bMinX, bMaxX, bMinY, bMaxY);
+		m_mirrorGhost.RenderTo(target, bs, bMinX, bMaxX, bMinY, bMaxY);
 	}
 
 	// Poison apple rendering + Phase 2 real apple pulse
 	if (m_levelConfig.hasPoisonApples)
 	{
-		m_poisonApple.Render(window, m_snake.GetBlockSize());
+		m_poisonApple.RenderTo(target, m_snake.GetBlockSize());
 
 		// In Phase 2, make the real apple pulse too
 		if (m_poisonApple.GetRealApplesEaten() >= 8)
@@ -870,12 +913,12 @@ void PlayState::Render()
 			m_realPulse.setFillColor(m_levelConfig.apple);
 			m_realPulse.setPosition(m_world.GetApplePos().x * m_snake.GetBlockSize(),
 									m_world.GetApplePos().y * m_snake.GetBlockSize());
-			window.Draw(m_realPulse);
+			target.draw(m_realPulse);
 		}
 	}
 
 	if (m_levelConfig.hasPredator)
-		m_predator.Render(window, m_snake.GetBlockSize());
+		m_predator.RenderTo(target, m_snake.GetBlockSize());
 
 	// Snake: render with ink style to the post-process target
 	m_snake.RenderInk(target);
@@ -920,10 +963,10 @@ void PlayState::Render()
 		}
 	}
 
-	m_particles.Render(window);
+	m_particles.RenderTo(target);
 
 	if (m_levelConfig.hasBlackouts)
-		m_blackout.Render(window, m_snake.GetBlockSize());
+		m_blackout.RenderTo(target, window.GetWindowSize(), m_snake.GetBlockSize());
 
 	// Restore un-flipped view for HUD and UI overlays (never upside-down)
 	if (m_screenFlipped)

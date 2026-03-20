@@ -20,6 +20,7 @@ public:
 	void Reset(float l_blockSize, const Snake& l_snake, const World& l_world);
 	void Update(float l_dt, const World& l_world, const Snake& l_snake);
 	void Render(Window& l_window, float l_blockSize);
+	void RenderTo(sf::RenderTarget& l_target, float l_blockSize);
 
 	bool HitPlayer(const Position& l_playerHead) const;
 

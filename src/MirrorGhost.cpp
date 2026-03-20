@@ -63,9 +63,13 @@ Position MirrorGhost::MirrorPosition(const Position& l_pos, float l_centerX, flo
 void MirrorGhost::Render(Window& l_window, float l_blockSize,
 						 int l_boundsMinX, int l_boundsMaxX, int l_boundsMinY, int l_boundsMaxY)
 {
-	if (m_ghostBody.empty()) return;
+	RenderTo(l_window.GetRenderWindow(), l_blockSize, l_boundsMinX, l_boundsMaxX, l_boundsMinY, l_boundsMaxY);
+}
 
-	sf::RenderTarget& target = l_window.GetRenderWindow();
+void MirrorGhost::RenderTo(sf::RenderTarget& target, float l_blockSize,
+						   int l_boundsMinX, int l_boundsMaxX, int l_boundsMinY, int l_boundsMaxY)
+{
+	if (m_ghostBody.empty()) return;
 
 	// Draw dashed axis line showing the mirror plane
 	float centerX = ((float)l_boundsMinX + (float)l_boundsMaxX) * 0.5f * l_blockSize;

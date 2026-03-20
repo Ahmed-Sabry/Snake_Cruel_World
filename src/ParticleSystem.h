@@ -39,6 +39,7 @@ public:
 
 	void Update(float l_dt);
 	void Render(Window& l_window);
+	void RenderTo(sf::RenderTarget& l_target);
 	void Clear();
 
 	void SpawnAppleBurst(const sf::Vector2f& l_pos, const sf::Color& l_color);

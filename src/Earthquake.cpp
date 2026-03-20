@@ -275,12 +275,15 @@ void Earthquake::GenerateCrackLines(const World& l_world, Window& l_window)
 	}
 }
 
-void Earthquake::Render(Window& l_window, const World& /*l_world*/)
+void Earthquake::Render(Window& l_window, const World& l_world)
+{
+	RenderTo(l_window.GetRenderWindow(), l_world);
+}
+
+void Earthquake::RenderTo(sf::RenderTarget& target, const World& /*l_world*/)
 {
 	if (m_cracks.empty() || m_crackAlpha <= 0.0f)
 		return;
-
-	sf::RenderTarget& target = l_window.GetRenderWindow();
 	sf::Uint8 alpha = (sf::Uint8)std::min(255.0f, std::max(0.0f, m_crackAlpha));
 
 	// Ink-toned crack color (dark ink, not bright orange)

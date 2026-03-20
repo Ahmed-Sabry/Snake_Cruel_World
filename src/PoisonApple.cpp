@@ -62,9 +62,12 @@ void PoisonApple::Update(float l_dt)
 
 void PoisonApple::Render(Window& l_window, float l_blockSize)
 {
-	if (m_pos.x < 0) return;
+	RenderTo(l_window.GetRenderWindow(), l_blockSize);
+}
 
-	sf::RenderTarget& target = l_window.GetRenderWindow();
+void PoisonApple::RenderTo(sf::RenderTarget& target, float l_blockSize)
+{
+	if (m_pos.x < 0) return;
 
 	float baseRadius = l_blockSize / 2.0f;
 	float cx = m_pos.x * l_blockSize + baseRadius;

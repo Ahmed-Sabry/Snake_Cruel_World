@@ -31,9 +31,12 @@ void TimedApple::Update(float l_dt)
 
 void TimedApple::Render(Window& l_window, sf::Vector2f l_applePixelPos, float l_appleRadius)
 {
-	if (m_expired || m_timerSec <= 0.0f) return;
+	RenderTo(l_window.GetRenderWindow(), l_applePixelPos, l_appleRadius);
+}
 
-	sf::RenderTarget& target = l_window.GetRenderWindow();
+void TimedApple::RenderTo(sf::RenderTarget& target, sf::Vector2f l_applePixelPos, float l_appleRadius)
+{
+	if (m_expired || m_timerSec <= 0.0f) return;
 
 	float fraction = m_timeRemaining / m_timerSec;
 	float maxRadius = l_appleRadius + 8.0f;

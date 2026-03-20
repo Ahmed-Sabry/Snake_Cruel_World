@@ -22,6 +22,8 @@ public:
 	void Update(const Snake& l_snake, float l_centerX, float l_centerY);
 	void Render(Window& l_window, float l_blockSize,
 			   int l_boundsMinX, int l_boundsMaxX, int l_boundsMinY, int l_boundsMaxY);
+	void RenderTo(sf::RenderTarget& l_target, float l_blockSize,
+				  int l_boundsMinX, int l_boundsMaxX, int l_boundsMinY, int l_boundsMaxY);
 	bool CheckCollision(const Position& l_snakeHead) const;
 	void FlipAxis();
 	MirrorAxis GetAxis() const;

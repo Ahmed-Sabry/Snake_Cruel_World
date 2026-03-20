@@ -37,6 +37,11 @@ void ParticleSystem::Update(float l_dt)
 
 void ParticleSystem::Render(Window& l_window)
 {
+	RenderTo(l_window.GetRenderWindow());
+}
+
+void ParticleSystem::RenderTo(sf::RenderTarget& l_target)
+{
 	for (auto& p : m_particles)
 	{
 		float alpha = 255.0f * (1.0f - p.age / p.lifetime);
@@ -50,7 +55,7 @@ void ParticleSystem::Render(Window& l_window)
 				sf::RectangleShape rect(sf::Vector2f(p.size, p.size));
 				rect.setPosition(p.position);
 				rect.setFillColor(sf::Color(p.color.r, p.color.g, p.color.b, a));
-				l_window.Draw(rect);
+				l_target.draw(rect);
 				break;
 			}
 			case ParticleType::Text:
@@ -62,29 +67,27 @@ void ParticleSystem::Render(Window& l_window)
 				text.setCharacterSize((unsigned int)p.size);
 				text.setFillColor(sf::Color(p.color.r, p.color.g, p.color.b, a));
 				text.setPosition(p.position);
-				l_window.Draw(text);
+				l_target.draw(text);
 				break;
 			}
 			case ParticleType::InkSplat:
 			{
-				// Lumpy irregular blob
 				sf::CircleShape blob(p.size, (size_t)p.pointCount);
 				blob.setOrigin(p.size, p.size);
 				blob.setPosition(p.position);
 				blob.setRotation(p.rotation);
 				blob.setFillColor(sf::Color(p.color.r, p.color.g, p.color.b, a));
-				l_window.Draw(blob);
+				l_target.draw(blob);
 				break;
 			}
 			case ParticleType::InkDrip:
 			{
-				// Elongated shape that stretches as it falls
 				float stretch = 1.0f + p.age * 2.0f;
 				sf::RectangleShape drip(sf::Vector2f(p.size * 0.6f, p.size * stretch));
 				drip.setOrigin(p.size * 0.3f, 0);
 				drip.setPosition(p.position);
 				drip.setFillColor(sf::Color(p.color.r, p.color.g, p.color.b, a));
-				l_window.Draw(drip);
+				l_target.draw(drip);
 				break;
 			}
 			case ParticleType::InkDot:
@@ -93,7 +96,7 @@ void ParticleSystem::Render(Window& l_window)
 				dot.setOrigin(p.size, p.size);
 				dot.setPosition(p.position);
 				dot.setFillColor(sf::Color(p.color.r, p.color.g, p.color.b, a));
-				l_window.Draw(dot);
+				l_target.draw(dot);
 				break;
 			}
 			default:

@@ -13,6 +13,7 @@ public:
 	void Reset(float l_blockSize);
 	void Update(float l_dt);
 	void Render(Window& l_window, float l_blockSize);
+	void RenderTo(sf::RenderTarget& l_target, float l_blockSize);
 
 	void SpawnPoison(const Snake& l_snake, const World& l_world, float l_blockSize);
 	bool CheckCollision(const Position& l_snakeHead) const;

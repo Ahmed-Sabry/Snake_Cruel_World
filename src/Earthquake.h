@@ -28,6 +28,7 @@ public:
 	void Reset(float l_blockSize);
 	void Update(float l_dt, World& l_world, Window& l_window);
 	void Render(Window& l_window, const World& l_world);
+	void RenderTo(sf::RenderTarget& l_target, const World& l_world);
 
 	bool IsWarning() const;
 	bool JustQuaked();

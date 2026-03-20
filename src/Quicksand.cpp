@@ -68,7 +68,11 @@ void Quicksand::GeneratePatches(float l_maxX, float l_maxY, float l_borderThickn
 
 void Quicksand::Render(Window& l_window, float l_blockSize)
 {
-	sf::RenderTarget& target = l_window.GetRenderWindow();
+	RenderTo(l_window.GetRenderWindow(), l_blockSize);
+}
+
+void Quicksand::RenderTo(sf::RenderTarget& target, float l_blockSize)
+{
 
 	for (const auto& patch : m_patches)
 	{

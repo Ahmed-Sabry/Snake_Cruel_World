@@ -301,9 +301,12 @@ void Predator::Update(float l_dt, const World& l_world, const Snake& l_snake)
 
 void Predator::Render(Window& l_window, float l_blockSize)
 {
-	if (m_body.empty()) return;
+	RenderTo(l_window.GetRenderWindow(), l_blockSize);
+}
 
-	sf::RenderTarget& target = l_window.GetRenderWindow();
+void Predator::RenderTo(sf::RenderTarget& target, float l_blockSize)
+{
+	if (m_body.empty()) return;
 
 	// Ink-toned colors based on mode
 	sf::Color headColor, bodyColor;
@@ -403,9 +406,9 @@ void Predator::Render(Window& l_window, float l_blockSize)
 		m_eyeShape.setRadius(eyeR);
 		m_eyeShape.setFillColor(sf::Color(240, 240, 230));
 		m_eyeShape.setPosition(ex1 - eyeR, ey1 - eyeR);
-		l_window.Draw(m_eyeShape);
+		target.draw(m_eyeShape);
 		m_eyeShape.setPosition(ex2 - eyeR, ey2 - eyeR);
-		l_window.Draw(m_eyeShape);
+		target.draw(m_eyeShape);
 
 		// Pupils — offset toward direction of movement for tracking look
 		float pupilR = l_blockSize * 0.07f;
