@@ -133,6 +133,7 @@ static const char* s_highDeathCountTaunts[] = {
 std::string GameOverState::SelectDeathTaunt(int l_levelId, int l_applesToWin)
 {
 	auto& sm = m_stateManager;
+	auto& dc = sm.deathCtx;
 
 	// --- Priority-ordered evaluation (most specific first) ---
 
@@ -145,59 +146,58 @@ std::string GameOverState::SelectDeathTaunt(int l_levelId, int l_applesToWin)
 		return s_fastDeathTaunts[rand() % s_fastDeathTauntCount];
 
 	// Zero apples eaten
-	if (sm.deathAppleCount == 0 && sm.levelTime >= 3.0f)
+	if (dc.appleCount == 0 && sm.levelTime >= 3.0f)
 		return s_zeroAppleTaunts[rand() % std::size(s_zeroAppleTaunts)];
 
 	// Almost won (within 2 apples of target)
-	if (l_applesToWin > 2 && sm.deathAppleCount > 0 && sm.deathAppleCount >= l_applesToWin - 2)
+	if (l_applesToWin > 2 && dc.appleCount > 0 && dc.appleCount >= l_applesToWin - 2)
 		return s_almostWonTaunts[rand() % std::size(s_almostWonTaunts)];
 
 	// Predator kill
-	if (sm.deathCause == StateManager::DeathCause::Predator)
+	if (dc.cause == StateManager::DeathCause::Predator)
 		return s_predatorKillTaunts[rand() % std::size(s_predatorKillTaunts)];
 
 	// Mirror ghost kill
-	if (sm.deathCause == StateManager::DeathCause::MirrorGhost)
+	if (dc.cause == StateManager::DeathCause::MirrorGhost)
 		return s_mirrorKillTaunts[rand() % std::size(s_mirrorKillTaunts)];
 
 	// Died during blackout
-	if (sm.wasInBlackout)
+	if (dc.wasInBlackout)
 		return s_blackoutDeathTaunts[rand() % std::size(s_blackoutDeathTaunts)];
 
 	// Died on quicksand
-	if (sm.wasOnQuicksand)
+	if (dc.wasOnQuicksand)
 		return s_quicksandDeathTaunts[rand() % std::size(s_quicksandDeathTaunts)];
 
 	// Lost a high combo (4+ consecutive apples)
-	if (sm.hadHighCombo && sm.comboLostAt >= 4)
+	if (dc.hadHighCombo && dc.comboLostAt >= 4)
 	{
 		int pick = rand() % std::size(s_highComboLostTaunts);
-		std::string prefix = std::to_string(sm.comboLostAt);
+		std::string prefix = std::to_string(dc.comboLostAt);
 		return prefix + s_highComboLostTaunts[pick];
 	}
 
 	// High retry count (10+)
-	if (sm.retryCount >= 10)
+	if (dc.retryCount >= 10)
 	{
-		std::string prefix = "Attempt " + std::to_string(sm.retryCount + 1) + ". ";
+		std::string prefix = "Attempt " + std::to_string(dc.retryCount + 1) + ". ";
 		return prefix + s_highRetryTaunts[rand() % std::size(s_highRetryTaunts)];
 	}
 
 	// Moderate retry count (5+)
-	if (sm.retryCount >= 5)
+	if (dc.retryCount >= 5)
 	{
-		std::string prefix = "Attempt " + std::to_string(sm.retryCount + 1) + ". ";
+		std::string prefix = "Attempt " + std::to_string(dc.retryCount + 1) + ". ";
 		return prefix + s_moderateRetryTaunts[rand() % std::size(s_moderateRetryTaunts)];
 	}
 
 	// Getting worse (significantly fewer apples than session best, after 3+ retries)
-	if (sm.retryCount >= 3 && sm.sessionBestApples > 3 &&
-		sm.deathAppleCount < sm.sessionBestApples / 2)
+	if (dc.retryCount >= 3 && dc.sessionBestApples > 3 &&
+		dc.appleCount < dc.sessionBestApples / 2)
 		return s_gettingWorseTaunts[rand() % std::size(s_gettingWorseTaunts)];
 
-	// Improvement detected (within 80% of session best and improving)
-	if (sm.retryCount >= 2 && sm.deathAppleCount == sm.sessionBestApples &&
-		sm.deathAppleCount > 3)
+	// Improvement detected (strict new session best)
+	if (dc.retryCount >= 2 && dc.sessionBestImproved && dc.appleCount > 3)
 		return "New session best. Getting closer.";
 
 	// High total death count (100+)
@@ -380,9 +380,10 @@ void GameOverState::OnEnter()
 	if (!won)
 	{
 		// Death counter with retry attempt
+		auto& dc = m_stateManager.deathCtx;
 		std::string deathStr = "Death #" + std::to_string(m_stateManager.totalDeaths);
-		if (m_stateManager.retryCount >= 3)
-			deathStr += "  (Attempt " + std::to_string(m_stateManager.retryCount + 1) + ")";
+		if (dc.retryCount >= 3)
+			deathStr += "  (Attempt " + std::to_string(dc.retryCount + 1) + ")";
 		m_stats[5].setFont(m_font);
 		m_stats[5].setString(deathStr);
 		m_stats[5].setCharacterSize(17);
@@ -392,12 +393,12 @@ void GameOverState::OnEnter()
 		m_statCount = 6;
 
 		// Best attempt comparison (show if we have a session best and it's better)
-		if (m_stateManager.retryCount >= 2 &&
-			m_stateManager.sessionBestApples > m_stateManager.deathAppleCount)
+		if (dc.retryCount >= 2 &&
+			dc.sessionBestApples > dc.appleCount)
 		{
 			m_stats[6].setFont(m_font);
 			m_stats[6].setString("Session best: " +
-				std::to_string(m_stateManager.sessionBestApples) + " apples");
+				std::to_string(dc.sessionBestApples) + " apples");
 			m_stats[6].setCharacterSize(17);
 			m_stats[6].setFillColor(goLightInk);
 			sf::FloatRect bBounds = m_stats[6].getLocalBounds();

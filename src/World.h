@@ -36,6 +36,7 @@ public:
 	}
 
 	void SetBorderColor(sf::Color l_color);
+	sf::Color GetBorderColor() const { return m_normalBorderColor; }
 	void SetTopOffset(float l_offset);
 	void FlashBorders(float l_duration);
 	void UpdateFlash(float l_dt);

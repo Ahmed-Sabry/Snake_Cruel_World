@@ -73,16 +73,17 @@ void PlayState::OnEnter()
 
 	// Track retries for context-sensitive taunts
 	{
-		if (m_stateManager.currentLevel == m_stateManager.lastPlayedLevel)
-			m_stateManager.retryCount++;
+		auto& dc = m_stateManager.deathCtx;
+		if (m_stateManager.currentLevel == dc.lastPlayedLevel)
+			dc.retryCount++;
 		else
 		{
-			m_stateManager.retryCount = 0;
-			m_stateManager.sessionBestApples = 0;
+			dc.retryCount = 0;
+			dc.sessionBestApples = 0;
 		}
-		m_stateManager.lastPlayedLevel = m_stateManager.currentLevel;
+		dc.lastPlayedLevel = m_stateManager.currentLevel;
 	}
-	m_stateManager.deathCause = StateManager::DeathCause::Unknown;
+	m_stateManager.deathCtx.cause = StateManager::DeathCause::Unknown;
 
 	// Reset game state
 	m_snake.Reset();
@@ -94,13 +95,11 @@ void PlayState::OnEnter()
 	m_world.SetShrinkInterval(m_levelConfig.shrinkInterval);
 	m_world.SetShrinkTimerSec(m_levelConfig.shrinkTimerSec);
 
+	m_world.SetLevelId(m_levelConfig.id);
+	m_world.SetAppleColor(m_levelConfig.apple);
 	m_world.RespawnApple(m_snake);
 	m_world.SetBorderColor(m_levelConfig.border);
 	m_hud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
-
-	// Apply remaining level-specific configuration
-	m_world.SetLevelId(m_levelConfig.id);
-	m_world.SetAppleColor(m_levelConfig.apple);
 	m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
 
 	// Apply active skin based on three-tier rule:
@@ -278,7 +277,7 @@ void PlayState::OnEnter()
 
 	// Show level subtitle as entry announcement (first 3 attempts only — gets stale after that)
 	if (!m_stateManager.endlessMode && !m_levelConfig.subtitle.empty()
-		&& m_stateManager.retryCount < 3)
+		&& m_stateManager.deathCtx.retryCount < 3)
 	{
 		m_phaseAnnouncementText = m_levelConfig.subtitle;
 		m_announcementDuration = 2.5f;
@@ -815,7 +814,7 @@ void PlayState::Update(float l_dt)
 
 			if (m_mirrorGhost.CheckCollision(m_snake.GetPosition()))
 			{
-				m_stateManager.deathCause = StateManager::DeathCause::MirrorGhost;
+				m_stateManager.deathCtx.cause = StateManager::DeathCause::MirrorGhost;
 				m_snake.LoseStatus(true);
 			}
 		}
@@ -861,7 +860,7 @@ void PlayState::Update(float l_dt)
 		{
 			if (m_predator.HitPlayer(m_snake.GetPosition()))
 			{
-				m_stateManager.deathCause = StateManager::DeathCause::Predator;
+				m_stateManager.deathCtx.cause = StateManager::DeathCause::Predator;
 				m_snake.LoseStatus(true);
 				m_stateManager.GetStats().OnPredatorKilledPlayer();
 			}
@@ -1048,7 +1047,7 @@ void PlayState::Update(float l_dt)
 		// Check if predator moved onto player head
 		if (m_predator.HitPlayer(m_snake.GetPosition()))
 		{
-			m_stateManager.deathCause = StateManager::DeathCause::Predator;
+			m_stateManager.deathCtx.cause = StateManager::DeathCause::Predator;
 			m_snake.LoseStatus(true);
 			m_stateManager.GetStats().OnPredatorKilledPlayer();
 			OnDeath();
@@ -1109,7 +1108,7 @@ void PlayState::Update(float l_dt)
 		}
 	}
 
-	// Border pulse during grace period
+	// Border pulse during grace period (use current border as base to preserve degradation)
 	if (m_levelConfig.hasControlShuffle && m_controlShuffle.IsGracePeriod())
 	{
 		float pulse = std::sin(m_gameTime * 20.0f);
@@ -1118,10 +1117,6 @@ void PlayState::Update(float l_dt)
 			m_levelConfig.accentColor.r,
 			(sf::Uint8)std::max(0, std::min(255, (int)m_levelConfig.accentColor.g + (int)(g - 200))),
 			(sf::Uint8)std::min(255, (int)m_levelConfig.accentColor.b + 50)));
-	}
-	else if (m_levelConfig.hasControlShuffle)
-	{
-		m_world.SetBorderColor(m_levelConfig.border);
 	}
 
 	// Psychedelic color cycling (Level 9 theme)
@@ -1629,17 +1624,19 @@ void PlayState::OnDeath()
 	m_stateManager.GetAudio().PlaySound("wall_death");
 
 	// Populate death context for context-sensitive taunts
-	m_stateManager.deathAppleCount = m_applesEaten;
-	m_stateManager.wasInBlackout = m_levelConfig.hasBlackouts && m_blackout.IsBlackout();
-	m_stateManager.wasOnQuicksand = m_levelConfig.hasQuicksand &&
+	auto& dc = m_stateManager.deathCtx;
+	dc.appleCount = m_applesEaten;
+	dc.wasInBlackout = m_levelConfig.hasBlackouts && m_blackout.IsBlackout();
+	dc.wasOnQuicksand = m_levelConfig.hasQuicksand &&
 		m_quicksand.IsOnQuicksand(m_snake.GetPosition());
-	m_stateManager.hadHighCombo = m_stateManager.comboMultiplier >= 2.0f;
-	m_stateManager.comboLostAt = m_consecutiveApples;
-	if (m_applesEaten > m_stateManager.sessionBestApples)
-		m_stateManager.sessionBestApples = m_applesEaten;
-	// deathCause is set at the kill site (predator/mirror/wall); default to Wall
-	if (m_stateManager.deathCause == StateManager::DeathCause::Unknown)
-		m_stateManager.deathCause = StateManager::DeathCause::Wall;
+	dc.hadHighCombo = m_stateManager.comboMultiplier >= 2.0f;
+	dc.comboLostAt = m_consecutiveApples;
+	dc.sessionBestImproved = (m_applesEaten > dc.sessionBestApples);
+	if (dc.sessionBestImproved)
+		dc.sessionBestApples = m_applesEaten;
+	// cause is set at the kill site (predator/mirror/wall); default to Wall
+	if (dc.cause == StateManager::DeathCause::Unknown)
+		dc.cause = StateManager::DeathCause::Wall;
 	if (!m_stateManager.endlessMode)
 		m_stateManager.GetStats().OnDeath(m_stateManager.currentLevel);
 
@@ -1836,7 +1833,7 @@ void PlayState::CheckCruelMoment()
 		charSize = 28;
 	}
 	// Cross-level: first apple on 5+ retries
-	else if (a == 1 && m_stateManager.retryCount >= 5)
+	else if (a == 1 && m_stateManager.deathCtx.retryCount >= 5)
 		text = "Welcome back.";
 
 	if (text)
