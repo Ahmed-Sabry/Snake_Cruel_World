@@ -317,11 +317,15 @@ void GameOverState::OnEnter()
 
 	// Context-sensitive taunt selection
 	std::string tauntStr;
-	int applesToWin = (idx >= 0 && idx < NUM_LEVELS) ? levels[idx].applesToWin : 0;
 	if (won)
 		tauntStr = SelectVictoryTaunt(m_stateManager.currentLevel, stars);
+	else if (endless)
+		tauntStr = SelectDeathTaunt(0, 0); // no level-specific or applesToWin context
 	else
+	{
+		int applesToWin = (idx >= 0 && idx < NUM_LEVELS) ? levels[idx].applesToWin : 0;
 		tauntStr = SelectDeathTaunt(m_stateManager.currentLevel, applesToWin);
+	}
 
 	sf::Color goInk = (idx >= 0 && idx < NUM_LEVELS)
 		? levels[idx].inkTint : sf::Color(60, 50, 45);

@@ -125,6 +125,9 @@ private:
 	// Audio polish
 	float m_heartbeatTimer;
 
+	// Control shuffle grace period tracking
+	bool m_wasInGracePeriod;
+
 	// Endless mode
 	std::unique_ptr<EndlessModeController> m_endlessCtrl;
 	float m_endlessWarningTimer;

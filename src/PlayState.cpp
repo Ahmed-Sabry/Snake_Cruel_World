@@ -53,6 +53,7 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_reachedMinBody(false),
 	  m_screenFlipStartTime(0.0f),
 	  m_heartbeatTimer(0.0f),
+	  m_wasInGracePeriod(false),
 	  m_endlessWarningTimer(0.0f)
 {
 }
@@ -89,6 +90,25 @@ void PlayState::OnEnter()
 	m_snake.Reset();
 	m_world.SetTopOffset(HUD::GetHeight());
 	m_world.Reset(window, m_snake);
+
+	// Endless mode overrides must precede world init so shrink params,
+	// level ID, and first apple spawn use the correct endless config
+	if (m_stateManager.endlessMode)
+	{
+		m_levelConfig.applesToWin = 99999; // effectively infinite
+		m_levelConfig.shrinkTimerSec = 15.0f;
+		m_levelConfig.shrinkInterval = 0; // timer-based only
+		m_levelConfig.baseSpeed = 10.0f;
+		// Clear all mechanic flags — EndlessModeController toggles them dynamically
+		m_levelConfig.hasBlackouts = false;
+		m_levelConfig.hasQuicksand = false;
+		m_levelConfig.hasMirrorGhost = false;
+		m_levelConfig.hasTimedApples = false;
+		m_levelConfig.hasPoisonApples = false;
+		m_levelConfig.hasEarthquakes = false;
+		m_levelConfig.hasPredator = false;
+		m_levelConfig.hasControlShuffle = false;
+	}
 
 	// Set shrink parameters before first RespawnApple so the pre-shrink
 	// safety margin uses the configured interval, not the default
@@ -170,27 +190,13 @@ void PlayState::OnEnter()
 	if (m_announcementFontLoaded)
 		m_achievementNotif.Init(m_announcementFont);
 
-	// Endless mode setup
+	// Endless mode controller setup (config overrides already applied above)
 	m_endlessWarningTimer = 0.0f;
 	m_endlessWarningText.clear();
 	if (m_stateManager.endlessMode)
 	{
 		m_endlessCtrl = std::make_unique<EndlessModeController>(
 			m_stateManager.highestUnlockedLevel);
-		// Override level config for endless mode — start with a clean slate
-		m_levelConfig.applesToWin = 99999; // effectively infinite
-		m_levelConfig.shrinkTimerSec = 15.0f;
-		m_levelConfig.shrinkInterval = 0; // timer-based only
-		m_levelConfig.baseSpeed = 10.0f;
-		// Clear all mechanic flags — EndlessModeController toggles them dynamically
-		m_levelConfig.hasBlackouts = false;
-		m_levelConfig.hasQuicksand = false;
-		m_levelConfig.hasMirrorGhost = false;
-		m_levelConfig.hasTimedApples = false;
-		m_levelConfig.hasPoisonApples = false;
-		m_levelConfig.hasEarthquakes = false;
-		m_levelConfig.hasPredator = false;
-		m_levelConfig.hasControlShuffle = false;
 	}
 	else
 	{
@@ -274,6 +280,12 @@ void PlayState::OnEnter()
 	m_appleBurstTimer = 0.0f;
 	m_borderHatchTimer = 0.0f;
 	m_heartbeatTimer = 0.0f;
+
+	// Clear any stale announcement from previous run before deciding whether to show subtitle
+	m_phaseAnnouncementText.clear();
+	m_phaseAnnouncementTimer = 0.0f;
+	m_announcementDuration = 0.0f;
+	m_announcementCharSize = 48;
 
 	// Show level subtitle as entry announcement (first 3 attempts only — gets stale after that)
 	if (!m_stateManager.endlessMode && !m_levelConfig.subtitle.empty()
@@ -1108,7 +1120,7 @@ void PlayState::Update(float l_dt)
 		}
 	}
 
-	// Border pulse during grace period (use current border as base to preserve degradation)
+	// Border pulse during grace period; restore degraded/base border when grace ends
 	if (m_levelConfig.hasControlShuffle && m_controlShuffle.IsGracePeriod())
 	{
 		float pulse = std::sin(m_gameTime * 20.0f);
@@ -1117,6 +1129,13 @@ void PlayState::Update(float l_dt)
 			m_levelConfig.accentColor.r,
 			(sf::Uint8)std::max(0, std::min(255, (int)m_levelConfig.accentColor.g + (int)(g - 200))),
 			(sf::Uint8)std::min(255, (int)m_levelConfig.accentColor.b + 50)));
+		m_wasInGracePeriod = true;
+	}
+	else if (m_wasInGracePeriod)
+	{
+		// Grace just ended — restore border (degraded if shrinks occurred, base otherwise)
+		m_world.SetBorderColor(m_levelConfig.border);
+		m_wasInGracePeriod = false;
 	}
 
 	// Psychedelic color cycling (Level 9 theme)
