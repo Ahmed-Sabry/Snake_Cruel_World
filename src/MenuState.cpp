@@ -66,7 +66,7 @@ void MenuState::OnEnter()
 	}
 
 	m_selectedItem = 0;
-	m_keyReleased = true;
+	m_keyReleased = false;
 
 	m_stateManager.GetAudio().PlayMusic("content/audio/music/menu_theme.ogg");
 }
