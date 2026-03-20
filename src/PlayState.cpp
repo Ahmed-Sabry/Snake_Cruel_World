@@ -85,11 +85,24 @@ void PlayState::OnEnter()
 	m_world.SetAppleColor(m_levelConfig.apple);
 	m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
 
-	// Apply active skin (overrides level colors unless Classic/skin 0)
+	// Apply active skin based on three-tier rule:
+	// - First playthrough (level not yet beaten): level colors only
+	// - Replayed levels (already beaten): skin applies
+	// - Endless mode: skin always applies
 	{
 		int skinIdx = m_stateManager.activeSkinIndex;
+		bool shouldApplySkin = false;
+
+		if (skinIdx > 0)
+		{
+			if (m_stateManager.endlessMode)
+				shouldApplySkin = true;
+			else
+				shouldApplySkin = (m_stateManager.currentLevel < m_stateManager.highestUnlockedLevel);
+		}
+
 		auto skins = GetAllSkins();
-		if (skinIdx > 0 && skinIdx < (int)skins.size())
+		if (shouldApplySkin && skinIdx < (int)skins.size())
 			m_snake.ApplySkin(skins[skinIdx]);
 		else
 			m_snake.ClearSkin();
