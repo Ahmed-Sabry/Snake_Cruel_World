@@ -12,7 +12,10 @@ enum class StateType
 	Gameplay,
 	Pause,
 	GameOver,
-	Settings
+	Settings,
+	Achievements,
+	Statistics,
+	SkinSelect
 };
 
 class StateManager; // forward declaration

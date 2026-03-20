@@ -1,10 +1,14 @@
 #include "SaveManager.h"
 #include "StateManager.h"
+#include "StatsManager.h"
+#include "AchievementManager.h"
 #include <iostream>
+#include <cstring>
 
 const std::string SaveManager::s_saveFile = "save.dat";
 
-void SaveManager::Save(const StateManager& l_state)
+void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
+					   const AchievementManager& l_achievements)
 {
 	std::ofstream file(s_saveFile, std::ios::binary);
 	if (!file.is_open())
@@ -14,19 +18,43 @@ void SaveManager::Save(const StateManager& l_state)
 	}
 
 	// Version marker
-	int version = 1;
+	int version = 2;
 	file.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
-	// Progress
+	// === V1 block (backwards-compatible) ===
 	file.write(reinterpret_cast<const char*>(&l_state.highestUnlockedLevel), sizeof(l_state.highestUnlockedLevel));
 	file.write(reinterpret_cast<const char*>(l_state.highScores), sizeof(l_state.highScores));
 	file.write(reinterpret_cast<const char*>(l_state.starRatings), sizeof(l_state.starRatings));
 	file.write(reinterpret_cast<const char*>(&l_state.totalDeaths), sizeof(l_state.totalDeaths));
 
+	// === V2 block ===
+	const CumulativeStats& stats = l_stats.GetStats();
+	file.write(reinterpret_cast<const char*>(&stats.totalApplesEaten), sizeof(stats.totalApplesEaten));
+	file.write(reinterpret_cast<const char*>(&stats.totalSegmentsLost), sizeof(stats.totalSegmentsLost));
+	file.write(reinterpret_cast<const char*>(&stats.totalPoisonApplesEaten), sizeof(stats.totalPoisonApplesEaten));
+	file.write(reinterpret_cast<const char*>(&stats.totalPlaytimeSeconds), sizeof(stats.totalPlaytimeSeconds));
+	file.write(reinterpret_cast<const char*>(&stats.bestCombo), sizeof(stats.bestCombo));
+	file.write(reinterpret_cast<const char*>(&stats.bestSingleLevelScore), sizeof(stats.bestSingleLevelScore));
+	file.write(reinterpret_cast<const char*>(stats.fastestLevelTimes), sizeof(stats.fastestLevelTimes));
+	file.write(reinterpret_cast<const char*>(stats.deathsPerLevel), sizeof(stats.deathsPerLevel));
+	file.write(reinterpret_cast<const char*>(stats.attemptsPerLevel), sizeof(stats.attemptsPerLevel));
+	file.write(reinterpret_cast<const char*>(&stats.endlessBestScore), sizeof(stats.endlessBestScore));
+	file.write(reinterpret_cast<const char*>(&stats.endlessBestTime), sizeof(stats.endlessBestTime));
+	file.write(reinterpret_cast<const char*>(&stats.predatorApplesStolen), sizeof(stats.predatorApplesStolen));
+	file.write(reinterpret_cast<const char*>(&stats.predatorKills), sizeof(stats.predatorKills));
+
+	// Achievement unlock data
+	const bool* unlockData = l_achievements.GetUnlockData();
+	file.write(reinterpret_cast<const char*>(unlockData), NUM_ACHIEVEMENTS * sizeof(bool));
+
+	// Active skin index
+	file.write(reinterpret_cast<const char*>(&l_state.activeSkinIndex), sizeof(l_state.activeSkinIndex));
+
 	file.close();
 }
 
-void SaveManager::Load(StateManager& l_state)
+void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
+					   AchievementManager& l_achievements)
 {
 	std::ifstream file(s_saveFile, std::ios::binary);
 	if (!file.is_open())
@@ -42,6 +70,7 @@ void SaveManager::Load(StateManager& l_state)
 		return;
 	}
 
+	// === V1 block ===
 	file.read(reinterpret_cast<char*>(&l_state.highestUnlockedLevel), sizeof(l_state.highestUnlockedLevel));
 	file.read(reinterpret_cast<char*>(l_state.highScores), sizeof(l_state.highScores));
 	file.read(reinterpret_cast<char*>(l_state.starRatings), sizeof(l_state.starRatings));
@@ -57,9 +86,11 @@ void SaveManager::Load(StateManager& l_state)
 			l_state.highScores[i] = 0;
 			l_state.starRatings[i] = 0;
 		}
+		file.close();
+		return;
 	}
 
-	// Validate loaded data
+	// Validate v1 data
 	if (l_state.highestUnlockedLevel < 1 || l_state.highestUnlockedLevel > NUM_LEVELS)
 		l_state.highestUnlockedLevel = 1;
 	for (int i = 0; i < NUM_LEVELS; i++)
@@ -70,6 +101,43 @@ void SaveManager::Load(StateManager& l_state)
 			l_state.starRatings[i] = 0;
 		else if (l_state.starRatings[i] > 3)
 			l_state.starRatings[i] = 3;
+	}
+
+	// === V2 block (only if version >= 2) ===
+	if (version >= 2)
+	{
+		CumulativeStats& stats = l_stats.GetMutableStats();
+		file.read(reinterpret_cast<char*>(&stats.totalApplesEaten), sizeof(stats.totalApplesEaten));
+		file.read(reinterpret_cast<char*>(&stats.totalSegmentsLost), sizeof(stats.totalSegmentsLost));
+		file.read(reinterpret_cast<char*>(&stats.totalPoisonApplesEaten), sizeof(stats.totalPoisonApplesEaten));
+		file.read(reinterpret_cast<char*>(&stats.totalPlaytimeSeconds), sizeof(stats.totalPlaytimeSeconds));
+		file.read(reinterpret_cast<char*>(&stats.bestCombo), sizeof(stats.bestCombo));
+		file.read(reinterpret_cast<char*>(&stats.bestSingleLevelScore), sizeof(stats.bestSingleLevelScore));
+		file.read(reinterpret_cast<char*>(stats.fastestLevelTimes), sizeof(stats.fastestLevelTimes));
+		file.read(reinterpret_cast<char*>(stats.deathsPerLevel), sizeof(stats.deathsPerLevel));
+		file.read(reinterpret_cast<char*>(stats.attemptsPerLevel), sizeof(stats.attemptsPerLevel));
+		file.read(reinterpret_cast<char*>(&stats.endlessBestScore), sizeof(stats.endlessBestScore));
+		file.read(reinterpret_cast<char*>(&stats.endlessBestTime), sizeof(stats.endlessBestTime));
+		file.read(reinterpret_cast<char*>(&stats.predatorApplesStolen), sizeof(stats.predatorApplesStolen));
+		file.read(reinterpret_cast<char*>(&stats.predatorKills), sizeof(stats.predatorKills));
+
+		// Achievement unlock data
+		bool unlockData[NUM_ACHIEVEMENTS] = {};
+		file.read(reinterpret_cast<char*>(unlockData), NUM_ACHIEVEMENTS * sizeof(bool));
+		if (!file.fail())
+			l_achievements.SetUnlockData(unlockData);
+
+		// Active skin index
+		file.read(reinterpret_cast<char*>(&l_state.activeSkinIndex), sizeof(l_state.activeSkinIndex));
+
+		// Validate v2 data
+		if (file.fail())
+		{
+			std::cerr << "SaveManager: Error reading v2 data, keeping v1 progress." << std::endl;
+			// v1 data is already loaded and valid, v2 stays at defaults
+		}
+		if (l_state.activeSkinIndex < 0 || l_state.activeSkinIndex > NUM_LEVELS)
+			l_state.activeSkinIndex = 0;
 	}
 
 	file.close();

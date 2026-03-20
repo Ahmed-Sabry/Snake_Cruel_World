@@ -1,5 +1,6 @@
 #include "LevelSelectState.h"
 #include "AudioManager.h"
+#include "AchievementManager.h"
 #include "InkRenderer.h"
 #include <algorithm>
 #include <iostream>
@@ -173,6 +174,7 @@ void LevelSelectState::HandleInput()
 		{
 			m_stateManager.highestUnlockedLevel = NUM_LEVELS;
 			m_stateManager.GetAudio().PlaySound("level_complete");
+			m_stateManager.GetAchievements().OnKonamiCode();
 			m_konamiProgress.clear();
 			OnEnter(); // refresh UI to show unlocked levels
 			m_cheatTextTimer = 3.0f; // set after OnEnter (which resets it to 0)

@@ -3,14 +3,14 @@
 #include "GameState.h"
 #include "StateManager.h"
 #include "PaperBackground.h"
+#include "SnakeSkin.h"
 #include <vector>
-#include <string>
 
-class MenuState : public BaseState
+class SkinSelectState : public BaseState
 {
 public:
-	MenuState(StateManager& l_stateManager);
-	~MenuState() = default;
+	SkinSelectState(StateManager& l_stateManager);
+	~SkinSelectState() = default;
 
 	void OnEnter() override;
 	void OnExit() override;
@@ -19,24 +19,15 @@ public:
 	void Render() override;
 
 private:
-	void BuildMenuItems();
-	void OnItemSelected(int l_index);
+	bool IsSkinUnlocked(int l_skinIndex) const;
+	sf::Color HsvToRgb(float h, float s, float v) const;
 
 	sf::Font m_font;
 	sf::Text m_title;
-	sf::Text m_tagline;
-
-	struct MenuItem
-	{
-		std::string label;
-		sf::Text text;
-		bool enabled;
-		std::string disabledHint;
-	};
-	std::vector<MenuItem> m_menuItems;
+	std::vector<sf::Text> m_skinLabels;
+	std::vector<SnakeSkin> m_skins;
 	int m_selectedItem;
 	bool m_keyReleased;
-
 	float m_animTimer;
 	PaperBackground m_paperBg;
 };

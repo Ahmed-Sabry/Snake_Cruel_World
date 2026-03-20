@@ -9,11 +9,14 @@
 #include <vector>
 
 class AudioManager;
+class StatsManager;
+class AchievementManager;
 
 class StateManager
 {
 public:
-	StateManager(Window& l_window, AudioManager& l_audio);
+	StateManager(Window& l_window, AudioManager& l_audio,
+				 StatsManager& l_stats, AchievementManager& l_achievements);
 	~StateManager();
 
 	void Update(float l_dt);
@@ -26,6 +29,8 @@ public:
 
 	Window& GetWindow();
 	AudioManager& GetAudio();
+	StatsManager& GetStats();
+	AchievementManager& GetAchievements();
 
 	template <typename T>
 	void RegisterState(StateType l_type)
@@ -52,6 +57,10 @@ public:
 	int highScores[NUM_LEVELS] = {};
 	int starRatings[NUM_LEVELS] = {};
 
+	// Gamification state
+	int activeSkinIndex = 0;
+	bool endlessMode = false;
+
 private:
 	void ProcessPendingTransitions();
 	std::unique_ptr<BaseState> CreateState(StateType l_type);
@@ -61,6 +70,8 @@ private:
 
 	Window& m_window;
 	AudioManager& m_audio;
+	StatsManager& m_stats;
+	AchievementManager& m_achievements;
 	std::vector<std::pair<StateType, std::unique_ptr<BaseState>>> m_stateStack;
 	std::unordered_map<StateType, std::function<std::unique_ptr<BaseState>()>> m_stateFactory;
 

@@ -1,6 +1,9 @@
 #include "GameOverState.h"
 #include "AudioManager.h"
 #include "LevelConfig.h"
+#include "SaveManager.h"
+#include "StatsManager.h"
+#include "AchievementManager.h"
 #include <sstream>
 #include <iomanip>
 #include <cstdlib>
@@ -70,10 +73,14 @@ void GameOverState::OnEnter()
 	window.SetBackground(paperBg);
 
 	bool won = m_stateManager.levelComplete;
+	bool endless = m_stateManager.endlessMode;
 
 	// Title
 	m_title.setFont(m_font);
-	m_title.setString(won ? "Level Complete!" : "You Died.");
+	if (endless)
+		m_title.setString("Game Over");
+	else
+		m_title.setString(won ? "Level Complete!" : "You Died.");
 	m_title.setCharacterSize(48);
 	m_title.setFillColor(won ? sf::Color(45, 110, 55) : sf::Color(170, 55, 40));
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
@@ -153,16 +160,21 @@ void GameOverState::OnEnter()
 		m_stats[4].setPosition((winSize.x - bounds.width) / 2.0f, statsStartY + 4 * 35.f);
 	}
 
-	// Menu items — "Next Level" only on victory and if not the last level
-	m_hasNextLevel = won && m_stateManager.currentLevel < NUM_LEVELS;
+	// Menu items — "Next Level" only on victory and if not the last level (and not endless)
+	m_hasNextLevel = won && !endless && m_stateManager.currentLevel < NUM_LEVELS;
 
 	std::vector<std::string> items;
 	if (m_hasNextLevel)
 		items.push_back("Next Level");
 	items.push_back("Retry");
-	items.push_back("Level Select");
+	if (!endless)
+		items.push_back("Level Select");
 	items.push_back("Main Menu");
 	m_itemCount = (int)items.size();
+
+	// Save progress
+	SaveManager::Save(m_stateManager, m_stateManager.GetStats(),
+					  m_stateManager.GetAchievements());
 
 	float menuStartY = 460.f;
 	float spacing = 50.f;
@@ -232,25 +244,27 @@ void GameOverState::HandleInput()
 	else if (enterPressed)
 	{
 		m_stateManager.GetAudio().PlaySound("menu_select");
-		// Menu layout shifts by 1 when "Next Level" is present
-		int menuIdx = m_hasNextLevel ? m_selectedItem : m_selectedItem + 1;
-		switch (menuIdx)
+
+		// Determine action from the label text
+		std::string label = m_menuItems[m_selectedItem].getString();
+		if (label == "Next Level")
 		{
-			case 0: // Next Level
-				m_stateManager.currentLevel++;
-				m_stateManager.SwitchTo(StateType::Gameplay);
-				break;
-			case 1: // Retry
-				m_stateManager.SwitchTo(StateType::Gameplay);
-				break;
-			case 2: // Level Select
-				m_stateManager.SwitchTo(StateType::LevelSelect);
-				break;
-			case 3: // Main Menu
-				m_stateManager.SwitchTo(StateType::MainMenu);
-				break;
-			default:
-				break;
+			m_stateManager.currentLevel++;
+			m_stateManager.SwitchTo(StateType::Gameplay);
+		}
+		else if (label == "Retry")
+		{
+			m_stateManager.SwitchTo(StateType::Gameplay);
+		}
+		else if (label == "Level Select")
+		{
+			m_stateManager.endlessMode = false;
+			m_stateManager.SwitchTo(StateType::LevelSelect);
+		}
+		else if (label == "Main Menu")
+		{
+			m_stateManager.endlessMode = false;
+			m_stateManager.SwitchTo(StateType::MainMenu);
 		}
 	}
 }

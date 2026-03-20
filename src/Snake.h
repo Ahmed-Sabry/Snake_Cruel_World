@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Window.h"
+#include "SnakeSkin.h"
 #include <vector>
 
 struct Position
@@ -105,6 +106,10 @@ public:
 	void SetInkTint(const sf::Color& l_tint) { m_inkTint = l_tint; }
 	void SetUseInkStyle(bool l_use) { m_useInkStyle = l_use; }
 
+	// Skin system
+	void ApplySkin(const SnakeSkin& l_skin);
+	void ClearSkin(); // revert to level colors
+
 private:
 	void Move(sf::Vector2u l_windowSize);
 	void CheckCollision();
@@ -134,4 +139,8 @@ private:
 	std::vector<InkMark> m_inkTrail;
 	std::vector<Position> m_prevPositions; // For smooth interpolation
 	float m_interpTimer; // Time since last tick for interpolation
+
+	// Skin
+	int m_skinRenderFlags;
+	sf::Color m_skinGradientEnd;
 };
