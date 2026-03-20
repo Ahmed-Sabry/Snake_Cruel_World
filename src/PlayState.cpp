@@ -833,7 +833,14 @@ void PlayState::Render()
 
 	// Begin post-processing capture (game scene renders to offscreen RT)
 	if (usePostProcess)
+	{
 		m_postProcessor.Begin();
+
+		// Propagate screen shake view (offset + rotation) from window to the RT
+		// so shake effects are visible in the post-processed output
+		sf::View shakeView = window.GetRenderWindow().getView();
+		m_postProcessor.GetTarget().setView(shakeView);
+	}
 
 	sf::RenderTarget& target = usePostProcess
 		? m_postProcessor.GetTarget()
@@ -1004,6 +1011,10 @@ void PlayState::Render()
 	if (usePostProcess)
 	{
 		m_postProcessor.End();
+
+		// Reset window view to default before drawing post-processed result,
+		// otherwise screen shake offset gets applied twice (once in RT, once on window)
+		window.SetView(window.GetDefaultView());
 		m_postProcessor.Apply(window);
 	}
 

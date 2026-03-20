@@ -73,10 +73,12 @@ void Quicksand::Render(Window& l_window, float l_blockSize)
 
 void Quicksand::RenderTo(sf::RenderTarget& target, float l_blockSize)
 {
+	// Batch all stipple dots into a single VertexArray for performance
+	// (avoids hundreds of individual draw calls per frame)
+	sf::VertexArray dots(sf::Quads);
 
 	for (const auto& patch : m_patches)
 	{
-		// Draw stipple dots for each cell in the 3x3 patch
 		for (int dy = 0; dy < 3; dy++)
 		{
 			for (int dx = 0; dx < 3; dx++)
@@ -84,7 +86,6 @@ void Quicksand::RenderTo(sf::RenderTarget& target, float l_blockSize)
 				float px = (patch.x + dx) * l_blockSize;
 				float py = (patch.y + dy) * l_blockSize;
 
-				// Dense stipple dots (ink-on-paper look)
 				int dotCount = 12 + ((patch.x + dx + patch.y + dy) % 5);
 				unsigned int seed = (unsigned int)(patch.x * 31 + patch.y * 97 + dx * 7 + dy * 13);
 
@@ -94,15 +95,26 @@ void Quicksand::RenderTo(sf::RenderTarget& target, float l_blockSize)
 					float ox = (float)(h % (int)l_blockSize);
 					float oy = (float)((h >> 8) % (int)l_blockSize);
 					int alpha = 60 + (int)((h >> 16) % 60);
+					sf::Color c(120, 80, 30, (sf::Uint8)alpha);
 
-					sf::CircleShape dot(1.0f);
-					dot.setPosition(px + ox, py + oy);
-					dot.setFillColor(sf::Color(120, 80, 30, (sf::Uint8)alpha));
-					target.draw(dot);
+					// 2x2 pixel quad for each dot
+					float dotX = px + ox;
+					float dotY = py + oy;
+					dots.append(sf::Vertex(sf::Vector2f(dotX, dotY), c));
+					dots.append(sf::Vertex(sf::Vector2f(dotX + 2, dotY), c));
+					dots.append(sf::Vertex(sf::Vector2f(dotX + 2, dotY + 2), c));
+					dots.append(sf::Vertex(sf::Vector2f(dotX, dotY + 2), c));
 				}
 			}
 		}
+	}
 
+	// Single draw call for all dots
+	if (dots.getVertexCount() > 0)
+		target.draw(dots);
+
+	for (const auto& patch : m_patches)
+	{
 		// Draw a subtle wobbly outline around the 3x3 patch
 		float patchPx = patch.x * l_blockSize;
 		float patchPy = patch.y * l_blockSize;

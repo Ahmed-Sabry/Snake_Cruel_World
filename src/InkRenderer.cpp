@@ -203,17 +203,23 @@ void InkRenderer::DrawCrossHatch(sf::RenderTarget& l_target,
 		float x2 = px + cosA * halfDiag;
 		float y2 = py + sinA * halfDiag;
 
-		// Clip to rect bounds (simple clipping)
-		// We'll draw lines and rely on the visual being mostly in-bounds
-		// For proper clipping we'd use scissor, but hatching slightly outside is fine
-		// since it'll be covered by the border fill anyway
-
 		float wobble1 = Wobble(l_seed, i * 2, l_corruption * 0.3f);
 		float wobble2 = Wobble(l_seed, i * 2 + 1, l_corruption * 0.3f);
 
+		float fx1 = x1 + (-sinA) * wobble1;
+		float fy1 = y1 + cosA * wobble1;
+		float fx2 = x2 + (-sinA) * wobble2;
+		float fy2 = y2 + cosA * wobble2;
+
+		// Clamp endpoints to rect bounds to prevent bleeding into adjacent areas
+		fx1 = std::max(l_x, std::min(l_x + l_w, fx1));
+		fy1 = std::max(l_y, std::min(l_y + l_h, fy1));
+		fx2 = std::max(l_x, std::min(l_x + l_w, fx2));
+		fy2 = std::max(l_y, std::min(l_y + l_h, fy2));
+
 		sf::Vertex line[] = {
-			sf::Vertex(sf::Vector2f(x1 + (-sinA) * wobble1, y1 + cosA * wobble1), l_color),
-			sf::Vertex(sf::Vector2f(x2 + (-sinA) * wobble2, y2 + cosA * wobble2), l_color)
+			sf::Vertex(sf::Vector2f(fx1, fy1), l_color),
+			sf::Vertex(sf::Vector2f(fx2, fy2), l_color)
 		};
 		l_target.draw(line, 2, sf::Lines);
 	}
