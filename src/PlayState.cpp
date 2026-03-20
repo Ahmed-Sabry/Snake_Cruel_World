@@ -890,14 +890,14 @@ void PlayState::Render()
 		{
 			savedView = m_postProcessor.GetTarget().getView();
 			sf::View flipped = savedView;
-			flipped.setRotation(180.f);
+			flipped.setRotation(savedView.getRotation() + 180.f);
 			m_postProcessor.GetTarget().setView(flipped);
 		}
 		else
 		{
 			savedView = window.GetRenderWindow().getView();
 			sf::View flipped = savedView;
-			flipped.setRotation(180.f);
+			flipped.setRotation(savedView.getRotation() + 180.f);
 			window.SetView(flipped);
 		}
 	}

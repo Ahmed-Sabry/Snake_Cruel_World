@@ -316,8 +316,8 @@ void Earthquake::RenderTo(sf::RenderTarget& target, const World& /*l_world*/)
 			// Perpendicular jagged offset (skip endpoints)
 			if (i > 0 && i < segments)
 			{
-				float jag = InkRenderer::Hash((unsigned int)c, (unsigned int)i);
-				jag = ((float)((int)jag % 2000) / 1000.0f - 1.0f) * 8.0f;
+				unsigned int h = InkRenderer::Hash((unsigned int)c, (unsigned int)i);
+				float jag = ((float)(h % 2000u) / 1000.0f - 1.0f) * 8.0f;
 				px += perpX * jag;
 				py += perpY * jag;
 			}

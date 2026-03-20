@@ -231,6 +231,8 @@ void Snake::RenderClassic(Window& l_window)
 
 void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 {
+	if (m_snakeBody.empty()) return;
+
 	float bs = m_blockSize;
 	int bodySize = (int)m_snakeBody.size();
 
