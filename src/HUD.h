@@ -20,7 +20,7 @@ public:
 				int l_predatorApples = -1, int l_predatorMax = 5);
 	void Render(Window& l_window);
 	void SetVisible(bool l_visible);
-	void SetLevelColors(const sf::Color& l_borderColor, const sf::Color& l_bgColor);
+	void SetLevelColors(const sf::Color& l_paperTone, const sf::Color& l_inkTint, const sf::Color& l_accentColor);
 
 	static float GetHeight() { return HUD_HEIGHT; }
 

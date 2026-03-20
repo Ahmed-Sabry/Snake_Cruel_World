@@ -312,13 +312,13 @@ void Predator::RenderTo(sf::RenderTarget& target, float l_blockSize)
 	sf::Color headColor, bodyColor;
 	if (m_mode == PredatorMode::HUNTING_APPLE)
 	{
-		headColor = sf::Color(40, 70, 120);
-		bodyColor = sf::Color(30, 55, 100);
+		headColor = sf::Color(45, 65, 110);
+		bodyColor = sf::Color(35, 55, 95);
 	}
 	else
 	{
-		headColor = sf::Color(160, 40, 30);
-		bodyColor = sf::Color(130, 25, 20);
+		headColor = sf::Color(165, 45, 35);
+		bodyColor = sf::Color(135, 30, 20);
 	}
 
 	// Pulse during mode transition
@@ -329,19 +329,19 @@ void Predator::RenderTo(sf::RenderTarget& target, float l_blockSize)
 		{
 			if (m_mode == PredatorMode::HUNTING_PLAYER)
 			{
-				headColor = sf::Color(40, 70, 120);
-				bodyColor = sf::Color(30, 55, 100);
+				headColor = sf::Color(45, 65, 110);
+				bodyColor = sf::Color(35, 55, 95);
 			}
 			else
 			{
-				headColor = sf::Color(160, 40, 30);
-				bodyColor = sf::Color(130, 25, 20);
+				headColor = sf::Color(165, 45, 35);
+				bodyColor = sf::Color(135, 30, 20);
 			}
 		}
 	}
 
 	// Draw body segments with stipple pattern (different from snake's hatch)
-	sf::Color outlineColor(30, 25, 20, 180);
+	sf::Color outlineColor(35, 35, 50, 180);
 	for (int i = (int)m_body.size() - 1; i >= 0; i--)
 	{
 		sf::Color color = (i == 0) ? headColor : bodyColor;

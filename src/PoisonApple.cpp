@@ -32,7 +32,7 @@ void PoisonApple::Reset(float l_blockSize)
 
 	float radius = l_blockSize / 2.0f;
 	m_shape.setRadius(radius);
-	m_shape.setFillColor(sf::Color::Green);
+	m_shape.setFillColor(sf::Color(65, 130, 45));
 }
 
 void PoisonApple::Update(float l_dt)
@@ -76,9 +76,9 @@ void PoisonApple::RenderTo(sf::RenderTarget& target, float l_blockSize)
 	// Nervous wobble — higher frequency than real apple to be subtly different
 	float wobbleRadius = baseRadius + std::sin(m_pulseTimer * 6.0f) * 1.2f;
 
-	// Ink-style wobbly circle — looks nearly identical to real apple
-	sf::Color poisonFill = sf::Color::Green;
-	sf::Color outlineColor(20, 50, 20, 200);
+	// Ink-style wobbly circle — muted poison green, distinct from golden real apple
+	sf::Color poisonFill(65, 130, 45);
+	sf::Color outlineColor(30, 55, 25, 200);
 
 	// Higher corruption = more nervous line (the "tell")
 	float nervousCorruption = 0.35f;
@@ -97,7 +97,7 @@ void PoisonApple::RenderTo(sf::RenderTarget& target, float l_blockSize)
 		float dripY = cy + wobbleRadius + dripPhase * 8.0f;
 		sf::RectangleShape drip(sf::Vector2f(1.0f, 4.0f));
 		drip.setPosition(cx, dripY);
-		drip.setFillColor(sf::Color(20, 80, 20, (sf::Uint8)(180 * dripAlpha)));
+		drip.setFillColor(sf::Color(25, 70, 20, (sf::Uint8)(180 * dripAlpha)));
 		target.draw(drip);
 	}
 

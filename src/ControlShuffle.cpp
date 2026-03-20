@@ -12,7 +12,9 @@ ControlShuffle::ControlShuffle()
 	  m_applesEaten(0),
 	  m_justShuffled(false),
 	  m_justEnteredWarning(false),
-	  m_fontLoaded(false)
+	  m_fontLoaded(false),
+	  m_paperTone(235, 225, 210),
+	  m_inkTint(50, 40, 35)
 {
 	m_mapping = { Direction::Up, Direction::Down, Direction::Right, Direction::Left };
 	m_shownIndices[0] = 0;
@@ -43,8 +45,14 @@ void ControlShuffle::Reset()
 			m_indicatorText.setFillColor(sf::Color::White);
 			m_fontLoaded = true;
 		}
-		m_indicatorBg.setFillColor(sf::Color(40, 10, 50, 180));
+		m_indicatorBg.setFillColor(sf::Color(m_paperTone.r, m_paperTone.g, m_paperTone.b, 180));
 	}
+}
+
+void ControlShuffle::SetColors(const sf::Color& l_paperTone, const sf::Color& l_inkTint)
+{
+	m_paperTone = l_paperTone;
+	m_inkTint = l_inkTint;
 }
 
 // --- Phase system ---
@@ -285,7 +293,7 @@ void ControlShuffle::Render(Window& l_window)
 		float bgX = ((float)winSize.x - barMaxW) / 2.0f;
 		m_warningBarBg.setSize(sf::Vector2f(barMaxW, barH));
 		m_warningBarBg.setPosition(bgX, bottomY);
-		m_warningBarBg.setFillColor(sf::Color(220, 210, 195, 120));
+		m_warningBarBg.setFillColor(sf::Color(m_paperTone.r, m_paperTone.g, m_paperTone.b, 120));
 		l_window.Draw(m_warningBarBg);
 
 		// Ink-smear bar (looks like a brush stroke depleting)
@@ -341,9 +349,9 @@ void ControlShuffle::Render(Window& l_window)
 			}
 		}
 
-		// Ink-toned text
+		// Ink-toned text (derived from level palette)
 		m_indicatorText.setString(text);
-		m_indicatorText.setFillColor(sf::Color(50, 40, 35, a));
+		m_indicatorText.setFillColor(sf::Color(m_inkTint.r, m_inkTint.g, m_inkTint.b, a));
 
 		// Position at bottom-center with paper-toned background
 		sf::FloatRect textBounds = m_indicatorText.getLocalBounds();
@@ -355,7 +363,7 @@ void ControlShuffle::Render(Window& l_window)
 
 		m_indicatorBg.setSize(sf::Vector2f(bgW, bgH));
 		m_indicatorBg.setPosition(bgX, bgY);
-		m_indicatorBg.setFillColor(sf::Color(235, 225, 210, (sf::Uint8)(200 * alpha)));
+		m_indicatorBg.setFillColor(sf::Color(m_paperTone.r, m_paperTone.g, m_paperTone.b, (sf::Uint8)(200 * alpha)));
 
 		m_indicatorText.setPosition(bgX + padding - textBounds.left, bgY + padding - textBounds.top);
 

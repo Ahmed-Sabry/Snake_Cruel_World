@@ -95,7 +95,7 @@ void Quicksand::RenderTo(sf::RenderTarget& target, float l_blockSize)
 					float ox = (float)(h % (int)l_blockSize);
 					float oy = (float)((h >> 8) % (int)l_blockSize);
 					int alpha = 60 + (int)((h >> 16) % 60);
-					sf::Color c(120, 80, 30, (sf::Uint8)alpha);
+					sf::Color c(115, 70, 30, (sf::Uint8)alpha);
 
 					// 2x2 pixel quad for each dot
 					float dotX = px + ox;
@@ -122,7 +122,7 @@ void Quicksand::RenderTo(sf::RenderTarget& target, float l_blockSize)
 		InkRenderer::DrawWobblyRect(target,
 									patchPx, patchPy, patchSize, patchSize,
 									sf::Color::Transparent,
-									sf::Color(120, 80, 30, 40),
+									sf::Color(115, 70, 30, 40),
 									0.5f, 0.2f,
 									(unsigned int)(patch.x * 100 + patch.y));
 	}

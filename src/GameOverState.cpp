@@ -62,7 +62,12 @@ void GameOverState::OnEnter()
 
 	Window& window = m_stateManager.GetWindow();
 	sf::Vector2u winSize = window.GetWindowSize();
-	window.SetBackground(sf::Color(235, 225, 210)); // Paper tone
+	// Derive paper tone from the completed level
+	int idx = m_stateManager.currentLevel - 1;
+	const auto& levels = GetAllLevels();
+	sf::Color paperBg = (idx >= 0 && idx < NUM_LEVELS)
+		? levels[idx].paperTone : sf::Color(235, 225, 210);
+	window.SetBackground(paperBg);
 
 	bool won = m_stateManager.levelComplete;
 
@@ -70,7 +75,7 @@ void GameOverState::OnEnter()
 	m_title.setFont(m_font);
 	m_title.setString(won ? "Level Complete!" : "You Died.");
 	m_title.setCharacterSize(48);
-	m_title.setFillColor(won ? sf::Color(40, 120, 50) : sf::Color(180, 50, 40));
+	m_title.setFillColor(won ? sf::Color(45, 110, 55) : sf::Color(170, 55, 40));
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
 	m_title.setPosition((winSize.x - titleBounds.width) / 2.0f, 80.f);
 
@@ -92,7 +97,12 @@ void GameOverState::OnEnter()
 	m_taunt.setFont(m_font);
 	m_taunt.setString(taunt);
 	m_taunt.setCharacterSize(20);
-	m_taunt.setFillColor(sf::Color(120, 100, 90)); // Pencil-gray ink
+	sf::Color goInk = (idx >= 0 && idx < NUM_LEVELS)
+		? levels[idx].inkTint : sf::Color(60, 50, 45);
+	sf::Color goLightInk(std::min(255, (int)goInk.r + 60),
+						  std::min(255, (int)goInk.g + 50),
+						  std::min(255, (int)goInk.b + 45));
+	m_taunt.setFillColor(goLightInk);
 	sf::FloatRect tauntBounds = m_taunt.getLocalBounds();
 	m_taunt.setPosition((winSize.x - tauntBounds.width) / 2.0f, 150.f);
 
@@ -118,7 +128,7 @@ void GameOverState::OnEnter()
 		m_stats[i].setFont(m_font);
 		m_stats[i].setString(statLabels[i]);
 		m_stats[i].setCharacterSize(20);
-		m_stats[i].setFillColor(sf::Color(60, 50, 45)); // Ink tone
+		m_stats[i].setFillColor(goInk);
 		sf::FloatRect bounds = m_stats[i].getLocalBounds();
 		m_stats[i].setPosition((winSize.x - bounds.width) / 2.0f, statsStartY + i * 35.f);
 	}
@@ -127,8 +137,6 @@ void GameOverState::OnEnter()
 	if (won)
 	{
 		int stars = 1;
-		auto levels = GetAllLevels();
-		int idx = m_stateManager.currentLevel - 1;
 		if (idx >= 0 && idx < NUM_LEVELS)
 		{
 			if (m_stateManager.selfCollisions <= levels[idx].starThreshold2)
@@ -256,7 +264,7 @@ void GameOverState::Update(float l_dt)
 	for (int i = 0; i < m_itemCount; i++)
 	{
 		if (i == m_selectedItem)
-			m_menuItems[i].setFillColor(sf::Color(180, 50, 40));
+			m_menuItems[i].setFillColor(sf::Color(170, 55, 40));
 		else
 			m_menuItems[i].setFillColor(sf::Color(100, 90, 80));
 	}

@@ -77,7 +77,7 @@ void LevelSelectState::OnEnter()
 			starStr += (s < stars) ? "* " : "- ";
 		m_levelStars[i].setString(unlocked ? starStr : "");
 		m_levelStars[i].setCharacterSize(18);
-		m_levelStars[i].setFillColor(sf::Color(255, 215, 0));
+		m_levelStars[i].setFillColor(sf::Color(200, 170, 30));
 		m_levelStars[i].setPosition(x + 20.f, y + 48.f);
 
 		// High score

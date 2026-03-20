@@ -289,9 +289,9 @@ void Earthquake::RenderTo(sf::RenderTarget& target, const World& /*l_world*/)
 	// Ink-toned crack color (dark ink, not bright orange)
 	sf::Color crackColor;
 	if (m_state == QuakeState::Quaking && m_timer < 0.1f)
-		crackColor = sf::Color(80, 30, 15, alpha); // Dark ember flash
+		crackColor = sf::Color(120, 40, 20, alpha); // Dark ember flash
 	else
-		crackColor = sf::Color(60, 20, 10, alpha); // Dark ink crack
+		crackColor = sf::Color(90, 30, 15, alpha); // Dark ink crack
 
 	for (size_t c = 0; c < m_cracks.size(); c++)
 	{
