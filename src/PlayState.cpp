@@ -1,5 +1,6 @@
 #include "PlayState.h"
 #include "AudioManager.h"
+#include "InkRenderer.h"
 #include <algorithm>
 #include <string>
 #include <cmath>
@@ -25,7 +26,15 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_screenFlipped(false),
 	  m_phaseAnnouncementTimer(0.0f),
 	  m_announcementFontLoaded(false),
-	  m_postProcessorInited(false)
+	  m_postProcessorInited(false),
+	  m_pageTurnTimer(0.0f),
+	  m_pageTurnDuration(0.5f),
+	  m_deathInkRunTimer(0.0f),
+	  m_deathInkRunDuration(0.3f),
+	  m_deathInkRunActive(false),
+	  m_appleBurstTimer(0.0f),
+	  m_borderHatchTimer(0.0f),
+	  m_borderHatchDuration(0.3f)
 {
 }
 
@@ -149,6 +158,13 @@ void PlayState::OnEnter()
 		m_postProcessorInited = m_postProcessor.Init(winSize.x, winSize.y);
 	}
 	m_postProcessor.Configure(m_levelConfig);
+
+	// Start page-turn entry animation
+	m_pageTurnTimer = m_pageTurnDuration;
+	m_deathInkRunActive = false;
+	m_deathInkRunTimer = 0.0f;
+	m_appleBurstTimer = 0.0f;
+	m_borderHatchTimer = 0.0f;
 }
 
 void PlayState::InitCruelWorldPhases()
@@ -386,6 +402,20 @@ void PlayState::Update(float l_dt)
 	m_snake.UpdateVisuals(l_dt);
 	m_postProcessor.Update(l_dt);
 
+	// Transition animation timers
+	if (m_pageTurnTimer > 0.0f)
+		m_pageTurnTimer -= l_dt;
+	if (m_deathInkRunActive)
+	{
+		m_deathInkRunTimer += l_dt;
+		if (m_deathInkRunTimer >= m_deathInkRunDuration)
+			m_deathInkRunActive = false;
+	}
+	if (m_appleBurstTimer > 0.0f)
+		m_appleBurstTimer -= l_dt;
+	if (m_borderHatchTimer > 0.0f)
+		m_borderHatchTimer -= l_dt;
+
 	float speed = m_levelConfig.baseSpeed;
 	// Speed creep: +0.5 every 5 apples
 	speed += (m_applesEaten / 5) * 0.5f;
@@ -432,6 +462,7 @@ void PlayState::Update(float l_dt)
 			m_stateManager.GetAudio().PlaySound("world_shrink");
 			m_screenShake.Trigger(0.3f, 3.0f);
 			m_world.FlashBorders(0.2f);
+			m_borderHatchTimer = m_borderHatchDuration; // Trigger hatch fill animation
 		}
 
 		// Check for self-collision
@@ -762,9 +793,28 @@ void PlayState::Render()
 		? m_postProcessor.GetTarget()
 		: (sf::RenderTarget&)window.GetRenderWindow();
 
-	// Draw paper background first
+	// Draw paper background with page-turn entry animation
 	if (m_paperBackground.IsGenerated())
-		m_paperBackground.Render(target);
+	{
+		if (m_pageTurnTimer > 0.0f)
+		{
+			// Page slides in from the right
+			float progress = m_pageTurnTimer / m_pageTurnDuration; // 1.0 → 0.0
+			float slideOffset = progress * (float)window.GetWindowSize().x;
+
+			// Save view, offset for slide
+			sf::View slideView = target.getView();
+			sf::View offsetView = slideView;
+			offsetView.move(slideOffset, 0);
+			target.setView(offsetView);
+			m_paperBackground.Render(target);
+			target.setView(slideView);
+		}
+		else
+		{
+			m_paperBackground.Render(target);
+		}
+	}
 
 	// Level 10: screen flip (The Cruel Twist at apple 19)
 	sf::View savedView;
@@ -829,6 +879,47 @@ void PlayState::Render()
 
 	// Snake: render with ink style to the post-process target
 	m_snake.RenderInk(target);
+
+	// Apple burst outline effect (expanding circle on eat)
+	if (m_appleBurstTimer > 0.0f)
+	{
+		float progress = 1.0f - (m_appleBurstTimer / 0.2f); // 0→1
+		float burstRadius = m_snake.GetBlockSize() * (1.0f + progress * 1.5f);
+		sf::Uint8 burstAlpha = (sf::Uint8)(180 * (1.0f - progress));
+		sf::Color burstOutline(m_appleBurstColor.r, m_appleBurstColor.g,
+							   m_appleBurstColor.b, burstAlpha);
+		float cx = m_appleBurstPos.x + m_snake.GetBlockSize() * 0.5f;
+		float cy = m_appleBurstPos.y + m_snake.GetBlockSize() * 0.5f;
+		InkRenderer::DrawWobblyCircle(target, cx, cy, burstRadius,
+									  sf::Color::Transparent, burstOutline,
+									  1.5f, m_levelConfig.corruption * 0.5f,
+									  (unsigned int)(m_gameTime * 100.0f), 12);
+	}
+
+	// Border hatch fill animation (rapid strokes appearing in new border area)
+	if (m_borderHatchTimer > 0.0f)
+	{
+		float progress = 1.0f - (m_borderHatchTimer / m_borderHatchDuration); // 0→1
+		int strokeCount = (int)(progress * 15);
+		sf::Color hatchColor(m_levelConfig.inkTint.r, m_levelConfig.inkTint.g,
+							 m_levelConfig.inkTint.b, (sf::Uint8)(100 * (1.0f - progress)));
+		unsigned int seed = (unsigned int)(m_gameTime * 50.0f);
+		for (int s = 0; s < strokeCount; s++)
+		{
+			unsigned int h = InkRenderer::Hash(seed, (unsigned int)s);
+			float sx = (float)(h % window.GetWindowSize().x);
+			float sy = (float)((h >> 8) % window.GetWindowSize().y);
+			float len = 8.0f + (float)((h >> 16) % 12);
+			bool horiz = (h >> 28) & 1;
+			if (horiz)
+				InkRenderer::DrawWobblyLine(target, sx, sy, sx + len, sy,
+											hatchColor, 1.0f, 0.3f, h);
+			else
+				InkRenderer::DrawWobblyLine(target, sx, sy, sx, sy + len,
+											hatchColor, 1.0f, 0.3f, h);
+		}
+	}
+
 	m_particles.Render(window);
 
 	if (m_levelConfig.hasBlackouts)
@@ -880,7 +971,12 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 		l_applePos.y * m_snake.GetBlockSize());
 	m_particles.SpawnAppleBurst(applePixelPos, m_levelConfig.apple);
 	m_particles.SpawnFloatingText("+" + std::to_string(points), applePixelPos,
-								  sf::Color(255, 255, 100));
+								  sf::Color(180, 140, 30));
+
+	// Apple burst outline effect
+	m_appleBurstTimer = 0.2f;
+	m_appleBurstPos = applePixelPos;
+	m_appleBurstColor = m_levelConfig.apple;
 
 	// Mirror ghost: flip axis every 5 apples
 	if (m_levelConfig.hasMirrorGhost)
@@ -988,6 +1084,16 @@ void PlayState::OnDeath()
 	m_stateManager.totalDeaths++;
 	m_stateManager.levelComplete = false;
 	m_stateManager.GetAudio().PlaySound("wall_death");
+
+	// Trigger ink-run death effect
+	m_deathInkRunActive = true;
+	m_deathInkRunTimer = 0.0f;
+
+	// Spawn ink drip particles at snake head
+	float bs = m_snake.GetBlockSize();
+	sf::Vector2f headPixel(m_snake.GetPosition().x * bs, m_snake.GetPosition().y * bs);
+	m_particles.SpawnInkDrips(headPixel, m_levelConfig.inkTint, 8);
+
 	m_stateManager.SwitchTo(StateType::GameOver);
 }
 

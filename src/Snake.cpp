@@ -234,8 +234,28 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 	float bs = m_blockSize;
 	int bodySize = (int)m_snakeBody.size();
 
-	// Interpolation factor (reserved for smooth movement)
-	// float interpT = std::min(1.0f, m_interpTimer * m_speed);
+	// Smooth interpolation: lerp visual positions between previous and current grid positions
+	float interpT = std::min(1.0f, m_interpTimer * m_speed);
+	bool canInterp = !m_prevPositions.empty() && (int)m_prevPositions.size() == bodySize;
+
+	// Helper lambda: get interpolated pixel position for segment i
+	auto getPos = [&](int i) -> sf::Vector2f
+	{
+		float curX = m_snakeBody[i].x * bs;
+		float curY = m_snakeBody[i].y * bs;
+
+		if (!canInterp) return sf::Vector2f(curX, curY);
+
+		float prevX = m_prevPositions[i].x * bs;
+		float prevY = m_prevPositions[i].y * bs;
+
+		// Don't interpolate if wrapping (positions too far apart)
+		if (std::abs(curX - prevX) > bs * 2 || std::abs(curY - prevY) > bs * 2)
+			return sf::Vector2f(curX, curY);
+
+		return sf::Vector2f(prevX + (curX - prevX) * interpT,
+							prevY + (curY - prevY) * interpT);
+	};
 
 	// --- Draw ink trail ---
 	for (const auto& mark : m_inkTrail)
@@ -252,10 +272,12 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 	// --- Draw connecting lines between segments ---
 	for (int i = 0; i < bodySize - 1; i++)
 	{
-		float x1 = m_snakeBody[i].x * bs + bs * 0.5f;
-		float y1 = m_snakeBody[i].y * bs + bs * 0.5f;
-		float x2 = m_snakeBody[i + 1].x * bs + bs * 0.5f;
-		float y2 = m_snakeBody[i + 1].y * bs + bs * 0.5f;
+		sf::Vector2f p1 = getPos(i);
+		sf::Vector2f p2 = getPos(i + 1);
+		float x1 = p1.x + bs * 0.5f;
+		float y1 = p1.y + bs * 0.5f;
+		float x2 = p2.x + bs * 0.5f;
+		float y2 = p2.y + bs * 0.5f;
 
 		// Skip if segments are too far apart (wrapping)
 		float dx = std::abs(x2 - x1);
@@ -275,8 +297,9 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 	// --- Draw body segments (back to front for proper overlap) ---
 	for (int i = bodySize - 1; i >= 1; i--)
 	{
-		float x = m_snakeBody[i].x * bs;
-		float y = m_snakeBody[i].y * bs;
+		sf::Vector2f pos = getPos(i);
+		float x = pos.x;
+		float y = pos.y;
 
 		// Alpha gradient: fade toward tail
 		float alphaFrac = 1.0f - ((float)(i - 1) / std::max(1.0f, (float)(bodySize - 1))) * 0.25f;
@@ -298,8 +321,9 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 
 	// --- Draw head ---
 	{
-		float hx = m_snakeBody[0].x * bs;
-		float hy = m_snakeBody[0].y * bs;
+		sf::Vector2f headPos = getPos(0);
+		float hx = headPos.x;
+		float hy = headPos.y;
 
 		// Head is slightly larger and more prominent
 		sf::Color headFill = m_headColor;
