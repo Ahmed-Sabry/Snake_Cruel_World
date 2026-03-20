@@ -3,6 +3,7 @@
 #include "GameState.h"
 #include "StateManager.h"
 #include "LevelConfig.h"
+#include <vector>
 
 class LevelSelectState : public BaseState
 {
@@ -28,4 +29,9 @@ private:
 	bool m_keyReleased;
 	float m_animTimer;
 	std::array<LevelConfig, NUM_LEVELS> m_levels;
+
+	// Konami code cheat
+	std::vector<sf::Keyboard::Key> m_konamiProgress;
+	sf::Text m_cheatText;
+	float m_cheatTextTimer;
 };

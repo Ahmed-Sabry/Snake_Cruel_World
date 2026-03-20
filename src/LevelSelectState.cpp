@@ -7,7 +7,8 @@ LevelSelectState::LevelSelectState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_selectedLevel(0),
 	  m_keyReleased(true),
-	  m_animTimer(0.0f)
+	  m_animTimer(0.0f),
+	  m_cheatTextTimer(0.0f)
 {
 }
 
@@ -90,6 +91,17 @@ void LevelSelectState::OnEnter()
 
 	m_selectedLevel = std::max(0, std::min(m_stateManager.currentLevel - 1, NUM_LEVELS - 1));
 	m_keyReleased = false; // require key release before accepting input
+
+	// Konami code cheat
+	m_konamiProgress.clear();
+	m_cheatTextTimer = 0.0f;
+	m_cheatText.setFont(m_font);
+	m_cheatText.setString("The world gives in... for now.");
+	m_cheatText.setCharacterSize(28);
+	sf::FloatRect ctBounds = m_cheatText.getLocalBounds();
+	m_cheatText.setOrigin(ctBounds.left + ctBounds.width / 2.0f,
+						  ctBounds.top + ctBounds.height / 2.0f);
+	m_cheatText.setPosition(winSize.x / 2.0f, winSize.y / 2.0f);
 }
 
 void LevelSelectState::OnExit()
@@ -121,6 +133,42 @@ void LevelSelectState::HandleInput()
 		m_stateManager.GetAudio().PlaySound("menu_select");
 		m_stateManager.SwitchTo(StateType::MainMenu);
 		return;
+	}
+
+	// Track arrow keys for Konami code (Up Up Down Down Left Right Left Right)
+	sf::Keyboard::Key konamiKey = sf::Keyboard::Unknown;
+	if (upPressed && !sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+		konamiKey = sf::Keyboard::Up;
+	else if (downPressed && !sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+		konamiKey = sf::Keyboard::Down;
+	else if (leftPressed && !sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+		konamiKey = sf::Keyboard::Left;
+	else if (rightPressed && !sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+		konamiKey = sf::Keyboard::Right;
+
+	if (konamiKey != sf::Keyboard::Unknown)
+	{
+		m_konamiProgress.push_back(konamiKey);
+		if (m_konamiProgress.size() > 8)
+			m_konamiProgress.erase(m_konamiProgress.begin());
+
+		static const sf::Keyboard::Key konamiCode[] = {
+			sf::Keyboard::Up, sf::Keyboard::Up,
+			sf::Keyboard::Down, sf::Keyboard::Down,
+			sf::Keyboard::Left, sf::Keyboard::Right,
+			sf::Keyboard::Left, sf::Keyboard::Right
+		};
+
+		if (m_konamiProgress.size() == 8 &&
+			std::equal(m_konamiProgress.begin(), m_konamiProgress.end(), konamiCode))
+		{
+			m_stateManager.highestUnlockedLevel = NUM_LEVELS;
+			m_stateManager.GetAudio().PlaySound("level_complete");
+			m_konamiProgress.clear();
+			OnEnter(); // refresh UI to show unlocked levels
+			m_cheatTextTimer = 3.0f; // set after OnEnter (which resets it to 0)
+			return;
+		}
 	}
 
 	if (upPressed)
@@ -162,6 +210,9 @@ void LevelSelectState::Update(float l_dt)
 {
 	m_animTimer += l_dt;
 
+	if (m_cheatTextTimer > 0.0f)
+		m_cheatTextTimer -= l_dt;
+
 	for (int i = 0; i < NUM_LEVELS; i++)
 	{
 		bool unlocked = (i + 1) <= m_stateManager.highestUnlockedLevel;
@@ -198,4 +249,12 @@ void LevelSelectState::Render()
 	}
 
 	window.Draw(m_backHint);
+
+	// Konami cheat feedback text
+	if (m_cheatTextTimer > 0.0f)
+	{
+		float alpha = std::min(1.0f, m_cheatTextTimer / 0.5f);
+		m_cheatText.setFillColor(sf::Color(255, 215, 0, (sf::Uint8)(255 * alpha)));
+		window.Draw(m_cheatText);
+	}
 }
