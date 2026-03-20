@@ -308,35 +308,21 @@ void Predator::RenderTo(sf::RenderTarget& target, float l_blockSize)
 {
 	if (m_body.empty()) return;
 
-	// Ink-toned colors based on mode
-	sf::Color headColor, bodyColor;
-	if (m_mode == PredatorMode::HUNTING_APPLE)
-	{
-		headColor = sf::Color(45, 65, 110);
-		bodyColor = sf::Color(35, 55, 95);
-	}
-	else
-	{
-		headColor = sf::Color(165, 45, 35);
-		bodyColor = sf::Color(135, 30, 20);
-	}
+	// Ink-toned color palettes per mode
+	const sf::Color appleHead(45, 65, 110), appleBody(35, 55, 95);
+	const sf::Color playerHead(165, 45, 35), playerBody(135, 30, 20);
 
-	// Pulse during mode transition
+	sf::Color headColor = (m_mode == PredatorMode::HUNTING_APPLE) ? appleHead : playerHead;
+	sf::Color bodyColor = (m_mode == PredatorMode::HUNTING_APPLE) ? appleBody : playerBody;
+
+	// Pulse during mode transition (flash opposite palette)
 	if (m_modeTransitionTimer > 0.0f)
 	{
 		float pulse = std::sin(m_modeTransitionTimer * 15.0f);
 		if (pulse > 0.0f)
 		{
-			if (m_mode == PredatorMode::HUNTING_PLAYER)
-			{
-				headColor = sf::Color(45, 65, 110);
-				bodyColor = sf::Color(35, 55, 95);
-			}
-			else
-			{
-				headColor = sf::Color(165, 45, 35);
-				bodyColor = sf::Color(135, 30, 20);
-			}
+			headColor = (m_mode == PredatorMode::HUNTING_PLAYER) ? appleHead : playerHead;
+			bodyColor = (m_mode == PredatorMode::HUNTING_PLAYER) ? appleBody : playerBody;
 		}
 	}
 
@@ -395,9 +381,9 @@ void Predator::RenderTo(sf::RenderTarget& target, float l_blockSize)
 				ex1 = cx + fwd; ey1 = cy - side;
 				ex2 = cx + fwd; ey2 = cy + side;
 				break;
-			default:
-				ex1 = cx - side; ey1 = cy - fwd;
-				ex2 = cx + side; ey2 = cy - fwd;
+			default: // Direction::None — neutral center gaze
+				ex1 = cx - side; ey1 = cy;
+				ex2 = cx + side; ey2 = cy;
 				break;
 		}
 
