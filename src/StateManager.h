@@ -61,6 +61,23 @@ public:
 	int activeSkinIndex = 0;
 	bool endlessMode = false;
 
+	// Death context (set by PlayState::OnDeath, read by GameOverState)
+	enum class DeathCause { Wall, Predator, MirrorGhost, Unknown };
+	struct DeathContext
+	{
+		DeathCause cause = DeathCause::Unknown;
+		int appleCount = 0;             // apples eaten before death
+		int retryCount = 0;             // consecutive retries of same level
+		int sessionBestApples = 0;      // best apple count in current retry streak
+		bool sessionBestImproved = false; // strict improvement over previous best
+		bool wasInBlackout = false;     // died during blackout
+		bool wasOnQuicksand = false;    // died while on quicksand
+		bool hadHighCombo = false;      // had 2x+ combo when died
+		int comboLostAt = 0;            // consecutive apple count when died
+		int lastPlayedLevel = -1;       // tracks level for retry detection
+	};
+	DeathContext deathCtx;
+
 private:
 	void ProcessPendingTransitions();
 	std::unique_ptr<BaseState> CreateState(StateType l_type);

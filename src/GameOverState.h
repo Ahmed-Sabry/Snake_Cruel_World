@@ -21,10 +21,14 @@ public:
 	void Render() override;
 
 private:
+	std::string SelectDeathTaunt(int l_levelId, int l_applesToWin);
+	std::string SelectVictoryTaunt(int l_levelId, int l_stars);
+
 	sf::Font m_font;
 	sf::Text m_title;
 	sf::Text m_taunt;
-	sf::Text m_stats[5]; // score, apples, combo, time, collisions
+	sf::Text m_stats[7]; // score, apples, combo, time, collisions, death#, best attempt
+	int m_statCount;
 	sf::Text m_menuItems[4]; // Next Level, Retry, Level Select, Main Menu
 	std::vector<GameOverAction> m_menuActions;
 	int m_selectedItem;

@@ -24,8 +24,9 @@ public:
 
 	static float GetHeight() { return HUD_HEIGHT; }
 
-	// Flash score text when combo changes
+	// Flash effects
 	void FlashCombo();
+	void FlashScore();
 
 private:
 	sf::Font m_font;
@@ -40,4 +41,6 @@ private:
 	unsigned int m_windowWidth;
 	bool m_visible;
 	float m_comboFlashTimer;
+	float m_scoreFlashTimer;
+	sf::Color m_inkTint;
 };

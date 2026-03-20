@@ -36,6 +36,7 @@ public:
 	}
 
 	void SetBorderColor(sf::Color l_color);
+	sf::Color GetBorderColor() const { return m_normalBorderColor; }
 	void SetTopOffset(float l_offset);
 	void FlashBorders(float l_duration);
 	void UpdateFlash(float l_dt);
@@ -53,10 +54,14 @@ public:
 	float GetEffectiveThickness(int l_side) const;
 	bool IsAppleInBounds(float l_blockSize) const;
 
+	inline float GetFlashTimer() const { return m_flashTimer; }
 	inline float GetBorderThickness() const { return m_borderThickness; }
 	inline float GetMaxX() const { return m_maxX; }
 	inline float GetMaxY() const { return m_maxY; }
 	inline float GetTopOffset() const { return m_topOffset; }
+
+	// Level context (for phantom rules)
+	void SetLevelId(int l_id) { m_levelId = l_id; }
 
 	// Ink style
 	void SetUseInkStyle(bool l_use) { m_useInkStyle = l_use; }
@@ -91,6 +96,7 @@ private:
 	float m_shrinkTimerAccum;
 
 	float m_borderOffset[4]; // per-side offset in pixels: 0=top, 1=right, 2=bottom, 3=left
+	int m_levelId;
 
 	// Ink style
 	bool m_useInkStyle;

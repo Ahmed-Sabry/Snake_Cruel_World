@@ -70,17 +70,40 @@ void MenuState::OnEnter()
 	// Use paper tone as window bg fallback
 	window.SetBackground(menuConfig.paperTone);
 
-	// Title - hand-drawn feel with the handwriting font
+	// Title - dynamic based on death count
+	int deaths = m_stateManager.totalDeaths;
+	std::string titleStr;
+	if (deaths >= 200)
+		titleStr = "Still Here?";
+	else if (deaths >= 100)
+		titleStr = "Hello Again";
+	else
+		titleStr = "Hello Cruel World";
+
 	m_title.setFont(m_font);
-	m_title.setString("Hello Cruel World");
+	m_title.setString(titleStr);
 	m_title.setCharacterSize(56);
 	m_title.setFillColor(sf::Color(180, 50, 40));
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
 	m_title.setPosition((winSize.x - titleBounds.width) / 2.0f, 100.f);
 
-	// Tagline - slight rotation like an afterthought
+	// Tagline - dynamic based on death count
+	std::string taglineStr;
+	if (deaths == 0)
+		taglineStr = "The world doesn't just get smaller. It gets meaner.";
+	else if (deaths < 10)
+		taglineStr = "Back so soon?";
+	else if (deaths < 30)
+		taglineStr = "The world remembers you.";
+	else if (deaths < 75)
+		taglineStr = std::to_string(deaths) + " deaths and counting.";
+	else if (deaths < 150)
+		taglineStr = "You keep coming back. The world respects that.";
+	else
+		taglineStr = "At this point, are you the player or the punchline?";
+
 	m_tagline.setFont(m_font);
-	m_tagline.setString("The world doesn't just get smaller. It gets meaner.");
+	m_tagline.setString(taglineStr);
 	m_tagline.setCharacterSize(18);
 	m_tagline.setFillColor(sf::Color(120, 90, 80));
 	sf::FloatRect tagBounds = m_tagline.getLocalBounds();

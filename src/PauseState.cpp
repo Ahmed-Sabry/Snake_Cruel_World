@@ -24,12 +24,12 @@ const char* PauseState::s_cruelTips[] = {
 	"Rest now. The cruelty resumes shortly.",
 	"You can pause, but you can't hide.",
 	"The game remembers every mistake you've made.",
-	"Confidence is the last thing you lose. Before everything.",
+	"Confidence is a gift. The world takes gifts.",
 	"The apple doesn't care about your feelings.",
-	"Some call it a game. We call it natural selection.",
+	"Some call it a game. We call it a test of character.",
 	"Quitting is always an option. A cowardly one.",
-	"The snake was happier before you started controlling it.",
-	"Pro tip: don't hit the walls."
+	"The snake had a life before you.",
+	"The walls aren't moving. You are."
 };
 
 const int PauseState::s_tipCount = sizeof(PauseState::s_cruelTips) / sizeof(PauseState::s_cruelTips[0]);

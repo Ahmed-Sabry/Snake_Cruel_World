@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <iostream>
 
-HUD::HUD(const sf::Vector2u& l_windowSize) : m_visible(true), m_comboFlashTimer(0.0f)
+HUD::HUD(const sf::Vector2u& l_windowSize) : m_visible(true), m_comboFlashTimer(0.0f), m_scoreFlashTimer(0.0f), m_inkTint(60, 50, 45)
 {
 	m_windowWidth = l_windowSize.x;
 
@@ -126,6 +126,19 @@ void HUD::Update(int l_score, float l_combo, int l_applesEaten, int l_applesToWi
 		int alpha = (int)(255 * (m_comboFlashTimer / 0.5f));
 		m_comboText.setFillColor(sf::Color(210, 190, 60, std::min(255, alpha + 150)));
 	}
+
+	// Score flash effect (red flash on point loss)
+	if (m_scoreFlashTimer > 0.0f)
+	{
+		m_scoreFlashTimer -= l_dt;
+		if (m_scoreFlashTimer < 0.0f)
+			m_scoreFlashTimer = 0.0f;
+		float t = m_scoreFlashTimer / 0.4f;
+		m_scoreText.setFillColor(sf::Color(
+			(sf::Uint8)(m_inkTint.r + t * (180 - (int)m_inkTint.r)),
+			(sf::Uint8)(m_inkTint.g + t * (40 - (int)m_inkTint.g)),
+			(sf::Uint8)(m_inkTint.b + t * (30 - (int)m_inkTint.b))));
+	}
 }
 
 void HUD::Render(Window& l_window)
@@ -150,6 +163,7 @@ void HUD::SetVisible(bool l_visible)
 
 void HUD::SetLevelColors(const sf::Color& l_paperTone, const sf::Color& l_inkTint, const sf::Color& l_accentColor)
 {
+	m_inkTint = l_inkTint;
 	// Derive HUD colors from the level's paper and ink tones
 	m_background.setFillColor(sf::Color(l_paperTone.r, l_paperTone.g, l_paperTone.b, 200));
 	m_separator.setFillColor(sf::Color(l_inkTint.r, l_inkTint.g, l_inkTint.b, 100));
@@ -172,4 +186,9 @@ void HUD::SetLevelColors(const sf::Color& l_paperTone, const sf::Color& l_inkTin
 void HUD::FlashCombo()
 {
 	m_comboFlashTimer = 0.5f;
+}
+
+void HUD::FlashScore()
+{
+	m_scoreFlashTimer = 0.4f;
 }

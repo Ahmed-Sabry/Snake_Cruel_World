@@ -43,6 +43,7 @@ private:
 	void InitCruelWorldPhases();
 	void AdvanceCruelPhase();
 	void RenderPhaseAnnouncement(Window& l_window);
+	void CheckCruelMoment();
 
 	Snake m_snake;
 	World m_world;
@@ -79,10 +80,12 @@ private:
 	bool m_comboSoundPlayed;
 	float m_levelCompleteDelay; // countdown before switching to GameOver
 
-	// Level 10 "Cruel World" phase system
+	// Announcement / "Cruel World" phase system
 	int m_cruelPhase;
 	bool m_screenFlipped;
 	float m_phaseAnnouncementTimer;
+	float m_announcementDuration;     // total duration for current announcement
+	int m_announcementCharSize;       // character size (48 for phases, 22 for whispers)
 	std::string m_phaseAnnouncementText;
 	sf::Font m_announcementFont;
 	bool m_announcementFontLoaded;
@@ -118,6 +121,12 @@ private:
 
 	// Achievement notification popup
 	AchievementNotification m_achievementNotif;
+
+	// Audio polish
+	float m_heartbeatTimer;
+
+	// Control shuffle grace period tracking
+	bool m_wasInGracePeriod;
 
 	// Endless mode
 	std::unique_ptr<EndlessModeController> m_endlessCtrl;
