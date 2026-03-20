@@ -34,6 +34,8 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_cruelPhase(0),
 	  m_screenFlipped(false),
 	  m_phaseAnnouncementTimer(0.0f),
+	  m_announcementDuration(2.0f),
+	  m_announcementCharSize(48),
 	  m_announcementFontLoaded(false),
 	  m_postProcessorInited(false),
 	  m_pageTurnTimer(0.0f),
@@ -50,6 +52,7 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_poisonApplesThisLevel(0),
 	  m_reachedMinBody(false),
 	  m_screenFlipStartTime(0.0f),
+	  m_heartbeatTimer(0.0f),
 	  m_endlessWarningTimer(0.0f)
 {
 }
@@ -68,6 +71,20 @@ void PlayState::OnEnter()
 	// Apply level palette — use paper tone as window clear color for ink style fallback
 	window.SetBackground(m_levelConfig.paperTone);
 
+	// Track retries for context-sensitive taunts
+	{
+		static int s_lastPlayedLevel = -1;
+		if (m_stateManager.currentLevel == s_lastPlayedLevel)
+			m_stateManager.retryCount++;
+		else
+		{
+			m_stateManager.retryCount = 0;
+			m_stateManager.sessionBestApples = 0;
+		}
+		s_lastPlayedLevel = m_stateManager.currentLevel;
+	}
+	m_stateManager.deathCause = StateManager::DeathCause::Unknown;
+
 	// Reset game state
 	m_snake.Reset();
 	m_world.SetTopOffset(HUD::GetHeight());
@@ -83,6 +100,7 @@ void PlayState::OnEnter()
 	m_hud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
 
 	// Apply remaining level-specific configuration
+	m_world.SetLevelId(m_levelConfig.id);
 	m_world.SetAppleColor(m_levelConfig.apple);
 	m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
 
@@ -257,6 +275,17 @@ void PlayState::OnEnter()
 	m_deathInkRunTimer = 0.0f;
 	m_appleBurstTimer = 0.0f;
 	m_borderHatchTimer = 0.0f;
+	m_heartbeatTimer = 0.0f;
+
+	// Show level subtitle as entry announcement (first 3 attempts only — gets stale after that)
+	if (!m_stateManager.endlessMode && !m_levelConfig.subtitle.empty()
+		&& m_stateManager.retryCount < 3)
+	{
+		m_phaseAnnouncementText = m_levelConfig.subtitle;
+		m_announcementDuration = 2.5f;
+		m_phaseAnnouncementTimer = m_announcementDuration;
+		m_announcementCharSize = 24;
+	}
 }
 
 void PlayState::InitCruelWorldPhases()
@@ -338,7 +367,9 @@ void PlayState::AdvanceCruelPhase()
 			m_world.SetBorderColor(m_levelConfig.border);
 
 			m_phaseAnnouncementText = "It gets worse.";
+			m_announcementDuration = 2.0f;
 			m_phaseAnnouncementTimer = 2.0f;
+			m_announcementCharSize = 48;
 			break;
 		}
 
@@ -369,7 +400,9 @@ void PlayState::AdvanceCruelPhase()
 			m_world.SetBorderColor(m_levelConfig.border);
 
 			m_phaseAnnouncementText = "It gets worse.";
+			m_announcementDuration = 2.0f;
 			m_phaseAnnouncementTimer = 2.0f;
+			m_announcementCharSize = 48;
 			break;
 		}
 
@@ -398,7 +431,9 @@ void PlayState::AdvanceCruelPhase()
 			m_world.SetBorderColor(m_levelConfig.border);
 
 			m_phaseAnnouncementText = "Everything. All at once.";
+			m_announcementDuration = 2.0f;
 			m_phaseAnnouncementTimer = 2.0f;
+			m_announcementCharSize = 48;
 			break;
 		}
 
@@ -680,8 +715,10 @@ void PlayState::Update(float l_dt)
 		m_borderHatchTimer -= l_dt;
 
 	float speed = m_levelConfig.baseSpeed;
-	// Speed creep: +0.5 every 5 apples
+	// Speed creep: +0.5 every 5 apples (noticeable step)
 	speed += (m_applesEaten / 5) * 0.5f;
+	// Phantom rule: continuous micro-creep (+0.03/apple, imperceptible individually)
+	speed += m_applesEaten * 0.03f;
 	speed *= m_speedModifier;
 
 	float timeStep = 1.0f / speed;
@@ -728,12 +765,26 @@ void PlayState::Update(float l_dt)
 			m_borderHatchTimer = m_borderHatchDuration; // Trigger hatch fill animation
 		}
 
+		// Phantom rule: border color degradation toward danger-red
+		if (newShrinkCount > 0 && m_levelConfig.id != 10 && m_world.GetFlashTimer() <= 0.0f)
+		{
+			float t = std::min(1.0f, newShrinkCount / 8.0f);
+			sf::Color base = m_levelConfig.border;
+			sf::Color danger(140, 30, 20);
+			sf::Color degraded(
+				(sf::Uint8)(base.r + t * ((int)danger.r - (int)base.r)),
+				(sf::Uint8)(base.g + t * ((int)danger.g - (int)base.g)),
+				(sf::Uint8)(base.b + t * ((int)danger.b - (int)base.b)));
+			m_world.SetBorderColor(degraded);
+		}
+
 		// Check for self-collision
 		if (m_snake.DidSelfCollide())
 		{
 			int segmentsLost = (int)m_snake.GetLastCutSegments().size();
 			m_stateManager.selfCollisions++;
 			m_stateManager.score = std::max(0, m_stateManager.score - 50);
+			m_hud.FlashScore();
 			UpdateCombo(true);
 			m_stateManager.GetAudio().PlaySound("self_collide");
 			m_particles.SpawnSelfCollisionCut(m_snake.GetLastCutSegments(), m_snake.GetBlockSize(),
@@ -764,7 +815,10 @@ void PlayState::Update(float l_dt)
 			m_mirrorGhost.Update(m_snake, centerX, centerY);
 
 			if (m_mirrorGhost.CheckCollision(m_snake.GetPosition()))
+			{
+				m_stateManager.deathCause = StateManager::DeathCause::MirrorGhost;
 				m_snake.LoseStatus(true);
+			}
 		}
 
 		// Check poison apple collision
@@ -774,6 +828,7 @@ void PlayState::Update(float l_dt)
 			{
 				m_poisonApple.OnPoisonEaten();
 				m_stateManager.score = std::max(0, m_stateManager.score - 200);
+				m_hud.FlashScore();
 				UpdateCombo(true);
 
 				sf::Vector2f poisonPixelPos = m_poisonApple.GetPixelPos(m_snake.GetBlockSize());
@@ -807,6 +862,7 @@ void PlayState::Update(float l_dt)
 		{
 			if (m_predator.HitPlayer(m_snake.GetPosition()))
 			{
+				m_stateManager.deathCause = StateManager::DeathCause::Predator;
 				m_snake.LoseStatus(true);
 				m_stateManager.GetStats().OnPredatorKilledPlayer();
 			}
@@ -993,6 +1049,7 @@ void PlayState::Update(float l_dt)
 		// Check if predator moved onto player head
 		if (m_predator.HitPlayer(m_snake.GetPosition()))
 		{
+			m_stateManager.deathCause = StateManager::DeathCause::Predator;
 			m_snake.LoseStatus(true);
 			m_stateManager.GetStats().OnPredatorKilledPlayer();
 			OnDeath();
@@ -1014,6 +1071,7 @@ void PlayState::Update(float l_dt)
 
 			// Score penalty
 			m_stateManager.score = std::max(0, m_stateManager.score - 150);
+			m_hud.FlashScore();
 			sf::Vector2f ap(m_world.GetApplePos().x * m_snake.GetBlockSize(),
 							m_world.GetApplePos().y * m_snake.GetBlockSize());
 			m_particles.SpawnFloatingText("-150", ap, sf::Color(70, 80, 150));
@@ -1081,8 +1139,29 @@ void PlayState::Update(float l_dt)
 			(sf::Uint8)(100 + 80 * std::sin(ap + 4.189f))));
 	}
 
-	// Level 10 phase announcement timer
-	if (m_levelConfig.id == 10 && m_phaseAnnouncementTimer > 0.0f)
+	// Heartbeat as borders tighten
+	{
+		float borderFrac = (m_world.GetBorderThickness() * 2.0f) /
+			(float)m_stateManager.GetWindow().GetWindowSize().x;
+		if (borderFrac > 0.35f && m_levelCompleteDelay < 0.0f)
+		{
+			float interval = 1.2f - (borderFrac - 0.35f) * 1.5f;
+			interval = std::max(0.4f, interval);
+			m_heartbeatTimer -= l_dt;
+			if (m_heartbeatTimer <= 0.0f)
+			{
+				m_stateManager.GetAudio().PlaySound("heartbeat");
+				m_heartbeatTimer = interval;
+			}
+		}
+		else
+		{
+			m_heartbeatTimer = 0.0f;
+		}
+	}
+
+	// Announcement timer (all levels — generalized from L10-only)
+	if (m_phaseAnnouncementTimer > 0.0f)
 		m_phaseAnnouncementTimer -= l_dt;
 
 	// Deferred level-complete transition (lets particles render first)
@@ -1338,8 +1417,8 @@ void PlayState::Render()
 		window.Draw(warningText);
 	}
 
-	// Level 10 phase announcement overlay (always right-side-up, on top)
-	if (m_levelConfig.id == 10 && m_phaseAnnouncementTimer > 0.0f)
+	// Announcement overlay (always right-side-up, on top of everything)
+	if (m_phaseAnnouncementTimer > 0.0f)
 	{
 		window.SetView(window.GetDefaultView());
 		RenderPhaseAnnouncement(window);
@@ -1377,6 +1456,9 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 		ctx.stats = &m_stateManager.GetStats().GetStats();
 		m_stateManager.GetAchievements().OnAppleEaten(ctx);
 	}
+
+	// Cruel micro-moment check
+	CheckCruelMoment();
 
 	// Audio + visual feedback
 	m_stateManager.GetAudio().PlaySound("apple_eat");
@@ -1445,6 +1527,12 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 			m_screenFlipStartTime = m_gameTime;
 			m_screenShake.Trigger(0.8f, 8.0f);
 			m_stateManager.GetAudio().PlaySound("phase_advance");
+
+			// "Oops."
+			m_phaseAnnouncementText = "Oops.";
+			m_announcementDuration = 1.5f;
+			m_phaseAnnouncementTimer = 1.5f;
+			m_announcementCharSize = 28;
 		}
 	}
 
@@ -1490,7 +1578,21 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 			m_stateManager.highestUnlockedLevel = std::min(NUM_LEVELS, m_stateManager.currentLevel + 1);
 
 		m_stateManager.levelComplete = true;
-		m_levelCompleteDelay = 0.5f;
+
+		// Level 10: extended silence before victory (the absence speaks volumes)
+		if (m_levelConfig.id == 10)
+		{
+			m_levelCompleteDelay = 2.5f;
+			m_stateManager.GetAudio().StopMusic();
+			m_phaseAnnouncementText = "...";
+			m_announcementDuration = 2.0f;
+			m_phaseAnnouncementTimer = 2.0f;
+			m_announcementCharSize = 36;
+		}
+		else
+		{
+			m_levelCompleteDelay = 0.5f;
+		}
 
 		// Stats tracking
 		m_stateManager.GetStats().OnLevelComplete(
@@ -1526,6 +1628,19 @@ void PlayState::OnDeath()
 	m_stateManager.totalDeaths++;
 	m_stateManager.levelComplete = false;
 	m_stateManager.GetAudio().PlaySound("wall_death");
+
+	// Populate death context for context-sensitive taunts
+	m_stateManager.deathAppleCount = m_applesEaten;
+	m_stateManager.wasInBlackout = m_levelConfig.hasBlackouts && m_blackout.IsBlackout();
+	m_stateManager.wasOnQuicksand = m_levelConfig.hasQuicksand &&
+		m_quicksand.IsOnQuicksand(m_snake.GetPosition());
+	m_stateManager.hadHighCombo = m_stateManager.comboMultiplier >= 2.0f;
+	m_stateManager.comboLostAt = m_consecutiveApples;
+	if (m_applesEaten > m_stateManager.sessionBestApples)
+		m_stateManager.sessionBestApples = m_applesEaten;
+	// deathCause is set at the kill site (predator/mirror/wall); default to Wall
+	if (m_stateManager.deathCause == StateManager::DeathCause::Unknown)
+		m_stateManager.deathCause = StateManager::DeathCause::Wall;
 	if (!m_stateManager.endlessMode)
 		m_stateManager.GetStats().OnDeath(m_stateManager.currentLevel);
 
@@ -1563,6 +1678,14 @@ void PlayState::UpdateCombo(bool l_reset)
 {
 	if (l_reset)
 	{
+		// Combo break taunt when losing a high combo
+		if (m_stateManager.comboMultiplier >= 2.0f && m_phaseAnnouncementTimer <= 0.0f)
+		{
+			m_phaseAnnouncementText = "Ha.";
+			m_announcementDuration = 1.0f;
+			m_phaseAnnouncementTimer = 1.0f;
+			m_announcementCharSize = 22;
+		}
 		m_consecutiveApples = 0;
 		m_stateManager.comboMultiplier = 1.0f;
 		m_stateManager.combo = 0;
@@ -1581,6 +1704,24 @@ void PlayState::UpdateCombo(bool l_reset)
 		m_stateManager.comboMultiplier = 1.5f;
 	else
 		m_stateManager.comboMultiplier = 1.0f;
+
+	// Combo pressure text (whispered floating text at key thresholds)
+	if (m_consecutiveApples == 3)
+	{
+		float bs = m_snake.GetBlockSize();
+		sf::Vector2f headPos(m_snake.GetPosition().x * bs, m_snake.GetPosition().y * bs);
+		m_particles.SpawnFloatingText("Don't mess up...", headPos,
+			sf::Color(m_levelConfig.inkTint.r, m_levelConfig.inkTint.g,
+					  m_levelConfig.inkTint.b, 80));
+	}
+	else if (m_consecutiveApples == 5)
+	{
+		float bs = m_snake.GetBlockSize();
+		sf::Vector2f headPos(m_snake.GetPosition().x * bs, m_snake.GetPosition().y * bs);
+		m_particles.SpawnFloatingText("The world is watching.", headPos,
+			sf::Color(m_levelConfig.inkTint.r, m_levelConfig.inkTint.g,
+					  m_levelConfig.inkTint.b, 80));
+	}
 
 	if (m_stateManager.comboMultiplier >= 3.0f)
 	{
@@ -1616,8 +1757,7 @@ void PlayState::RenderPhaseAnnouncement(Window& l_window)
 	if (!m_announcementFontLoaded)
 		return;
 
-	const float totalDuration = 2.0f;
-	float elapsed = totalDuration - m_phaseAnnouncementTimer;
+	float elapsed = m_announcementDuration - m_phaseAnnouncementTimer;
 
 	// Fade in 0.3s, hold, fade out 0.5s
 	float alpha = 1.0f;
@@ -1629,18 +1769,25 @@ void PlayState::RenderPhaseAnnouncement(Window& l_window)
 	sf::Uint8 a = (sf::Uint8)(255 * alpha);
 	sf::Vector2u winSize = l_window.GetWindowSize();
 
-	// Semi-transparent dark overlay
+	// Overlay opacity scales with text size (subtler for whispers)
+	float overlayAlpha = (m_announcementCharSize >= 36) ? 120.0f : 60.0f;
 	sf::RectangleShape overlay(sf::Vector2f((float)winSize.x, (float)winSize.y));
 	overlay.setPosition(0.f, 0.f);
-	overlay.setFillColor(sf::Color(0, 0, 0, (sf::Uint8)(120 * alpha)));
+	overlay.setFillColor(sf::Color(0, 0, 0, (sf::Uint8)(overlayAlpha * alpha)));
 	l_window.Draw(overlay);
 
-	// Red announcement text, centered
+	// Announcement text, centered
 	sf::Text text;
 	text.setFont(m_announcementFont);
 	text.setString(m_phaseAnnouncementText);
-	text.setCharacterSize(48);
-	text.setFillColor(sf::Color(180, 40, 30, a));
+	text.setCharacterSize(m_announcementCharSize);
+
+	// Whisper-sized announcements use lighter ink; phase announcements use bold red
+	sf::Color textColor = (m_announcementCharSize >= 36)
+		? sf::Color(180, 40, 30, a)
+		: sf::Color(m_levelConfig.inkTint.r, m_levelConfig.inkTint.g,
+					m_levelConfig.inkTint.b, a);
+	text.setFillColor(textColor);
 
 	sf::FloatRect bounds = text.getLocalBounds();
 	text.setOrigin(bounds.left + bounds.width / 2.0f,
@@ -1648,4 +1795,56 @@ void PlayState::RenderPhaseAnnouncement(Window& l_window)
 	text.setPosition((float)winSize.x / 2.0f, (float)winSize.y / 2.0f);
 
 	l_window.Draw(text);
+}
+
+void PlayState::CheckCruelMoment()
+{
+	// Don't overlap with existing announcements
+	if (m_phaseAnnouncementTimer > 0.0f)
+		return;
+
+	const char* text = nullptr;
+	int charSize = 22;
+
+	int id = m_levelConfig.id;
+	int a = m_applesEaten;
+	int target = m_levelConfig.applesToWin;
+
+	// Level-specific cruel moments
+	if (id == 1 && a == target - 1)
+		text = "One more. Easy, right?";
+	else if (id == 2 && a == 6)
+		text = "Getting used to the dark? Good.";
+	else if (id == 3 && a == 10)
+		text = "The floor is patient.";
+	else if (id == 4 && a == 8)
+		text = "Which one is real?";
+	else if (id == 5 && a == target - 2)
+		text = "Almost. If the timer agrees.";
+	else if (id == 6 && a == 8)
+		text = "Good luck.";
+	else if (id == 7 && a == 5)
+		text = "The ground doesn't like you.";
+	else if (id == 8 && a == 3)
+		text = "It's watching.";
+	else if (id == 8 && a == 7)
+		text = "It's learning.";
+	else if (id == 9 && a == 5)
+		text = "Remember the controls?";
+	else if (id == 10 && a == 18)
+	{
+		text = "Two more. You can do this.";
+		charSize = 28;
+	}
+	// Cross-level: first apple on 5+ retries
+	else if (a == 1 && m_stateManager.retryCount >= 5)
+		text = "Welcome back.";
+
+	if (text)
+	{
+		m_phaseAnnouncementText = text;
+		m_announcementDuration = 1.8f;
+		m_phaseAnnouncementTimer = m_announcementDuration;
+		m_announcementCharSize = charSize;
+	}
 }

@@ -7,6 +7,7 @@ World::World(Window& l_window, Snake& l_snake)
 {
 	m_topOffset = 0.f;
 	m_flashTimer = 0.0f;
+	m_levelId = 1;
 	m_normalBorderColor = sf::Color(200, 100, 50);
 	m_useInkStyle = false;
 	m_corruption = 0.05f;
@@ -151,6 +152,22 @@ void World::RespawnApple(Snake& l_snake)
 
 	float x = Random(xMin, xMax);
 	float y = Random(yMin, yMax);
+
+	// Phantom rule: wall bias — 35% chance in levels 6+ to spawn in outer quarter
+	if (m_levelId >= 6 && xMax > xMin && yMax > yMin && (rand() % 100) < 35)
+	{
+		int wall = rand() % 4;
+		int quarterX = std::max(1, (xMax - xMin) / 4);
+		int quarterY = std::max(1, (yMax - yMin) / 4);
+		switch (wall)
+		{
+			case 0: y = (float)(yMin + rand() % quarterY); break;
+			case 1: x = (float)(xMax - rand() % quarterX); break;
+			case 2: y = (float)(yMax - rand() % quarterY); break;
+			case 3: x = (float)(xMin + rand() % quarterX); break;
+			default: break;
+		}
+	}
 
 	m_apple.setPosition(sf::Vector2f(x * bs, y * bs));
 	m_applePos = { x, y };

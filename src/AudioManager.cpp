@@ -419,4 +419,23 @@ void AudioManager::GenerateDefaultSounds()
 		}
 		StoreSamples("phase_advance", samples, RATE);
 	}
+
+	// --- heartbeat: deep double-thump (400ms) ---
+	if (m_buffers.find("heartbeat") == m_buffers.end())
+	{
+		unsigned len = (unsigned)(RATE * 0.4f);
+		std::vector<sf::Int16> samples(len);
+		for (unsigned i = 0; i < len; i++)
+		{
+			float t = (float)i / RATE;
+			// First thump at t=0 (louder)
+			float env1 = (t < 0.1f) ? expDecay(t, 15.0f) : 0.0f;
+			// Second softer thump at t=0.15
+			float t2 = t - 0.15f;
+			float env2 = (t2 > 0.0f && t2 < 0.1f) ? expDecay(t2, 20.0f) * 0.7f : 0.0f;
+			float val = (env1 + env2) * sine(t, 40.0f);
+			samples[i] = (sf::Int16)(val * 12000.0f);
+		}
+		StoreSamples("heartbeat", samples, RATE);
+	}
 }

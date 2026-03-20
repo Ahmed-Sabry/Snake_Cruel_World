@@ -101,13 +101,59 @@ void StatisticsState::OnEnter()
 		m_lines.push_back(std::move(t));
 	};
 
-	// Global stats
-	addLine("Total Playtime:          " + FormatTime(stats.totalPlaytimeSeconds));
-	addLine("Total Apples Eaten:      " + std::to_string(stats.totalApplesEaten));
-	addLine("Total Deaths:            " + std::to_string(m_stateManager.totalDeaths));
-	addLine("Segments Lost:           " + std::to_string(stats.totalSegmentsLost));
-	addLine("Poison Apples Eaten:     " + std::to_string(stats.totalPoisonApplesEaten));
-	addLine("Best Combo:              " + std::to_string(stats.bestCombo) + "x");
+	// Global stats with cruel commentary
+	auto commentary = [&](const std::string& stat, const std::string& comment) {
+		addLine(stat, inkColor);
+		if (!comment.empty())
+			addLine("    " + comment, dimColor, 16);
+	};
+
+	// Playtime commentary
+	std::string timeComment;
+	if (stats.totalPlaytimeSeconds < 300) timeComment = "(A brief visit.)";
+	else if (stats.totalPlaytimeSeconds < 1800) timeComment = "(Still learning.)";
+	else if (stats.totalPlaytimeSeconds < 7200) timeComment = "(Committed.)";
+	else timeComment = "(You could have learned guitar.)";
+	commentary("Total Playtime:          " + FormatTime(stats.totalPlaytimeSeconds), timeComment);
+
+	// Apples commentary
+	std::string appleComment;
+	if (stats.totalApplesEaten < 50) appleComment = "(A light snack.)";
+	else if (stats.totalApplesEaten < 200) appleComment = "(Adequate foraging.)";
+	else appleComment = "(Professional gatherer.)";
+	commentary("Total Apples Eaten:      " + std::to_string(stats.totalApplesEaten), appleComment);
+
+	// Deaths commentary
+	int totalDeaths = m_stateManager.totalDeaths;
+	std::string deathComment;
+	if (totalDeaths == 0) deathComment = "(Impressive. For now.)";
+	else if (totalDeaths < 10) deathComment = "(Just warming up.)";
+	else if (totalDeaths < 50) deathComment = "(The world barely noticed.)";
+	else if (totalDeaths < 100) deathComment = "(Now we're talking.)";
+	else deathComment = "(A career.)";
+	commentary("Total Deaths:            " + std::to_string(totalDeaths), deathComment);
+
+	// Segments commentary
+	std::string segComment;
+	if (stats.totalSegmentsLost == 0) segComment = "(Untouched. Suspicious.)";
+	else if (stats.totalSegmentsLost < 20) segComment = "(A few scratches.)";
+	else segComment = "(More lost than found.)";
+	commentary("Segments Lost:           " + std::to_string(stats.totalSegmentsLost), segComment);
+
+	// Poison commentary
+	std::string poisonComment;
+	if (stats.totalPoisonApplesEaten == 0) poisonComment = "(Trust issues? Smart.)";
+	else if (stats.totalPoisonApplesEaten < 5) poisonComment = "(Lesson learned.)";
+	else poisonComment = "(Indiscriminate eater.)";
+	commentary("Poison Apples Eaten:     " + std::to_string(stats.totalPoisonApplesEaten), poisonComment);
+
+	// Combo commentary
+	std::string comboComment;
+	if (stats.bestCombo < 3) comboComment = "(Room for improvement.)";
+	else if (stats.bestCombo < 6) comboComment = "(Respectable.)";
+	else comboComment = "(Show-off.)";
+	commentary("Best Combo:              " + std::to_string(stats.bestCombo) + "x", comboComment);
+
 	addLine("Best Single Score:       " + std::to_string(stats.bestSingleLevelScore));
 	addLine("Predator Apples Stolen:  " + std::to_string(stats.predatorApplesStolen));
 	addLine("Predator Deaths:         " + std::to_string(stats.predatorKills));
@@ -134,6 +180,7 @@ void StatisticsState::OnEnter()
 		oss << "Level " << (i + 1) << " \"" << levels[i].name << "\"  "
 			<< attempts << " attempts | " << clears << " clears | Best: " << best
 			<< " | Deaths: " << deaths;
+		if (deaths >= 20) oss << "  (The world's favorite.)";
 		addLine(oss.str(), inkColor, 17);
 	}
 
