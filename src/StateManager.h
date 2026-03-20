@@ -71,6 +71,7 @@ public:
 	bool wasOnQuicksand = false;    // died while on quicksand
 	bool hadHighCombo = false;      // had 2x+ combo when died
 	int comboLostAt = 0;            // consecutive apple count when died
+	int lastPlayedLevel = -1;       // tracks level for retry detection
 
 private:
 	void ProcessPendingTransitions();

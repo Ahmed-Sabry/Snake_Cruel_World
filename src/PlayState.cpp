@@ -73,15 +73,14 @@ void PlayState::OnEnter()
 
 	// Track retries for context-sensitive taunts
 	{
-		static int s_lastPlayedLevel = -1;
-		if (m_stateManager.currentLevel == s_lastPlayedLevel)
+		if (m_stateManager.currentLevel == m_stateManager.lastPlayedLevel)
 			m_stateManager.retryCount++;
 		else
 		{
 			m_stateManager.retryCount = 0;
 			m_stateManager.sessionBestApples = 0;
 		}
-		s_lastPlayedLevel = m_stateManager.currentLevel;
+		m_stateManager.lastPlayedLevel = m_stateManager.currentLevel;
 	}
 	m_stateManager.deathCause = StateManager::DeathCause::Unknown;
 

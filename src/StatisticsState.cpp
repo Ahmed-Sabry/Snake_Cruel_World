@@ -113,7 +113,7 @@ void StatisticsState::OnEnter()
 	if (stats.totalPlaytimeSeconds < 300) timeComment = "(A brief visit.)";
 	else if (stats.totalPlaytimeSeconds < 1800) timeComment = "(Still learning.)";
 	else if (stats.totalPlaytimeSeconds < 7200) timeComment = "(Committed.)";
-	else timeComment = "(You could have learned guitar.)";
+	else timeComment = "(That's dedication. Questionable, but dedication.)";
 	commentary("Total Playtime:          " + FormatTime(stats.totalPlaytimeSeconds), timeComment);
 
 	// Apples commentary

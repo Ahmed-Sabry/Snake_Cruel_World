@@ -13,20 +13,20 @@ const char* GameOverState::s_deathTaunts[] = {
 	"That was almost impressive.",
 	"The walls send their regards.",
 	"You are your own worst enemy. Literally.",
-	"The call is coming from inside the snake.",
+	"The real danger was inside the snake all along.",
 	"Better luck next time. Or not.",
 	"The world barely had to try.",
 	"Have you considered a different hobby?",
 	"The snake deserved better.",
 	"So close. And yet so far.",
-	"Error 404: Skill not found.",
+	"Skill level: missing.",
 	"The game thanks you for the entertainment.",
 	"That was educational. For us, not you.",
-	"Gravity works differently when you're a snake.",
+	"The walls don't care about your feelings.",
 	"The walls barely noticed you.",
 	"Achievement unlocked: Spectacular Failure.",
 	"The cruel world yawns.",
-	"That wasn't even your final form. Right?",
+	"Surely you can do better than that.",
 	"Somewhere, a wall just smiled.",
 	"The snake had dreams. You had other plans.",
 	"At least you were consistent."
@@ -51,7 +51,7 @@ const char* GameOverState::s_fastDeathTaunts[] = {
 	"Blink and you missed it. So did we.",
 	"New personal worst!",
 	"That might be a record. Not a good one.",
-	"The loading screen lasted longer.",
+	"That barely counted as an attempt.",
 	"Were you even trying?"
 };
 const int GameOverState::s_fastDeathTauntCount = 7;
@@ -88,7 +88,7 @@ static const char* s_mirrorKillTaunts[] = {
 };
 
 static const char* s_blackoutDeathTaunts[] = {
-	"See? Neither could you.",
+	"You died in the dark. How fitting.",
 	"The dark isn't empty. You found out.",
 	"Lights out. Permanently."
 };
@@ -100,9 +100,9 @@ static const char* s_quicksandDeathTaunts[] = {
 };
 
 static const char* s_highComboLostTaunts[] = {
-	"apple combo. Gone. Just like that.",
-	"in a row and then... that.",
-	"apples without a mistake. Until the mistake."
+	"-apple combo. Gone. Just like that.",
+	" in a row and then... that.",
+	" apples without a mistake. Until the mistake."
 };
 
 static const char* s_highRetryTaunts[] = {
@@ -113,14 +113,14 @@ static const char* s_highRetryTaunts[] = {
 };
 
 static const char* s_moderateRetryTaunts[] = {
-	"The definition of insanity.",
+	"Same level. Same result. Curious.",
 	"The walls remember you.",
 	"The world has seen this movie before."
 };
 
 static const char* s_gettingWorseTaunts[] = {
 	"That was worse. Much worse.",
-	"The game isn't getting harder. You're getting tired.",
+	"Fatigue is the cruelest mechanic.",
 	"Maybe take a break? ...Just kidding."
 };
 
@@ -146,33 +146,33 @@ std::string GameOverState::SelectDeathTaunt(int l_levelId, int l_applesToWin)
 
 	// Zero apples eaten
 	if (sm.deathAppleCount == 0 && sm.levelTime >= 3.0f)
-		return s_zeroAppleTaunts[rand() % 3];
+		return s_zeroAppleTaunts[rand() % std::size(s_zeroAppleTaunts)];
 
 	// Almost won (within 2 apples of target)
-	if (l_applesToWin > 0 && sm.deathAppleCount >= l_applesToWin - 2)
-		return s_almostWonTaunts[rand() % 3];
+	if (l_applesToWin > 2 && sm.deathAppleCount > 0 && sm.deathAppleCount >= l_applesToWin - 2)
+		return s_almostWonTaunts[rand() % std::size(s_almostWonTaunts)];
 
 	// Predator kill
 	if (sm.deathCause == StateManager::DeathCause::Predator)
-		return s_predatorKillTaunts[rand() % 4];
+		return s_predatorKillTaunts[rand() % std::size(s_predatorKillTaunts)];
 
 	// Mirror ghost kill
 	if (sm.deathCause == StateManager::DeathCause::MirrorGhost)
-		return s_mirrorKillTaunts[rand() % 3];
+		return s_mirrorKillTaunts[rand() % std::size(s_mirrorKillTaunts)];
 
 	// Died during blackout
 	if (sm.wasInBlackout)
-		return s_blackoutDeathTaunts[rand() % 3];
+		return s_blackoutDeathTaunts[rand() % std::size(s_blackoutDeathTaunts)];
 
 	// Died on quicksand
 	if (sm.wasOnQuicksand)
-		return s_quicksandDeathTaunts[rand() % 3];
+		return s_quicksandDeathTaunts[rand() % std::size(s_quicksandDeathTaunts)];
 
 	// Lost a high combo (4+ consecutive apples)
 	if (sm.hadHighCombo && sm.comboLostAt >= 4)
 	{
-		int pick = rand() % 3;
-		std::string prefix = std::to_string(sm.comboLostAt) + " ";
+		int pick = rand() % std::size(s_highComboLostTaunts);
+		std::string prefix = std::to_string(sm.comboLostAt);
 		return prefix + s_highComboLostTaunts[pick];
 	}
 
@@ -180,20 +180,20 @@ std::string GameOverState::SelectDeathTaunt(int l_levelId, int l_applesToWin)
 	if (sm.retryCount >= 10)
 	{
 		std::string prefix = "Attempt " + std::to_string(sm.retryCount + 1) + ". ";
-		return prefix + s_highRetryTaunts[rand() % 4];
+		return prefix + s_highRetryTaunts[rand() % std::size(s_highRetryTaunts)];
 	}
 
 	// Moderate retry count (5+)
 	if (sm.retryCount >= 5)
 	{
 		std::string prefix = "Attempt " + std::to_string(sm.retryCount + 1) + ". ";
-		return prefix + s_moderateRetryTaunts[rand() % 3];
+		return prefix + s_moderateRetryTaunts[rand() % std::size(s_moderateRetryTaunts)];
 	}
 
 	// Getting worse (significantly fewer apples than session best, after 3+ retries)
 	if (sm.retryCount >= 3 && sm.sessionBestApples > 3 &&
 		sm.deathAppleCount < sm.sessionBestApples / 2)
-		return s_gettingWorseTaunts[rand() % 3];
+		return s_gettingWorseTaunts[rand() % std::size(s_gettingWorseTaunts)];
 
 	// Improvement detected (within 80% of session best and improving)
 	if (sm.retryCount >= 2 && sm.deathAppleCount == sm.sessionBestApples &&
@@ -204,7 +204,7 @@ std::string GameOverState::SelectDeathTaunt(int l_levelId, int l_applesToWin)
 	if (sm.totalDeaths >= 100)
 	{
 		std::string prefix = "Death #" + std::to_string(sm.totalDeaths) + ". ";
-		return prefix + s_highDeathCountTaunts[rand() % 3];
+		return prefix + s_highDeathCountTaunts[rand() % std::size(s_highDeathCountTaunts)];
 	}
 
 	// Level-specific taunts (50% chance to trigger, otherwise fall through to generic)
@@ -239,7 +239,7 @@ std::string GameOverState::SelectVictoryTaunt(int l_levelId, int l_stars)
 			"The cruel world has nothing left to say.",
 			"Everything. All at once. And you survived."
 		};
-		return l10[rand() % 3];
+		return l10[rand() % std::size(l10)];
 	}
 
 	// Star-aware taunts
@@ -250,7 +250,7 @@ std::string GameOverState::SelectVictoryTaunt(int l_levelId, int l_stars)
 			"Flawless. The world is furious.",
 			"Three stars. The world didn't think you had it in you."
 		};
-		return star3[rand() % 3];
+		return star3[rand() % std::size(star3)];
 	}
 
 	if (l_stars == 1)
@@ -260,7 +260,7 @@ std::string GameOverState::SelectVictoryTaunt(int l_levelId, int l_stars)
 			"That counts. Technically.",
 			"A win is a win. A messy, ugly win."
 		};
-		return star1[rand() % 3];
+		return star1[rand() % std::size(star1)];
 	}
 
 	// Generic victory (2 stars or default)
