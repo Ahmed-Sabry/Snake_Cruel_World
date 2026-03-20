@@ -349,7 +349,7 @@ void Predator::RenderTo(sf::RenderTarget& target, float l_blockSize)
 		sf::Color color = (i == 0) ? headColor : bodyColor;
 		float px = m_body[i].x * l_blockSize + 1.0f;
 		float py = m_body[i].y * l_blockSize + 1.0f;
-		float segSize = l_blockSize - 2.0f;
+		float segSize = std::max(1.0f, l_blockSize - 2.0f);
 
 		// Wobbly rect with stipple dots inside (drawn as the fill)
 		InkRenderer::DrawWobblyRect(target, px, py, segSize, segSize,

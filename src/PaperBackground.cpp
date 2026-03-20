@@ -7,8 +7,9 @@
 #endif
 
 PaperBackground::PaperBackground()
-	: m_generated(false)
+	: m_doodleFontLoaded(false), m_generated(false)
 {
+	m_doodleFontLoaded = m_doodleFont.loadFromFile(FONT_PATH);
 }
 
 void PaperBackground::Generate(const LevelConfig& l_config, unsigned int l_windowWidth,
@@ -239,13 +240,12 @@ void PaperBackground::DrawMarginDoodle(sf::RenderTarget& l_target, const LevelCo
 		}
 		case 9: // Question marks
 		{
-			sf::Font font;
-			if (font.loadFromFile(FONT_PATH))
+			if (m_doodleFontLoaded)
 			{
 				for (int i = 0; i < 4; i++)
 				{
 					sf::Text q;
-					q.setFont(font);
+					q.setFont(m_doodleFont);
 					q.setString("?");
 					q.setCharacterSize(12 + i * 2);
 					q.setFillColor(doodleColor);

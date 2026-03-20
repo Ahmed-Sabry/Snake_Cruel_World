@@ -35,5 +35,7 @@ private:
 	sf::RenderTexture m_renderTexture;
 	sf::Sprite m_sprite;
 	sf::Texture m_noiseTexture;
+	sf::Font m_doodleFont;
+	bool m_doodleFontLoaded;
 	bool m_generated;
 };

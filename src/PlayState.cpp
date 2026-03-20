@@ -5,6 +5,10 @@
 #include <string>
 #include <cmath>
 
+namespace {
+	constexpr float kAppleBurstDuration = 0.2f;
+}
+
 PlayState::PlayState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_world(l_stateManager.GetWindow(), m_snake),
@@ -976,7 +980,7 @@ void PlayState::Render()
 	// Apple burst outline effect (expanding circle on eat)
 	if (m_appleBurstTimer > 0.0f)
 	{
-		float progress = 1.0f - (m_appleBurstTimer / 0.2f); // 0→1
+		float progress = 1.0f - (m_appleBurstTimer / kAppleBurstDuration); // 0→1
 		float burstRadius = m_snake.GetBlockSize() * (1.0f + progress * 1.5f);
 		sf::Uint8 burstAlpha = (sf::Uint8)(180 * (1.0f - progress));
 		sf::Color burstOutline(m_appleBurstColor.r, m_appleBurstColor.g,
@@ -1095,7 +1099,7 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 								  m_levelConfig.accentColor);
 
 	// Apple burst outline effect
-	m_appleBurstTimer = 0.2f;
+	m_appleBurstTimer = kAppleBurstDuration;
 	m_appleBurstPos = applePixelPos;
 	m_appleBurstColor = m_levelConfig.apple;
 
