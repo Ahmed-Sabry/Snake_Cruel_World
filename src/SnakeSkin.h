@@ -34,7 +34,7 @@ inline std::vector<SnakeSkin> GetAllSkins()
 {
 	return {
 		// 0: Classic — uses level's native colors, no overrides
-		{ 0, "Classic", "Default snake colors",
+		{ 0, "Default", "Level colors",
 		  0, sf::Color::Transparent, sf::Color::Transparent,
 		  sf::Color::Transparent, 0 },
 
