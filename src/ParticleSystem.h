@@ -9,7 +9,10 @@ struct Position; // forward declare from Snake.h
 enum class ParticleType
 {
 	Square,
-	Text
+	Text,
+	InkSplat,  // Lumpy irregular blob
+	InkDrip,   // Elongated shape that accelerates downward
+	InkDot     // Tiny circle that appears and fades
 };
 
 struct Particle
@@ -22,6 +25,10 @@ struct Particle
 	sf::Color color;
 	float size;
 	std::string text; // only used for ParticleType::Text
+	float gravity;    // downward acceleration (for InkDrip)
+	float rotation;   // visual rotation angle
+	int pointCount;   // number of points for InkSplat shape
+	unsigned int seed; // for deterministic wobble
 };
 
 class ParticleSystem
@@ -39,6 +46,11 @@ public:
 							   const sf::Color& l_color);
 	void SpawnFloatingText(const std::string& l_text, const sf::Vector2f& l_pos,
 						   const sf::Color& l_color);
+
+	// Ink-themed particle spawners
+	void SpawnInkSplat(const sf::Vector2f& l_pos, const sf::Color& l_color, int l_count = 10);
+	void SpawnInkDrips(const sf::Vector2f& l_pos, const sf::Color& l_color, int l_count = 5);
+	void SpawnInkDust(const sf::Vector2f& l_pos, const sf::Color& l_color, int l_count = 8);
 
 private:
 	std::vector<Particle> m_particles;

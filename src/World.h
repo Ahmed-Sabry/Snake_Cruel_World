@@ -14,6 +14,7 @@ public:
 	void Reset(Window& l_window, Snake& l_snake);
 	void Update(Window& l_window, Snake& l_snake);
 	void Render(Window& l_window);
+	void RenderInk(sf::RenderTarget& l_target, float l_gameTime); // Ink-style rendering
 	void Borders(Window& l_window);
 	void RespawnApple(Snake& l_snake);
 	void NarrowWorld(Window& l_window, Snake& l_snake);
@@ -57,7 +58,16 @@ public:
 	inline float GetMaxY() const { return m_maxY; }
 	inline float GetTopOffset() const { return m_topOffset; }
 
+	// Ink style
+	void SetUseInkStyle(bool l_use) { m_useInkStyle = l_use; }
+	void SetCorruption(float l_corruption) { m_corruption = l_corruption; }
+	void SetInkTint(const sf::Color& l_tint) { m_inkTint = l_tint; }
+	void SetAccentColor(const sf::Color& l_accent) { m_accentColor = l_accent; }
+
 private:
+	void RenderInkBorders(sf::RenderTarget& l_target);
+	void RenderInkApple(sf::RenderTarget& l_target, float l_gameTime);
+
 	sf::RectangleShape m_borders[4];
 	sf::CircleShape m_apple;
 
@@ -81,6 +91,14 @@ private:
 	float m_shrinkTimerAccum;
 
 	float m_borderOffset[4]; // per-side offset in pixels: 0=top, 1=right, 2=bottom, 3=left
+
+	// Ink style
+	bool m_useInkStyle;
+	float m_corruption;
+	sf::Color m_inkTint;
+	sf::Color m_accentColor;
+	sf::Color m_appleColor;
+	unsigned int m_appleSeed; // Random seed for apple wobble shape
 };
 
 inline float Random(int a, int b)

@@ -16,6 +16,8 @@
 #include "Earthquake.h"
 #include "Predator.h"
 #include "ControlShuffle.h"
+#include "PaperBackground.h"
+#include "PostProcessor.h"
 
 class PlayState : public BaseState
 {
@@ -81,4 +83,9 @@ private:
 	std::string m_phaseAnnouncementText;
 	sf::Font m_announcementFont;
 	bool m_announcementFontLoaded;
+
+	// "Living Ink" visual systems
+	PaperBackground m_paperBackground;
+	PostProcessor m_postProcessor;
+	bool m_postProcessorInited;
 };

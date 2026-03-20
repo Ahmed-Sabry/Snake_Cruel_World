@@ -1,5 +1,6 @@
 #include "LevelSelectState.h"
 #include "AudioManager.h"
+#include "InkRenderer.h"
 #include <algorithm>
 #include <iostream>
 
@@ -20,13 +21,21 @@ void LevelSelectState::OnEnter()
 
 	Window& window = m_stateManager.GetWindow();
 	sf::Vector2u winSize = window.GetWindowSize();
-	window.SetBackground(sf::Color(12, 8, 15));
+
+	// Paper background
+	LevelConfig selectConfig{};
+	selectConfig.id = 0;
+	selectConfig.paperTone = sf::Color(240, 232, 218);
+	selectConfig.inkTint = sf::Color(50, 40, 35);
+	selectConfig.corruption = 0.05f;
+	m_paperBg.Generate(selectConfig, winSize.x, winSize.y);
+	window.SetBackground(selectConfig.paperTone);
 
 	// Title
 	m_title.setFont(m_font);
 	m_title.setString("Choose Your Suffering");
 	m_title.setCharacterSize(40);
-	m_title.setFillColor(sf::Color(200, 50, 50));
+	m_title.setFillColor(sf::Color(180, 50, 40));
 	sf::FloatRect titleBounds = m_title.getLocalBounds();
 	m_title.setPosition((winSize.x - titleBounds.width) / 2.0f, 30.f);
 
@@ -50,14 +59,14 @@ void LevelSelectState::OnEnter()
 		if (!unlocked) nameStr += " [LOCKED]";
 		m_levelNames[i].setString(nameStr);
 		m_levelNames[i].setCharacterSize(22);
-		m_levelNames[i].setFillColor(unlocked ? sf::Color(200, 190, 190) : sf::Color(80, 70, 70));
+		m_levelNames[i].setFillColor(unlocked ? sf::Color(60, 50, 45) : sf::Color(170, 160, 155));
 		m_levelNames[i].setPosition(x, y);
 
 		// Subtitle
 		m_levelSubtitles[i].setFont(m_font);
 		m_levelSubtitles[i].setString(unlocked ? m_levels[i].subtitle : "???");
 		m_levelSubtitles[i].setCharacterSize(14);
-		m_levelSubtitles[i].setFillColor(sf::Color(130, 110, 110));
+		m_levelSubtitles[i].setFillColor(sf::Color(120, 100, 90));
 		m_levelSubtitles[i].setPosition(x + 20.f, y + 28.f);
 
 		// Stars
@@ -220,16 +229,16 @@ void LevelSelectState::Update(float l_dt)
 		if (i == m_selectedLevel && unlocked)
 		{
 			float pulse = (std::sin(m_animTimer * 4.0f) + 1.0f) / 2.0f;
-			int r = 200 + (int)(55 * pulse);
-			m_levelNames[i].setFillColor(sf::Color(r, 80, 60));
+			int r = 140 + (int)(60 * pulse);
+			m_levelNames[i].setFillColor(sf::Color(r, 40, 30));
 		}
 		else if (unlocked)
 		{
-			m_levelNames[i].setFillColor(sf::Color(200, 190, 190));
+			m_levelNames[i].setFillColor(sf::Color(60, 50, 45));
 		}
 		else
 		{
-			m_levelNames[i].setFillColor(sf::Color(80, 70, 70));
+			m_levelNames[i].setFillColor(sf::Color(170, 160, 155));
 		}
 	}
 }
@@ -237,14 +246,63 @@ void LevelSelectState::Update(float l_dt)
 void LevelSelectState::Render()
 {
 	Window& window = m_stateManager.GetWindow();
+	sf::RenderTarget& target = window.GetRenderWindow();
 
+	// Paper background
+	if (m_paperBg.IsGenerated())
+		m_paperBg.Render(target);
+
+	// Title with wobbly underline
 	window.Draw(m_title);
+	sf::FloatRect titleBounds = m_title.getGlobalBounds();
+	InkRenderer::DrawWobblyLine(target,
+								titleBounds.left, titleBounds.top + titleBounds.height + 5,
+								titleBounds.left + titleBounds.width, titleBounds.top + titleBounds.height + 5,
+								sf::Color(180, 50, 40, 120), 1.5f, 0.1f, 777);
 
 	for (int i = 0; i < NUM_LEVELS; i++)
 	{
+		bool unlocked = (i + 1) <= m_stateManager.highestUnlockedLevel;
+
+		// Draw a wobbly box around each level entry
+		sf::FloatRect nameBounds = m_levelNames[i].getGlobalBounds();
+		float boxX = nameBounds.left - 10;
+		float boxY = nameBounds.top - 5;
+		float boxW = 280;
+		float boxH = 90;
+
+		sf::Color boxColor = unlocked ? sf::Color(60, 50, 45, 40) : sf::Color(150, 140, 130, 25);
+		InkRenderer::DrawWobblyRect(target, boxX, boxY, boxW, boxH,
+									sf::Color::Transparent, boxColor, 1.0f,
+									unlocked ? 0.1f : 0.05f, (unsigned int)(i * 31));
+
+		// Selection indicator
+		if (i == m_selectedLevel)
+		{
+			InkRenderer::DrawWobblyRect(target, boxX - 3, boxY - 3, boxW + 6, boxH + 6,
+										sf::Color::Transparent, sf::Color(180, 50, 40, 100), 1.5f,
+										0.25f, (unsigned int)(m_animTimer * 8.0f));
+		}
+
 		window.Draw(m_levelNames[i]);
 		window.Draw(m_levelSubtitles[i]);
-		window.Draw(m_levelStars[i]);
+
+		// Hand-drawn stars instead of text stars
+		int stars = m_stateManager.starRatings[i];
+		if (unlocked)
+		{
+			for (int s = 0; s < 3; s++)
+			{
+				float sx = nameBounds.left + 20.0f + s * 18.0f;
+				float sy = nameBounds.top + 50.0f;
+				bool filled = s < stars;
+				InkRenderer::DrawStar(target, sx, sy, 7.0f,
+									  filled ? sf::Color(200, 170, 30) : sf::Color::Transparent,
+									  sf::Color(60, 50, 45, 150), 0.15f, filled,
+									  (unsigned int)(i * 100 + s));
+			}
+		}
+
 		window.Draw(m_levelScores[i]);
 	}
 
@@ -254,7 +312,7 @@ void LevelSelectState::Render()
 	if (m_cheatTextTimer > 0.0f)
 	{
 		float alpha = std::min(1.0f, m_cheatTextTimer / 0.5f);
-		m_cheatText.setFillColor(sf::Color(255, 215, 0, (sf::Uint8)(255 * alpha)));
+		m_cheatText.setFillColor(sf::Color(200, 170, 30, (sf::Uint8)(255 * alpha)));
 		window.Draw(m_cheatText);
 	}
 }

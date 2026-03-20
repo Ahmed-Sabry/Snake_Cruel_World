@@ -28,6 +28,11 @@ void ScreenShake::Update(float l_dt, Window& l_window)
 
 	sf::View view = l_window.GetDefaultView();
 	view.move(offsetX, offsetY);
+
+	// Add slight rotation for "notebook jostled" feel
+	float rotOffset = RandomFloat(-1.0f, 1.0f) * m_intensity * 0.2f;
+	view.setRotation(rotOffset);
+
 	l_window.SetView(view);
 
 	// Frame-rate independent dampening

@@ -11,15 +11,15 @@ HUD::HUD(const sf::Vector2u& l_windowSize) : m_visible(true), m_comboFlashTimer(
 	if (!m_font.loadFromFile(FONT_PATH))
 		std::cerr << "HUD: Failed to load font from " << FONT_PATH << std::endl;
 
-	// HUD background bar
+	// HUD background: semi-transparent to let paper show through
 	m_background.setSize({(float)l_windowSize.x, HUD_HEIGHT});
 	m_background.setPosition(0.f, 0.f);
-	m_background.setFillColor(sf::Color(20, 10, 10, 240));
+	m_background.setFillColor(sf::Color(245, 235, 220, 200)); // Paper tone overlay
 
-	// Separator line at bottom of HUD bar
-	m_separator.setSize({(float)l_windowSize.x, 2.f});
-	m_separator.setPosition(0.f, HUD_HEIGHT - 2.f);
-	m_separator.setFillColor(sf::Color(200, 100, 50, 160));
+	// Separator: ink ruled line style
+	m_separator.setSize({(float)l_windowSize.x, 3.f});
+	m_separator.setPosition(0.f, HUD_HEIGHT - 3.f);
+	m_separator.setFillColor(sf::Color(60, 50, 45, 100)); // Ink tint
 
 	auto setupText = [this](sf::Text& text, int size, sf::Color color, sf::Vector2f pos)
 	{
@@ -29,12 +29,17 @@ HUD::HUD(const sf::Vector2u& l_windowSize) : m_visible(true), m_comboFlashTimer(
 		text.setPosition(pos);
 	};
 
-	setupText(m_scoreText, 20, sf::Color::White, { HUD_PADDING, HUD_TEXT_Y });
-	setupText(m_comboText, 18, sf::Color(255, 200, 50), { 200.f, HUD_TEXT_Y + 1.f });
-	setupText(m_levelText, 18, sf::Color(200, 200, 200), { 0.f, HUD_TEXT_Y });
-	setupText(m_appleText, 18, sf::Color(100, 255, 100), { 0.f, HUD_TEXT_Y });
-	setupText(m_timerText, 18, sf::Color(200, 200, 200), { 0.f, HUD_TEXT_Y });
-	setupText(m_predatorText, 18, sf::Color(100, 150, 255), { 0.f, HUD_TEXT_Y });
+	// Ink-toned text colors
+	sf::Color inkDark(50, 40, 35);
+	sf::Color inkAccent(140, 40, 30);
+	sf::Color inkGreen(40, 100, 50);
+
+	setupText(m_scoreText, 20, inkDark, { HUD_PADDING, HUD_TEXT_Y });
+	setupText(m_comboText, 18, inkAccent, { 200.f, HUD_TEXT_Y + 1.f });
+	setupText(m_levelText, 18, sf::Color(100, 90, 80), { 0.f, HUD_TEXT_Y });
+	setupText(m_appleText, 18, inkGreen, { 0.f, HUD_TEXT_Y });
+	setupText(m_timerText, 18, sf::Color(100, 90, 80), { 0.f, HUD_TEXT_Y });
+	setupText(m_predatorText, 18, sf::Color(60, 80, 140), { 0.f, HUD_TEXT_Y });
 }
 
 void HUD::Update(int l_score, float l_combo, int l_applesEaten, int l_applesToWin,
@@ -140,14 +145,11 @@ void HUD::SetVisible(bool l_visible)
 	m_visible = l_visible;
 }
 
-void HUD::SetLevelColors(const sf::Color& l_borderColor, const sf::Color& l_bgColor)
+void HUD::SetLevelColors(const sf::Color& /*l_borderColor*/, const sf::Color& /*l_bgColor*/)
 {
-	sf::Uint8 r = (sf::Uint8)std::min(255, (int)(l_bgColor.r * 0.5f) + 10);
-	sf::Uint8 g = (sf::Uint8)std::min(255, (int)(l_bgColor.g * 0.5f) + 5);
-	sf::Uint8 b = (sf::Uint8)std::min(255, (int)(l_bgColor.b * 0.5f) + 10);
-	m_background.setFillColor(sf::Color(r, g, b, 240));
-
-	m_separator.setFillColor(sf::Color(l_borderColor.r, l_borderColor.g, l_borderColor.b, 160));
+	// Paper-continuous HUD: keep paper tone to let background show through
+	m_background.setFillColor(sf::Color(245, 235, 220, 200));
+	m_separator.setFillColor(sf::Color(60, 50, 45, 100));
 }
 
 void HUD::FlashCombo()

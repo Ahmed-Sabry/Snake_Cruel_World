@@ -24,7 +24,8 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_cruelPhase(0),
 	  m_screenFlipped(false),
 	  m_phaseAnnouncementTimer(0.0f),
-	  m_announcementFontLoaded(false)
+	  m_announcementFontLoaded(false),
+	  m_postProcessorInited(false)
 {
 }
 
@@ -127,6 +128,27 @@ void PlayState::OnEnter()
 	// Level 10 "Cruel World": override to Phase 1 after all mechanics initialized
 	if (m_levelConfig.id == 10)
 		InitCruelWorldPhases();
+
+	// --- Initialize "Living Ink" visual systems ---
+	m_snake.SetUseInkStyle(true);
+	m_snake.SetCorruption(m_levelConfig.corruption);
+	m_snake.SetInkTint(m_levelConfig.inkTint);
+
+	m_world.SetUseInkStyle(true);
+	m_world.SetCorruption(m_levelConfig.corruption);
+	m_world.SetInkTint(m_levelConfig.inkTint);
+	m_world.SetAccentColor(m_levelConfig.accentColor);
+
+	// Generate paper background
+	sf::Vector2u winSize = window.GetWindowSize();
+	m_paperBackground.Generate(m_levelConfig, winSize.x, winSize.y);
+
+	// Initialize post-processor (only once)
+	if (!m_postProcessorInited)
+	{
+		m_postProcessorInited = m_postProcessor.Init(winSize.x, winSize.y);
+	}
+	m_postProcessor.Configure(m_levelConfig);
 }
 
 void PlayState::InitCruelWorldPhases()
@@ -361,6 +383,8 @@ void PlayState::Update(float l_dt)
 {
 	m_elapsedTime += l_dt;
 	m_gameTime += l_dt;
+	m_snake.UpdateVisuals(l_dt);
+	m_postProcessor.Update(l_dt);
 
 	float speed = m_levelConfig.baseSpeed;
 	// Speed creep: +0.5 every 5 apples
@@ -728,6 +752,19 @@ void PlayState::Update(float l_dt)
 void PlayState::Render()
 {
 	Window& window = m_stateManager.GetWindow();
+	bool usePostProcess = m_postProcessor.IsAvailable();
+
+	// Begin post-processing capture (game scene renders to offscreen RT)
+	if (usePostProcess)
+		m_postProcessor.Begin();
+
+	sf::RenderTarget& target = usePostProcess
+		? m_postProcessor.GetTarget()
+		: (sf::RenderTarget&)window.GetRenderWindow();
+
+	// Draw paper background first
+	if (m_paperBackground.IsGenerated())
+		m_paperBackground.Render(target);
 
 	// Level 10: screen flip (The Cruel Twist at apple 19)
 	sf::View savedView;
@@ -736,10 +773,13 @@ void PlayState::Render()
 		savedView = window.GetRenderWindow().getView();
 		sf::View flipped = savedView;
 		flipped.setRotation(180.f);
-		window.SetView(flipped);
+		if (usePostProcess)
+			m_postProcessor.GetTarget().setView(flipped);
+		else
+			window.SetView(flipped);
 	}
 
-	m_world.Render(window);
+	m_world.RenderInk(target, m_gameTime);
 
 	if (m_levelConfig.hasEarthquakes)
 		m_earthquake.Render(window, m_world);
@@ -787,7 +827,8 @@ void PlayState::Render()
 	if (m_levelConfig.hasPredator)
 		m_predator.Render(window, m_snake.GetBlockSize());
 
-	m_snake.Render(window);
+	// Snake: render with ink style to the post-process target
+	m_snake.RenderInk(target);
 	m_particles.Render(window);
 
 	if (m_levelConfig.hasBlackouts)
@@ -795,8 +836,21 @@ void PlayState::Render()
 
 	// Restore un-flipped view for HUD and UI overlays (never upside-down)
 	if (m_screenFlipped)
-		window.SetView(savedView);
+	{
+		if (usePostProcess)
+			m_postProcessor.GetTarget().setView(savedView);
+		else
+			window.SetView(savedView);
+	}
 
+	// End post-processing capture and apply shader chain
+	if (usePostProcess)
+	{
+		m_postProcessor.End();
+		m_postProcessor.Apply(window);
+	}
+
+	// HUD and overlays render directly to window (no post-processing, stays crisp)
 	if (m_levelConfig.hasControlShuffle)
 		m_controlShuffle.Render(window);
 

@@ -3,6 +3,7 @@
 #include "GameState.h"
 #include "StateManager.h"
 #include "LevelConfig.h"
+#include "PaperBackground.h"
 #include <vector>
 
 class LevelSelectState : public BaseState
@@ -34,4 +35,5 @@ private:
 	std::vector<sf::Keyboard::Key> m_konamiProgress;
 	sf::Text m_cheatText;
 	float m_cheatTextTimer;
+	PaperBackground m_paperBg;
 };
