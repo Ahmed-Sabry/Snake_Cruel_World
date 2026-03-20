@@ -13,10 +13,11 @@ void main()
     float dist = length(dir);
     vec2 offset = dir * dist * amount / resolution;
 
+    vec4 center = texture2D(scene, uv);
     float r = texture2D(scene, uv + offset).r;
-    float g = texture2D(scene, uv).g;
+    float g = center.g;
     float b = texture2D(scene, uv - offset).b;
-    float a = texture2D(scene, uv).a;
+    float a = center.a;
 
     gl_FragColor = vec4(r, g, b, a);
 }

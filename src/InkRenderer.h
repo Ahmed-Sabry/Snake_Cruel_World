@@ -61,7 +61,6 @@ public:
 							  float l_cx, float l_cy, float l_radius,
 							  float l_fraction, // 0.0 to 1.0
 							  const sf::Color& l_color,
-							  float l_thickness,
 							  float l_corruption,
 							  unsigned int l_seed = 0);
 

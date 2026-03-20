@@ -62,7 +62,7 @@ void TimedApple::RenderTo(sf::RenderTarget& target, sf::Vector2f l_applePixelPos
 	unsigned int seed = (unsigned int)(m_timeRemaining * 100.0f);
 
 	InkRenderer::DrawDashedArc(target, cx, cy, maxRadius,
-							   fraction, ringColor, 2.0f,
+							   fraction, ringColor,
 							   corruption, seed);
 }
 

@@ -229,7 +229,6 @@ void InkRenderer::DrawDashedArc(sf::RenderTarget& l_target,
 								float l_cx, float l_cy, float l_radius,
 								float l_fraction,
 								const sf::Color& l_color,
-								float /*l_thickness*/,
 								float l_corruption,
 								unsigned int l_seed)
 {

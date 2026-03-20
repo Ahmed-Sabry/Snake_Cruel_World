@@ -69,8 +69,6 @@ void MirrorGhost::Render(Window& l_window, float l_blockSize,
 void MirrorGhost::RenderTo(sf::RenderTarget& target, float l_blockSize,
 						   int l_boundsMinX, int l_boundsMaxX, int l_boundsMinY, int l_boundsMaxY)
 {
-	if (m_ghostBody.empty()) return;
-
 	// Draw dashed axis line showing the mirror plane
 	float centerX = ((float)l_boundsMinX + (float)l_boundsMaxX) * 0.5f * l_blockSize;
 	float centerY = ((float)l_boundsMinY + (float)l_boundsMaxY) * 0.5f * l_blockSize;
@@ -100,6 +98,8 @@ void MirrorGhost::RenderTo(sf::RenderTarget& target, float l_blockSize,
 			target.draw(dash, 2, sf::Lines);
 		}
 	}
+
+	if (m_ghostBody.empty()) return;
 
 	// Draw ghost with inverted style (dotted outline, photographic-negative feel)
 	for (size_t i = 0; i < m_ghostBody.size(); i++)

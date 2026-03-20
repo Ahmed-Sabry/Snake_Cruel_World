@@ -466,7 +466,10 @@ void PlayState::Update(float l_dt)
 	{
 		m_deathInkRunTimer += l_dt;
 		if (m_deathInkRunTimer >= m_deathInkRunDuration)
+		{
 			m_deathInkRunActive = false;
+			m_stateManager.SwitchTo(StateType::GameOver);
+		}
 	}
 	if (m_appleBurstTimer > 0.0f)
 		m_appleBurstTimer -= l_dt;
@@ -480,7 +483,7 @@ void PlayState::Update(float l_dt)
 
 	float timeStep = 1.0f / speed;
 
-	if (m_elapsedTime >= timeStep && m_levelCompleteDelay < 0.0f)
+	if (m_elapsedTime >= timeStep && m_levelCompleteDelay < 0.0f && !m_deathInkRunActive)
 	{
 		Window& window = m_stateManager.GetWindow();
 
@@ -861,6 +864,26 @@ void PlayState::Render()
 		? m_postProcessor.GetTarget()
 		: (sf::RenderTarget&)window.GetRenderWindow();
 
+	// Level 10: screen flip (The Cruel Twist at apple 19)
+	sf::View savedView;
+	if (m_screenFlipped)
+	{
+		if (usePostProcess)
+		{
+			savedView = m_postProcessor.GetTarget().getView();
+			sf::View flipped = savedView;
+			flipped.setRotation(savedView.getRotation() + 180.f);
+			m_postProcessor.GetTarget().setView(flipped);
+		}
+		else
+		{
+			savedView = window.GetRenderWindow().getView();
+			sf::View flipped = savedView;
+			flipped.setRotation(savedView.getRotation() + 180.f);
+			window.SetView(flipped);
+		}
+	}
+
 	// Draw paper background with page-turn entry animation
 	if (m_paperBackground.IsGenerated())
 	{
@@ -895,26 +918,6 @@ void PlayState::Render()
 			(float)window.GetWindowSize().x, (float)window.GetWindowSize().y));
 		psychOverlay.setFillColor(sf::Color(r, g, b, 40)); // Subtle tint wash
 		target.draw(psychOverlay);
-	}
-
-	// Level 10: screen flip (The Cruel Twist at apple 19)
-	sf::View savedView;
-	if (m_screenFlipped)
-	{
-		if (usePostProcess)
-		{
-			savedView = m_postProcessor.GetTarget().getView();
-			sf::View flipped = savedView;
-			flipped.setRotation(savedView.getRotation() + 180.f);
-			m_postProcessor.GetTarget().setView(flipped);
-		}
-		else
-		{
-			savedView = window.GetRenderWindow().getView();
-			sf::View flipped = savedView;
-			flipped.setRotation(savedView.getRotation() + 180.f);
-			window.SetView(flipped);
-		}
 	}
 
 	m_world.RenderInk(target, m_gameTime);
@@ -1031,6 +1034,10 @@ void PlayState::Render()
 		// otherwise screen shake offset gets applied twice (once in RT, once on window)
 		window.SetView(window.GetDefaultView());
 		m_postProcessor.Apply(window);
+	}
+	else
+	{
+		window.SetView(window.GetDefaultView());
 	}
 
 	// HUD and overlays render directly to window (no post-processing, stays crisp)
@@ -1186,7 +1193,6 @@ void PlayState::OnDeath()
 	sf::Vector2f headPixel(m_snake.GetPosition().x * bs, m_snake.GetPosition().y * bs);
 	m_particles.SpawnInkDrips(headPixel, m_levelConfig.inkTint, 8);
 
-	m_stateManager.SwitchTo(StateType::GameOver);
 }
 
 void PlayState::UpdateCombo(bool l_reset)

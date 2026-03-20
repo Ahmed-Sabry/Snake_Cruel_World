@@ -146,12 +146,18 @@ void MenuState::Update(float l_dt)
 			m_menuItems[i].setFillColor(sf::Color(r, g, b));
 			m_menuItems[i].setString("> " + std::string(
 				i == 0 ? "Play" : (i == 1 ? "Level Select" : "Quit")));
+			sf::FloatRect bounds = m_menuItems[i].getLocalBounds();
+			float winWidth = (float)m_stateManager.GetWindow().GetWindowSize().x;
+			m_menuItems[i].setPosition((winWidth - bounds.width) / 2.0f, m_menuItems[i].getPosition().y);
 		}
 		else
 		{
 			m_menuItems[i].setFillColor(sf::Color(100, 90, 85));
 			std::string items[] = { "Play", "Level Select", "Quit" };
 			m_menuItems[i].setString("  " + items[i]);
+			sf::FloatRect bounds = m_menuItems[i].getLocalBounds();
+			float winWidth = (float)m_stateManager.GetWindow().GetWindowSize().x;
+			m_menuItems[i].setPosition((winWidth - bounds.width) / 2.0f, m_menuItems[i].getPosition().y);
 		}
 	}
 }

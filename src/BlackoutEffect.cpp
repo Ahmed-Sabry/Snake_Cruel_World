@@ -54,12 +54,15 @@ void BlackoutEffect::RenderTo(sf::RenderTarget& l_target, sf::Vector2u l_winSize
 {
 	if (!m_isDark) return;
 
-	// Dark overlay — like ink spilled across the page
+	// Use default view so overlay covers screen even during screen shake
+	sf::View savedView = l_target.getView();
+	l_target.setView(l_target.getDefaultView());
 	m_overlay.setSize(sf::Vector2f((float)l_winSize.x, (float)l_winSize.y));
 	m_overlay.setPosition(0.0f, 0.0f);
 	m_overlay.setFillColor(sf::Color(30, 20, 15, 235)); // Dark sepia instead of pure black
 
 	l_target.draw(m_overlay);
+	l_target.setView(savedView);
 
 	// Head glow: warm candlelight illuminating the notebook page
 	// 5 concentric circles for smoother gradient, warm orange tint

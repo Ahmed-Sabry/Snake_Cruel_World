@@ -19,6 +19,9 @@ unsigned int TextureGenerator::Hash(unsigned int l_val)
 sf::Texture TextureGenerator::GenerateHatchTexture(int l_size, float l_angleDeg,
 												   float l_spacing, float l_lineWidth)
 {
+	if (l_size <= 0 || l_spacing <= 0.0f)
+		return sf::Texture();
+
 	sf::Image img;
 	img.create(l_size, l_size, sf::Color::Transparent);
 
@@ -33,12 +36,11 @@ sf::Texture TextureGenerator::GenerateHatchTexture(int l_size, float l_angleDeg,
 		{
 			// Distance from pixel to nearest hatch line
 			// Project onto perpendicular direction
-			float px = (float)x - l_size * 0.5f;
-			float py = (float)y - l_size * 0.5f;
-			float perpDist = std::abs(-sinA * px + cosA * py);
+			float perpDist = -sinA * (float)x + cosA * (float)y;
+			perpDist = std::fmod(std::fmod(perpDist, l_spacing) + l_spacing, l_spacing);
 
 			// Modulo by spacing for tiling
-			float modDist = std::fmod(perpDist, l_spacing);
+			float modDist = perpDist;
 			if (modDist > l_spacing * 0.5f)
 				modDist = l_spacing - modDist;
 
@@ -63,6 +65,9 @@ sf::Texture TextureGenerator::GenerateHatchTexture(int l_size, float l_angleDeg,
 sf::Texture TextureGenerator::GenerateCrossHatchTexture(int l_size, float l_spacing,
 														float l_lineWidth)
 {
+	if (l_size <= 0 || l_spacing <= 0.0f)
+		return sf::Texture();
+
 	sf::Image img;
 	img.create(l_size, l_size, sf::Color::Transparent);
 
@@ -77,10 +82,9 @@ sf::Texture TextureGenerator::GenerateCrossHatchTexture(int l_size, float l_spac
 		{
 			for (int x = 0; x < l_size; x++)
 			{
-				float px = (float)x - l_size * 0.5f;
-				float py = (float)y - l_size * 0.5f;
-				float perpDist = std::abs(-sinA * px + cosA * py);
-				float modDist = std::fmod(perpDist, l_spacing);
+				float perpDist = -sinA * (float)x + cosA * (float)y;
+				perpDist = std::fmod(std::fmod(perpDist, l_spacing) + l_spacing, l_spacing);
+				float modDist = perpDist;
 				if (modDist > l_spacing * 0.5f)
 					modDist = l_spacing - modDist;
 
@@ -107,6 +111,9 @@ sf::Texture TextureGenerator::GenerateCrossHatchTexture(int l_size, float l_spac
 sf::Texture TextureGenerator::GenerateStippleTexture(int l_size, float l_density,
 													 unsigned int l_seed)
 {
+	if (l_size <= 0)
+		return sf::Texture();
+
 	sf::Image img;
 	img.create(l_size, l_size, sf::Color::Transparent);
 
@@ -132,6 +139,9 @@ sf::Texture TextureGenerator::GenerateStippleTexture(int l_size, float l_density
 sf::Texture TextureGenerator::GenerateNoiseTexture(int l_width, int l_height,
 												   unsigned int l_seed)
 {
+	if (l_width <= 0 || l_height <= 0)
+		return sf::Texture();
+
 	sf::Image img;
 	img.create(l_width, l_height, sf::Color(128, 128, 128, 255));
 

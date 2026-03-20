@@ -96,8 +96,8 @@ void Snake::Move(sf::Vector2u l_windowSize)
 	m_headPos = m_snakeBody[0]; // Update head position
 	m_interpTimer = 0.0f; // Reset interpolation on tick
 
-	// Add ink mark at tail position
-	if (m_useInkStyle && m_prevPositions.size() > 0)
+	// Add ink mark at tail position (only when actually moving)
+	if (m_useInkStyle && m_dir != Direction::None && m_prevPositions.size() > 0)
 	{
 		auto& tail = m_prevPositions.back();
 		InkMark mark;

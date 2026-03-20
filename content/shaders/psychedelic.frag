@@ -2,7 +2,6 @@
 // Rotates hue based on position and time
 // Used for Level 9 (Amnesia)
 uniform sampler2D scene;
-uniform vec2 resolution;
 uniform float time;
 uniform float intensity; // 0.0 to 1.0
 

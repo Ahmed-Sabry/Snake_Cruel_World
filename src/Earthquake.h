@@ -17,7 +17,6 @@ struct CrackLine
 {
 	sf::Vector2f start;
 	sf::Vector2f end;
-	float width;
 };
 
 class Earthquake

@@ -218,7 +218,25 @@ void PoisonApple::SpawnPoison(const Snake& l_snake, const World& l_world, float 
 		}
 
 		if (placed)
+		{
 			m_pos = { (float)px, (float)py };
+		}
+		else
+		{
+			// Fallback: full-random placement like Phase 1
+			for (int fallback = 0; fallback < 200; fallback++)
+			{
+				px = RandomInt(xMin, xMax);
+				py = RandomInt(yMin, yMax);
+				if (px == (int)applePos.x && py == (int)applePos.y) continue;
+				bool onSnake = false;
+				for (const auto& seg : body)
+				{
+					if (seg.x == px && seg.y == py) { onSnake = true; break; }
+				}
+				if (!onSnake) { m_pos = { (float)px, (float)py }; break; }
+			}
+		}
 	}
 }
 

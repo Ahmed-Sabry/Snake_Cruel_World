@@ -14,6 +14,8 @@ PaperBackground::PaperBackground()
 void PaperBackground::Generate(const LevelConfig& l_config, unsigned int l_windowWidth,
 							   unsigned int l_windowHeight)
 {
+	m_generated = false;
+
 	if (!m_renderTexture.create(l_windowWidth, l_windowHeight))
 		return;
 

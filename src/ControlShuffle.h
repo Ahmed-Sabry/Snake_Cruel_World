@@ -57,6 +57,6 @@ private:
 	sf::RectangleShape m_warningBarBg;
 	sf::RectangleShape m_warningBar;
 
-	sf::Color m_paperTone;
-	sf::Color m_inkTint;
+	sf::Color m_paperTone{sf::Color::White};
+	sf::Color m_inkTint{sf::Color::Black};
 };

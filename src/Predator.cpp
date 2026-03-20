@@ -356,12 +356,12 @@ void Predator::RenderTo(sf::RenderTarget& target, float l_blockSize)
 
 		// Stipple dots overlay (differentiates from player snake's hatch)
 		int dotCount = 4;
+		sf::CircleShape dot(0.8f);
 		for (int d = 0; d < dotCount; d++)
 		{
 			unsigned int h = InkRenderer::Hash((unsigned int)(i * 41 + 300), (unsigned int)d);
 			float dx = (float)(h % (int)segSize);
 			float dy = (float)((h >> 8) % (int)segSize);
-			sf::CircleShape dot(0.8f);
 			dot.setPosition(px + dx, py + dy);
 			dot.setFillColor(sf::Color(outlineColor.r, outlineColor.g, outlineColor.b, 100));
 			target.draw(dot);

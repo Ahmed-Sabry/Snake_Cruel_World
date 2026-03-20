@@ -233,8 +233,8 @@ void GameOverState::HandleInput()
 	{
 		m_stateManager.GetAudio().PlaySound("menu_select");
 		// Menu layout shifts by 1 when "Next Level" is present
-		int idx = m_hasNextLevel ? m_selectedItem : m_selectedItem + 1;
-		switch (idx)
+		int menuIdx = m_hasNextLevel ? m_selectedItem : m_selectedItem + 1;
+		switch (menuIdx)
 		{
 			case 0: // Next Level
 				m_stateManager.currentLevel++;

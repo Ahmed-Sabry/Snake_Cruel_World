@@ -229,7 +229,6 @@ void Earthquake::GenerateCrackLines(const World& l_world, Window& l_window)
 
 		CrackLine crack;
 		float length = RandomFloat(30.0f, 80.0f);
-		crack.width = RandomFloat(2.0f, 4.0f);
 
 		float effThick = l_world.GetEffectiveThickness(side);
 		float effTop = l_world.GetEffectiveThickness(0);

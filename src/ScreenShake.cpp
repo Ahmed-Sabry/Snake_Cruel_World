@@ -30,7 +30,8 @@ void ScreenShake::Update(float l_dt, Window& l_window)
 	view.move(offsetX, offsetY);
 
 	// Add slight rotation for "notebook jostled" feel
-	float rotOffset = RandomFloat(-1.0f, 1.0f) * m_intensity * 0.2f;
+	constexpr float kRotationScale = 0.2f;
+	float rotOffset = RandomFloat(-1.0f, 1.0f) * m_intensity * kRotationScale;
 	view.setRotation(rotOffset);
 
 	l_window.SetView(view);
