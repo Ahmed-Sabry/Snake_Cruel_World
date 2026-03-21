@@ -409,6 +409,13 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 	return tl;
 }
 
+std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
+{
+	return {
+		{"intro", "The Cruel Beginning", [](const StateManager& sm) { return sm.introPlayed; }}
+	};
+}
+
 CutsceneTimeline CutsceneDefs::Build(const std::string& l_id, StateManager& l_sm)
 {
 	if (l_id == "intro")

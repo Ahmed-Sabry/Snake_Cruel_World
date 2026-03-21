@@ -8,6 +8,7 @@
 #include "StatisticsState.h"
 #include "SkinSelectState.h"
 #include "CutsceneState.h"
+#include "CutsceneGalleryState.h"
 #include <cstdlib>
 #include <ctime>
 
@@ -54,6 +55,7 @@ Game::Game() :
 	m_stateManager.RegisterState<StatisticsState>(StateType::Statistics);
 	m_stateManager.RegisterState<SkinSelectState>(StateType::SkinSelect);
 	m_stateManager.RegisterState<CutsceneState>(StateType::Cutscene);
+	m_stateManager.RegisterState<CutsceneGalleryState>(StateType::CutsceneGallery);
 
 	// Load saved progress
 	SaveManager::Load(m_stateManager, m_statsManager, m_achievementManager);

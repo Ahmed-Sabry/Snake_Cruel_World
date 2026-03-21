@@ -1,4 +1,5 @@
 #include "MenuState.h"
+#include "CutsceneDefs.h"
 #include "AudioManager.h"
 #include "LevelConfig.h"
 #include "InkRenderer.h"
@@ -48,6 +49,13 @@ void MenuState::BuildMenuItems()
 	addItem("Achievements");
 	addItem("Statistics");
 	addItem("Skins");
+
+	auto entries = CutsceneDefs::GetAllEntries();
+	bool anyCutsceneUnlocked = std::any_of(entries.begin(), entries.end(),
+		[this](const CutsceneDefs::CutsceneEntry& e) { return e.isUnlocked(m_stateManager); });
+	if (anyCutsceneUnlocked)
+		addItem("Cutscenes");
+
 	addItem("Quit");
 }
 
@@ -205,6 +213,10 @@ void MenuState::OnItemSelected(int l_index)
 	else if (label == "Skins")
 	{
 		m_stateManager.SwitchTo(StateType::SkinSelect);
+	}
+	else if (label == "Cutscenes")
+	{
+		m_stateManager.SwitchTo(StateType::CutsceneGallery);
 	}
 	else if (label == "Quit")
 	{
