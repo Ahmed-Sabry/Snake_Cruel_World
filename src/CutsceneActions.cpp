@@ -125,11 +125,19 @@ bool TypewriterTextAction::Update(float l_dt, StateManager& l_sm)
 
 	if (!m_textComplete)
 	{
-		m_elapsed += l_dt;
-		m_visibleChars = std::min((int)m_fullText.size(),
-								 (int)(m_elapsed * m_charsPerSec));
-		if (m_visibleChars >= (int)m_fullText.size())
+		if (m_charsPerSec <= 0.f)
+		{
+			m_visibleChars = (int)m_fullText.size();
 			m_textComplete = true;
+		}
+		else
+		{
+			m_elapsed += l_dt;
+			m_visibleChars = std::min((int)m_fullText.size(),
+									 (int)(m_elapsed * m_charsPerSec));
+			if (m_visibleChars >= (int)m_fullText.size())
+				m_textComplete = true;
+		}
 	}
 
 	if (m_textComplete)
@@ -245,7 +253,7 @@ void WaitForInputAction::Render(sf::RenderTarget& l_target)
 	m_prompt.setFillColor(c);
 
 	sf::FloatRect bounds = m_prompt.getLocalBounds();
-	m_prompt.setPosition((size.x - bounds.width) / 2.f, size.y - 50.f);
+	m_prompt.setPosition((size.x - bounds.width) / 2.f - bounds.left, size.y - 50.f);
 	l_target.draw(m_prompt);
 }
 
