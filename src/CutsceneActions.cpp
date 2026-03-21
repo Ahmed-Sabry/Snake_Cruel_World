@@ -437,6 +437,7 @@ void DeferredSingleAnimAction::Start(StateManager& l_sm)
 
 bool DeferredSingleAnimAction::Update(float l_dt, StateManager& l_sm)
 {
+	if (!m_inner) return true;
 	return m_inner->Update(l_dt, l_sm);
 }
 
@@ -479,6 +480,7 @@ void DeferredDualAnimAction::Start(StateManager& l_sm)
 
 bool DeferredDualAnimAction::Update(float l_dt, StateManager& l_sm)
 {
+	if (!m_inner) return true;
 	return m_inner->Update(l_dt, l_sm);
 }
 

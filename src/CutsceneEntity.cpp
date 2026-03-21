@@ -4,6 +4,7 @@
 // File-scope statics for rotated-entity render texture (only grows; released via ReleaseStaticResources)
 static sf::RenderTexture s_rt;
 static unsigned int s_rtW = 0, s_rtH = 0;
+static bool s_rtValid = false;
 
 void CutsceneEntity::Render(sf::RenderTarget& l_target, const sf::Font& l_font) const
 {
@@ -136,10 +137,19 @@ void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l
 	// Reuse file-scope render texture (resized only when needed)
 	if (tw > s_rtW || th > s_rtH)
 	{
+		unsigned int prevW = s_rtW, prevH = s_rtH;
 		s_rtW = std::max(tw, s_rtW);
 		s_rtH = std::max(th, s_rtH);
-		s_rt.create(s_rtW, s_rtH);
+		if (!s_rt.create(s_rtW, s_rtH))
+		{
+			s_rtW = prevW;
+			s_rtH = prevH;
+			s_rtValid = false;
+			return;
+		}
+		s_rtValid = true;
 	}
+	if (!s_rtValid) return;
 	s_rt.clear(sf::Color::Transparent);
 
 	// Draw a non-rotated copy into the temp texture at local coordinates
@@ -201,4 +211,5 @@ void CutsceneEntity::ReleaseStaticResources()
 		s_rtW = 0;
 		s_rtH = 0;
 	}
+	s_rtValid = false;
 }
