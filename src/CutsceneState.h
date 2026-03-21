@@ -27,7 +27,7 @@ public:
 	ScreenShake& GetScreenShake() { return m_screenShake; }
 	PaperBackground& GetPaperBg() { return m_paperBg; }
 	sf::Font& GetFont() { return m_font; }
-	void ClearPersistentText() { m_timeline.ClearPersistentText(); }
+	void ClearAllPersistent() { m_timeline.ClearAllPersistent(); }
 
 	static CutsceneState* s_active;
 

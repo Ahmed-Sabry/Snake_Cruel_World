@@ -9,9 +9,18 @@
 #include <algorithm>
 #include <cmath>
 
+// Sentinel level ID for cutscene-generated configs (avoids colliding with real levels)
+static constexpr int CUTSCENE_LEVEL_ID = -1;
+
 // ── WaitAction ────────────────────────────────────────────────────
 
 WaitAction::WaitAction(float l_duration) : m_duration(l_duration) {}
+
+void WaitAction::Start(StateManager& l_sm)
+{
+	(void)l_sm;
+	m_elapsed = 0.f;
+}
 
 bool WaitAction::Update(float l_dt, StateManager& l_sm)
 {
@@ -27,6 +36,13 @@ void WaitAction::Skip() { m_elapsed = m_duration; }
 FadeAction::FadeAction(bool l_toBlack, float l_duration, sf::Color l_color)
 	: m_toBlack(l_toBlack), m_duration(l_duration), m_color(l_color)
 {
+	m_currentAlpha = m_toBlack ? 0.f : 255.f;
+}
+
+void FadeAction::Start(StateManager& l_sm)
+{
+	(void)l_sm;
+	m_elapsed = 0.f;
 	m_currentAlpha = m_toBlack ? 0.f : 255.f;
 }
 
@@ -84,6 +100,7 @@ void TypewriterTextAction::Start(StateManager& l_sm)
 	m_visibleChars = 0;
 	m_textComplete = false;
 	m_inputReceived = false;
+	m_cursorTimer = 0.f;
 }
 
 bool TypewriterTextAction::Update(float l_dt, StateManager& l_sm)
@@ -181,6 +198,11 @@ void WaitForInputAction::Start(StateManager& l_sm)
 bool WaitForInputAction::Update(float l_dt, StateManager& l_sm)
 {
 	(void)l_sm;
+
+	// Skip() was called — advance immediately
+	if (m_done)
+		return true;
+
 	m_timer += l_dt;
 
 	bool pressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Return) ||
@@ -246,7 +268,12 @@ bool ParallelAction::Update(float l_dt, StateManager& l_sm)
 void ParallelAction::Render(sf::RenderTarget& l_target)
 {
 	for (size_t i = 0; i < m_actions.size(); ++i)
+	{
+		// Skip finished non-persistent children
+		if (m_done[i] && !m_actions[i]->IsPersistent())
+			continue;
 		m_actions[i]->Render(l_target);
+	}
 }
 
 bool ParallelAction::IsPersistent() const
@@ -263,16 +290,6 @@ void ParallelAction::Skip()
 {
 	for (auto& action : m_actions)
 		action->Skip();
-}
-
-void ParallelAction::ClearChildPersistentText()
-{
-	for (auto& action : m_actions)
-	{
-		auto* text = dynamic_cast<TypewriterTextAction*>(action.get());
-		if (text)
-			text->ClearPersistence();
-	}
 }
 
 // ── SpawnEntityAction ─────────────────────────────────────────────
@@ -328,6 +345,12 @@ AnimateAction::AnimateAction(const std::string& l_entityName, AnimProperty l_pro
 {
 }
 
+void AnimateAction::Start(StateManager& l_sm)
+{
+	(void)l_sm;
+	m_elapsed = 0.f;
+}
+
 bool AnimateAction::Update(float l_dt, StateManager& l_sm)
 {
 	(void)l_sm;
@@ -370,156 +393,123 @@ void AnimateAction::ApplyValue(float l_value)
 	}
 }
 
+// ── DeferredSingleAnimAction ──────────────────────────────────────
+
+DeferredSingleAnimAction::DeferredSingleAnimAction(
+	const std::string& l_name, AnimProperty l_prop,
+	float l_target, float l_defaultFrom,
+	float l_duration, EasingFunc l_easing, ReadFunc l_readFrom)
+	: m_name(l_name), m_prop(l_prop), m_target(l_target),
+	  m_defaultFrom(l_defaultFrom), m_duration(l_duration),
+	  m_easing(l_easing), m_readFrom(std::move(l_readFrom))
+{
+}
+
+void DeferredSingleAnimAction::Start(StateManager& l_sm)
+{
+	float from = m_defaultFrom;
+	if (CutsceneState::s_active)
+	{
+		auto* entity = CutsceneState::s_active->GetScene().Get(m_name);
+		if (entity)
+			from = m_readFrom(*entity);
+	}
+	m_inner = std::make_unique<AnimateAction>(
+		m_name, m_prop, from, m_target, m_duration, m_easing);
+	m_inner->Start(l_sm);
+}
+
+bool DeferredSingleAnimAction::Update(float l_dt, StateManager& l_sm)
+{
+	return m_inner->Update(l_dt, l_sm);
+}
+
+void DeferredSingleAnimAction::Skip()
+{
+	if (m_inner) m_inner->Skip();
+}
+
+// ── DeferredDualAnimAction ────────────────────────────────────────
+
+DeferredDualAnimAction::DeferredDualAnimAction(
+	const std::string& l_name,
+	AnimProperty l_propX, AnimProperty l_propY,
+	sf::Vector2f l_target, sf::Vector2f l_defaultFrom,
+	float l_duration, EasingFunc l_easing, ReadFunc l_readFrom)
+	: m_name(l_name), m_propX(l_propX), m_propY(l_propY),
+	  m_target(l_target), m_defaultFrom(l_defaultFrom),
+	  m_duration(l_duration), m_easing(l_easing),
+	  m_readFrom(std::move(l_readFrom))
+{
+}
+
+void DeferredDualAnimAction::Start(StateManager& l_sm)
+{
+	sf::Vector2f from = m_defaultFrom;
+	if (CutsceneState::s_active)
+	{
+		auto* entity = CutsceneState::s_active->GetScene().Get(m_name);
+		if (entity)
+			from = m_readFrom(*entity);
+	}
+	std::vector<CutsceneActionPtr> actions;
+	actions.push_back(std::make_unique<AnimateAction>(
+		m_name, m_propX, from.x, m_target.x, m_duration, m_easing));
+	actions.push_back(std::make_unique<AnimateAction>(
+		m_name, m_propY, from.y, m_target.y, m_duration, m_easing));
+	m_inner = std::make_unique<ParallelAction>(std::move(actions));
+	m_inner->Start(l_sm);
+}
+
+bool DeferredDualAnimAction::Update(float l_dt, StateManager& l_sm)
+{
+	return m_inner->Update(l_dt, l_sm);
+}
+
+void DeferredDualAnimAction::Render(sf::RenderTarget& l_target)
+{
+	if (m_inner) m_inner->Render(l_target);
+}
+
+void DeferredDualAnimAction::Skip()
+{
+	if (m_inner) m_inner->Skip();
+}
+
 // ── Convenience Action Factories ──────────────────────────────────
 
 CutsceneActionPtr MoveAction::Create(const std::string& l_name, sf::Vector2f l_target,
 									  float l_duration, EasingFunc l_easing)
 {
-	// Reads current position at Start time via a lambda spawn pattern
-	// We create a ParallelAction with two AnimateActions that capture start pos on Start
-	struct DeferredMoveAction : public CutsceneAction
-	{
-		std::string name;
-		sf::Vector2f target;
-		float duration;
-		EasingFunc easing;
-		std::unique_ptr<ParallelAction> inner;
-
-		DeferredMoveAction(const std::string& n, sf::Vector2f t, float d, EasingFunc e)
-			: name(n), target(t), duration(d), easing(e) {}
-
-		void Start(StateManager& sm) override
-		{
-			sf::Vector2f from = {0.f, 0.f};
-			if (CutsceneState::s_active)
-			{
-				auto* entity = CutsceneState::s_active->GetScene().Get(name);
-				if (entity)
-					from = entity->position;
-			}
-			std::vector<CutsceneActionPtr> actions;
-			actions.push_back(std::make_unique<AnimateAction>(
-				name, AnimProperty::PositionX, from.x, target.x, duration, easing));
-			actions.push_back(std::make_unique<AnimateAction>(
-				name, AnimProperty::PositionY, from.y, target.y, duration, easing));
-			inner = std::make_unique<ParallelAction>(std::move(actions));
-			inner->Start(sm);
-		}
-
-		bool Update(float dt, StateManager& sm) override { return inner->Update(dt, sm); }
-		void Render(sf::RenderTarget& t) override { if (inner) inner->Render(t); }
-		void Skip() override { if (inner) inner->Skip(); }
-	};
-
-	return std::make_unique<DeferredMoveAction>(l_name, l_target, l_duration, l_easing);
+	return std::make_unique<DeferredDualAnimAction>(
+		l_name, AnimProperty::PositionX, AnimProperty::PositionY,
+		l_target, sf::Vector2f{0.f, 0.f}, l_duration, l_easing,
+		[](const CutsceneEntity& e) { return e.position; });
 }
 
 CutsceneActionPtr ScaleToAction::Create(const std::string& l_name, sf::Vector2f l_target,
 										 float l_duration, EasingFunc l_easing)
 {
-	struct DeferredScaleAction : public CutsceneAction
-	{
-		std::string name;
-		sf::Vector2f target;
-		float duration;
-		EasingFunc easing;
-		std::unique_ptr<ParallelAction> inner;
-
-		DeferredScaleAction(const std::string& n, sf::Vector2f t, float d, EasingFunc e)
-			: name(n), target(t), duration(d), easing(e) {}
-
-		void Start(StateManager& sm) override
-		{
-			sf::Vector2f from = {1.f, 1.f};
-			if (CutsceneState::s_active)
-			{
-				auto* entity = CutsceneState::s_active->GetScene().Get(name);
-				if (entity)
-					from = entity->scale;
-			}
-			std::vector<CutsceneActionPtr> actions;
-			actions.push_back(std::make_unique<AnimateAction>(
-				name, AnimProperty::ScaleX, from.x, target.x, duration, easing));
-			actions.push_back(std::make_unique<AnimateAction>(
-				name, AnimProperty::ScaleY, from.y, target.y, duration, easing));
-			inner = std::make_unique<ParallelAction>(std::move(actions));
-			inner->Start(sm);
-		}
-
-		bool Update(float dt, StateManager& sm) override { return inner->Update(dt, sm); }
-		void Render(sf::RenderTarget& t) override { if (inner) inner->Render(t); }
-		void Skip() override { if (inner) inner->Skip(); }
-	};
-
-	return std::make_unique<DeferredScaleAction>(l_name, l_target, l_duration, l_easing);
+	return std::make_unique<DeferredDualAnimAction>(
+		l_name, AnimProperty::ScaleX, AnimProperty::ScaleY,
+		l_target, sf::Vector2f{1.f, 1.f}, l_duration, l_easing,
+		[](const CutsceneEntity& e) { return e.scale; });
 }
 
 CutsceneActionPtr FadeEntityAction::Create(const std::string& l_name, float l_targetAlpha,
 											float l_duration, EasingFunc l_easing)
 {
-	struct DeferredFadeAction : public CutsceneAction
-	{
-		std::string name;
-		float targetAlpha, duration;
-		EasingFunc easing;
-		std::unique_ptr<AnimateAction> inner;
-
-		DeferredFadeAction(const std::string& n, float a, float d, EasingFunc e)
-			: name(n), targetAlpha(a), duration(d), easing(e) {}
-
-		void Start(StateManager& sm) override
-		{
-			float from = 255.f;
-			if (CutsceneState::s_active)
-			{
-				auto* entity = CutsceneState::s_active->GetScene().Get(name);
-				if (entity)
-					from = entity->alpha;
-			}
-			inner = std::make_unique<AnimateAction>(
-				name, AnimProperty::Alpha, from, targetAlpha, duration, easing);
-			inner->Start(sm);
-		}
-
-		bool Update(float dt, StateManager& sm) override { return inner->Update(dt, sm); }
-		void Skip() override { if (inner) inner->Skip(); }
-	};
-
-	return std::make_unique<DeferredFadeAction>(l_name, l_targetAlpha, l_duration, l_easing);
+	return std::make_unique<DeferredSingleAnimAction>(
+		l_name, AnimProperty::Alpha, l_targetAlpha, 255.f, l_duration, l_easing,
+		[](const CutsceneEntity& e) { return e.alpha; });
 }
 
 CutsceneActionPtr RotateAction::Create(const std::string& l_name, float l_targetDeg,
 										float l_duration, EasingFunc l_easing)
 {
-	struct DeferredRotateAction : public CutsceneAction
-	{
-		std::string name;
-		float targetDeg, duration;
-		EasingFunc easing;
-		std::unique_ptr<AnimateAction> inner;
-
-		DeferredRotateAction(const std::string& n, float d, float dur, EasingFunc e)
-			: name(n), targetDeg(d), duration(dur), easing(e) {}
-
-		void Start(StateManager& sm) override
-		{
-			float from = 0.f;
-			if (CutsceneState::s_active)
-			{
-				auto* entity = CutsceneState::s_active->GetScene().Get(name);
-				if (entity)
-					from = entity->rotation;
-			}
-			inner = std::make_unique<AnimateAction>(
-				name, AnimProperty::Rotation, from, targetDeg, duration, easing);
-			inner->Start(sm);
-		}
-
-		bool Update(float dt, StateManager& sm) override { return inner->Update(dt, sm); }
-		void Skip() override { if (inner) inner->Skip(); }
-	};
-
-	return std::make_unique<DeferredRotateAction>(l_name, l_targetDeg, l_duration, l_easing);
+	return std::make_unique<DeferredSingleAnimAction>(
+		l_name, AnimProperty::Rotation, l_targetDeg, 0.f, l_duration, l_easing,
+		[](const CutsceneEntity& e) { return e.rotation; });
 }
 
 // ── SoundAction ───────────────────────────────────────────────────
@@ -601,7 +591,7 @@ void SetBackgroundAction::Start(StateManager& l_sm)
 		return;
 
 	LevelConfig config{};
-	config.id = 99;
+	config.id = CUTSCENE_LEVEL_ID;
 	config.paperTone = m_paperTone;
 	config.inkTint = m_inkTint;
 	config.corruption = m_corruption;
@@ -643,16 +633,16 @@ bool PostProcessAction::Update(float l_dt, StateManager& l_sm)
 	return true;
 }
 
-// ── ClearTextAction ───────────────────────────────────────────────
+// ── ClearPersistentAction ─────────────────────────────────────────
 
-void ClearTextAction::Start(StateManager& l_sm)
+void ClearPersistentAction::Start(StateManager& l_sm)
 {
 	(void)l_sm;
 	if (CutsceneState::s_active)
-		CutsceneState::s_active->ClearPersistentText();
+		CutsceneState::s_active->ClearAllPersistent();
 }
 
-bool ClearTextAction::Update(float l_dt, StateManager& l_sm)
+bool ClearPersistentAction::Update(float l_dt, StateManager& l_sm)
 {
 	(void)l_dt; (void)l_sm;
 	return true;

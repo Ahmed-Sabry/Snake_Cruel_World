@@ -16,6 +16,7 @@ class WaitAction : public CutsceneAction
 {
 public:
 	explicit WaitAction(float l_duration);
+	void Start(StateManager& l_sm) override;
 	bool Update(float l_dt, StateManager& l_sm) override;
 	void Skip() override;
 private:
@@ -27,9 +28,10 @@ class FadeAction : public CutsceneAction
 {
 public:
 	FadeAction(bool l_toBlack, float l_duration, sf::Color l_color = sf::Color::Black);
+	void Start(StateManager& l_sm) override;
 	bool Update(float l_dt, StateManager& l_sm) override;
 	void Render(sf::RenderTarget& l_target) override;
-	bool IsPersistent() const override { return m_toBlack; } // only fade-to-black needs to persist
+	bool IsPersistent() const override { return m_toBlack; }
 	void Skip() override;
 private:
 	bool m_toBlack; // true = transparent→opaque, false = opaque→transparent
@@ -48,10 +50,8 @@ public:
 	void Start(StateManager& l_sm) override;
 	bool Update(float l_dt, StateManager& l_sm) override;
 	void Render(sf::RenderTarget& l_target) override;
-	bool IsPersistent() const override { return m_persistent; }
+	bool IsPersistent() const override { return true; }
 	void Skip() override;
-
-	void ClearPersistence() { m_persistent = false; }
 
 private:
 	std::string m_fullText;
@@ -67,7 +67,6 @@ private:
 	int m_visibleChars = 0;
 	bool m_textComplete = false;
 	bool m_inputReceived = false;
-	bool m_persistent = true;
 	float m_cursorTimer = 0.f;
 };
 
@@ -96,7 +95,6 @@ public:
 	void Render(sf::RenderTarget& l_target) override;
 	bool IsPersistent() const override;
 	void Skip() override;
-	void ClearChildPersistentText();
 private:
 	std::vector<CutsceneActionPtr> m_actions;
 	std::vector<bool> m_done;
@@ -136,6 +134,7 @@ public:
 	AnimateAction(const std::string& l_entityName, AnimProperty l_prop,
 				  float l_from, float l_to, float l_duration,
 				  EasingFunc l_easing = Easing::EaseOutQuad);
+	void Start(StateManager& l_sm) override;
 	bool Update(float l_dt, StateManager& l_sm) override;
 	void Skip() override;
 private:
@@ -148,28 +147,70 @@ private:
 	void ApplyValue(float l_value);
 };
 
-// Convenience: moves entity to target position over duration
+// Deferred animation helpers — read entity's current value at Start() time
+
+class DeferredSingleAnimAction : public CutsceneAction
+{
+public:
+	using ReadFunc = std::function<float(const CutsceneEntity&)>;
+	DeferredSingleAnimAction(const std::string& l_name, AnimProperty l_prop,
+							 float l_target, float l_defaultFrom,
+							 float l_duration, EasingFunc l_easing,
+							 ReadFunc l_readFrom);
+	void Start(StateManager& l_sm) override;
+	bool Update(float l_dt, StateManager& l_sm) override;
+	void Skip() override;
+private:
+	std::string m_name;
+	AnimProperty m_prop;
+	float m_target, m_defaultFrom, m_duration;
+	EasingFunc m_easing;
+	ReadFunc m_readFrom;
+	std::unique_ptr<AnimateAction> m_inner;
+};
+
+class DeferredDualAnimAction : public CutsceneAction
+{
+public:
+	using ReadFunc = std::function<sf::Vector2f(const CutsceneEntity&)>;
+	DeferredDualAnimAction(const std::string& l_name,
+						   AnimProperty l_propX, AnimProperty l_propY,
+						   sf::Vector2f l_target, sf::Vector2f l_defaultFrom,
+						   float l_duration, EasingFunc l_easing,
+						   ReadFunc l_readFrom);
+	void Start(StateManager& l_sm) override;
+	bool Update(float l_dt, StateManager& l_sm) override;
+	void Render(sf::RenderTarget& l_target) override;
+	void Skip() override;
+private:
+	std::string m_name;
+	AnimProperty m_propX, m_propY;
+	sf::Vector2f m_target, m_defaultFrom;
+	float m_duration;
+	EasingFunc m_easing;
+	ReadFunc m_readFrom;
+	std::unique_ptr<ParallelAction> m_inner;
+};
+
+// Convenience factories
 namespace MoveAction
 {
 	CutsceneActionPtr Create(const std::string& l_name, sf::Vector2f l_target,
 							 float l_duration, EasingFunc l_easing = Easing::EaseOutQuad);
 }
 
-// Convenience: scales entity to target over duration
 namespace ScaleToAction
 {
 	CutsceneActionPtr Create(const std::string& l_name, sf::Vector2f l_target,
 							 float l_duration, EasingFunc l_easing = Easing::EaseOutQuad);
 }
 
-// Convenience: fades entity alpha to target over duration
 namespace FadeEntityAction
 {
 	CutsceneActionPtr Create(const std::string& l_name, float l_targetAlpha,
 							 float l_duration, EasingFunc l_easing = Easing::EaseOutQuad);
 }
 
-// Convenience: rotates entity to target degrees over duration
 namespace RotateAction
 {
 	CutsceneActionPtr Create(const std::string& l_name, float l_targetDeg,
@@ -241,7 +282,7 @@ private:
 	bool m_psychedelic;
 };
 
-class ClearTextAction : public CutsceneAction
+class ClearPersistentAction : public CutsceneAction
 {
 public:
 	void Start(StateManager& l_sm) override;

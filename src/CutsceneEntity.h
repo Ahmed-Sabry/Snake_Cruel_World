@@ -33,4 +33,8 @@ struct CutsceneEntity
 	int zOrder = 0;
 
 	void Render(sf::RenderTarget& l_target, const sf::Font& l_font) const;
+
+private:
+	void RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_font) const;
+	void RenderRotated(sf::RenderTarget& l_target, const sf::Font& l_font) const;
 };

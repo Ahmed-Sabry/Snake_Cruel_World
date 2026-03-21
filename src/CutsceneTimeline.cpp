@@ -47,10 +47,10 @@ bool CutsceneTimeline::Update(float l_dt, StateManager& l_sm)
 
 void CutsceneTimeline::Render(sf::RenderTarget& l_target)
 {
-	// Render completed persistent actions
+	// Render completed persistent actions (unless their persistence was cleared)
 	for (size_t i = 0; i < m_currentStep && i < m_steps.size(); ++i)
 	{
-		if (m_steps[i]->IsPersistent())
+		if (m_steps[i]->IsPersistent() && !m_steps[i]->IsPersistenceCleared())
 			m_steps[i]->Render(l_target);
 	}
 
@@ -65,20 +65,8 @@ void CutsceneTimeline::SkipCurrent()
 		m_steps[m_currentStep]->Skip();
 }
 
-void CutsceneTimeline::ClearPersistentText()
+void CutsceneTimeline::ClearAllPersistent()
 {
 	for (size_t i = 0; i < m_currentStep && i < m_steps.size(); ++i)
-	{
-		// Try to cast to TypewriterTextAction directly
-		auto* text = dynamic_cast<TypewriterTextAction*>(m_steps[i].get());
-		if (text)
-		{
-			text->ClearPersistence();
-			continue;
-		}
-		// Check inside ParallelActions
-		auto* parallel = dynamic_cast<ParallelAction*>(m_steps[i].get());
-		if (parallel)
-			parallel->ClearChildPersistentText();
-	}
+		m_steps[i]->ClearPersistence();
 }

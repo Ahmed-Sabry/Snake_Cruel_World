@@ -23,7 +23,7 @@ public:
 	bool Update(float l_dt, StateManager& l_sm);
 	void Render(sf::RenderTarget& l_target);
 	void SkipCurrent();
-	void ClearPersistentText();
+	void ClearAllPersistent();
 	bool IsFinished() const { return m_finished; }
 
 private:

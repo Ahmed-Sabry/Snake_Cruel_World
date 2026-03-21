@@ -16,4 +16,5 @@ public:
 
 private:
 	std::vector<CutsceneEntity> m_entities;
+	bool m_sortDirty = false;
 };

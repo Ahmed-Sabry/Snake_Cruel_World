@@ -5,6 +5,7 @@
 #include "SnakeSkin.h"
 #include <iostream>
 #include <cstring>
+#include <cstdint>
 
 static_assert(sizeof(bool) == 1, "Save format assumes sizeof(bool) == 1");
 
@@ -54,7 +55,8 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	file.write(reinterpret_cast<const char*>(&l_state.activeSkinIndex), sizeof(l_state.activeSkinIndex));
 
 	// === V3 block ===
-	file.write(reinterpret_cast<const char*>(&l_state.introPlayed), sizeof(l_state.introPlayed));
+	uint8_t introFlag = l_state.introPlayed ? 1 : 0;
+	file.write(reinterpret_cast<const char*>(&introFlag), sizeof(introFlag));
 
 	file.close();
 }
@@ -177,9 +179,9 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 	// === V3 block (only if version >= 3) ===
 	if (version >= 3)
 	{
-		file.read(reinterpret_cast<char*>(&l_state.introPlayed), sizeof(l_state.introPlayed));
-		if (file.fail())
-			l_state.introPlayed = false;
+		uint8_t introFlag = 0;
+		file.read(reinterpret_cast<char*>(&introFlag), sizeof(introFlag));
+		l_state.introPlayed = (file.fail() ? false : introFlag != 0);
 	}
 
 	file.close();

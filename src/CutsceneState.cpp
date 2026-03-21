@@ -25,7 +25,7 @@ void CutsceneState::OnEnter()
 	// Initialize post-processor
 	m_postProcessor.Init(winSize.x, winSize.y);
 	LevelConfig defaultConfig{};
-	defaultConfig.id = 99;
+	defaultConfig.id = -1;
 	defaultConfig.paperTone = sf::Color(245, 235, 220);
 	defaultConfig.inkTint = sf::Color(60, 50, 45);
 	defaultConfig.corruption = 0.02f;
