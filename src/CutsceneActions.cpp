@@ -292,8 +292,8 @@ void ParallelAction::Render(sf::RenderTarget& l_target)
 {
 	for (size_t i = 0; i < m_actions.size(); ++i)
 	{
-		// Skip finished non-persistent children
-		if (m_done[i] && !m_actions[i]->IsPersistent())
+		// Skip finished non-persistent children and cleared-persistent children
+		if (m_done[i] && (!m_actions[i]->IsPersistent() || m_actions[i]->IsPersistenceCleared()))
 			continue;
 		m_actions[i]->Render(l_target);
 	}
