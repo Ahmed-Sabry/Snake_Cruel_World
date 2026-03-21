@@ -56,6 +56,7 @@ void CutsceneState::OnExit()
 	m_screenShake.Reset(m_stateManager.GetWindow());
 	m_scene.Clear();
 	m_particles.Clear();
+	CutsceneEntity::ReleaseStaticResources();
 }
 
 void CutsceneState::HandleInput()
@@ -75,8 +76,6 @@ void CutsceneState::HandleInput()
 	}
 
 	m_inputPressed = escPressed || enterPressed;
-	if (!escPressed && !enterPressed)
-		m_inputPressed = false;
 }
 
 void CutsceneState::Update(float l_dt)

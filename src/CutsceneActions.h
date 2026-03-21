@@ -59,6 +59,7 @@ private:
 	unsigned int m_charSize;
 	sf::Color m_color;
 	float m_charsPerSec;
+	bool m_waitForInputConfigured;
 	bool m_waitForInput;
 
 	sf::Font* m_fontPtr = nullptr;

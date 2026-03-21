@@ -34,6 +34,8 @@ struct CutsceneEntity
 
 	void Render(sf::RenderTarget& l_target, const sf::Font& l_font) const;
 
+	static void ReleaseStaticResources();
+
 private:
 	void RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_font) const;
 	void RenderRotated(sf::RenderTarget& l_target, const sf::Font& l_font) const;

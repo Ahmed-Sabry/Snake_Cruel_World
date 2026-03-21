@@ -1,6 +1,10 @@
 #include "CutsceneEntity.h"
 #include "InkRenderer.h"
 
+// File-scope statics for rotated-entity render texture (only grows; released via ReleaseStaticResources)
+static sf::RenderTexture s_rt;
+static unsigned int s_rtW = 0, s_rtH = 0;
+
 void CutsceneEntity::Render(sf::RenderTarget& l_target, const sf::Font& l_font) const
 {
 	if (!visible)
@@ -129,9 +133,7 @@ void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l
 	unsigned int th = (unsigned int)std::ceil(localH);
 	if (tw == 0 || th == 0) return;
 
-	// Reuse a static render texture (resized only when needed)
-	static sf::RenderTexture s_rt;
-	static unsigned int s_rtW = 0, s_rtH = 0;
+	// Reuse file-scope render texture (resized only when needed)
 	if (tw > s_rtW || th > s_rtH)
 	{
 		s_rtW = std::max(tw, s_rtW);
@@ -189,4 +191,14 @@ void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l
 	spr.setPosition(worldCX, worldCY);
 	spr.setRotation(rotation);
 	l_target.draw(spr);
+}
+
+void CutsceneEntity::ReleaseStaticResources()
+{
+	if (s_rtW > 0 || s_rtH > 0)
+	{
+		s_rt.create(1, 1);
+		s_rtW = 0;
+		s_rtH = 0;
+	}
 }

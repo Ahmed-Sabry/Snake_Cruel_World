@@ -43,12 +43,25 @@ void FadeAction::Start(StateManager& l_sm)
 {
 	(void)l_sm;
 	m_elapsed = 0.f;
-	m_currentAlpha = m_toBlack ? 0.f : 255.f;
+	if (m_duration <= 0.f)
+	{
+		m_currentAlpha = m_toBlack ? 255.f : 0.f;
+		m_elapsed = m_duration;
+	}
+	else
+	{
+		m_currentAlpha = m_toBlack ? 0.f : 255.f;
+	}
 }
 
 bool FadeAction::Update(float l_dt, StateManager& l_sm)
 {
 	(void)l_sm;
+	if (m_duration <= 0.f)
+	{
+		m_currentAlpha = m_toBlack ? 255.f : 0.f;
+		return true;
+	}
 	m_elapsed += l_dt;
 	float t = std::min(1.f, m_elapsed / m_duration);
 	float eased = Easing::EaseOutQuad(t);
@@ -81,7 +94,8 @@ TypewriterTextAction::TypewriterTextAction(const std::string& l_text,
 										   float l_charsPerSec,
 										   bool l_waitForInput)
 	: m_fullText(l_text), m_position(l_position), m_charSize(l_charSize),
-	  m_color(l_color), m_charsPerSec(l_charsPerSec), m_waitForInput(l_waitForInput)
+	  m_color(l_color), m_charsPerSec(l_charsPerSec),
+	  m_waitForInputConfigured(l_waitForInput), m_waitForInput(l_waitForInput)
 {
 }
 
@@ -96,6 +110,7 @@ void TypewriterTextAction::Start(StateManager& l_sm)
 		m_text.setFillColor(m_color);
 		m_text.setPosition(m_position);
 	}
+	m_waitForInput = m_waitForInputConfigured;
 	m_elapsed = 0.f;
 	m_visibleChars = 0;
 	m_textComplete = false;
@@ -349,6 +364,7 @@ void AnimateAction::Start(StateManager& l_sm)
 {
 	(void)l_sm;
 	m_elapsed = 0.f;
+	ApplyValue(m_from);
 }
 
 bool AnimateAction::Update(float l_dt, StateManager& l_sm)
@@ -655,7 +671,8 @@ LambdaAction::LambdaAction(std::function<void(StateManager&)> l_func)
 
 void LambdaAction::Start(StateManager& l_sm)
 {
-	if (m_func && !m_executed)
+	m_executed = false;
+	if (m_func)
 	{
 		m_func(l_sm);
 		m_executed = true;
