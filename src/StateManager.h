@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 class AudioManager;
@@ -60,6 +61,12 @@ public:
 	// Gamification state
 	int activeSkinIndex = 0;
 	bool endlessMode = false;
+
+	// Cutscene routing (set before SwitchTo(Cutscene))
+	std::string cutsceneId;
+	StateType cutsceneReturnState = StateType::MainMenu;
+	std::function<void(StateManager&)> cutsceneOnSkip; // called when player skips with Escape
+	bool introPlayed = false;
 
 	// Death context (set by PlayState::OnDeath, read by GameOverState)
 	enum class DeathCause { Wall, Predator, MirrorGhost, Unknown };

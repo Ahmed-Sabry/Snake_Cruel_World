@@ -7,6 +7,7 @@
 #include "AchievementState.h"
 #include "StatisticsState.h"
 #include "SkinSelectState.h"
+#include "CutsceneState.h"
 #include <cstdlib>
 #include <ctime>
 
@@ -52,12 +53,23 @@ Game::Game() :
 	m_stateManager.RegisterState<AchievementState>(StateType::Achievements);
 	m_stateManager.RegisterState<StatisticsState>(StateType::Statistics);
 	m_stateManager.RegisterState<SkinSelectState>(StateType::SkinSelect);
+	m_stateManager.RegisterState<CutsceneState>(StateType::Cutscene);
 
 	// Load saved progress
 	SaveManager::Load(m_stateManager, m_statsManager, m_achievementManager);
 
-	// Start at main menu
-	m_stateManager.SwitchTo(StateType::MainMenu);
+	// Play intro cutscene on first launch, otherwise go to main menu
+	if (!m_stateManager.introPlayed)
+	{
+		m_stateManager.cutsceneId = "intro";
+		m_stateManager.cutsceneReturnState = StateType::MainMenu;
+		m_stateManager.cutsceneOnSkip = [](StateManager& sm) { sm.introPlayed = true; };
+		m_stateManager.SwitchTo(StateType::Cutscene);
+	}
+	else
+	{
+		m_stateManager.SwitchTo(StateType::MainMenu);
+	}
 }
 
 Game::~Game()
