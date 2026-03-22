@@ -21,34 +21,30 @@ void BezierPath::AddQuadratic(sf::Vector2f l_p0, sf::Vector2f l_control, sf::Vec
 	m_segments.push_back({l_p0, c1, c2, l_p2});
 }
 
-sf::Vector2f BezierPath::Evaluate(float l_t) const
+bool BezierPath::MapToSegment(float l_t, int& l_seg, float& l_localT) const
 {
 	if (m_segments.empty())
-		return {0.f, 0.f};
-
+		return false;
 	l_t = std::max(0.f, std::min(1.f, l_t));
-
-	// Map global t to segment + local t
 	float scaledT = l_t * (float)m_segments.size();
-	int seg = std::min((int)scaledT, (int)m_segments.size() - 1);
-	float localT = scaledT - (float)seg;
-	localT = std::max(0.f, std::min(1.f, localT));
+	l_seg = std::min((int)scaledT, (int)m_segments.size() - 1);
+	l_localT = std::max(0.f, std::min(1.f, scaledT - (float)l_seg));
+	return true;
+}
 
+sf::Vector2f BezierPath::Evaluate(float l_t) const
+{
+	int seg; float localT;
+	if (!MapToSegment(l_t, seg, localT))
+		return {0.f, 0.f};
 	return EvalCubic(m_segments[seg], localT);
 }
 
 sf::Vector2f BezierPath::EvaluateTangent(float l_t) const
 {
-	if (m_segments.empty())
+	int seg; float localT;
+	if (!MapToSegment(l_t, seg, localT))
 		return {1.f, 0.f};
-
-	l_t = std::max(0.f, std::min(1.f, l_t));
-
-	float scaledT = l_t * (float)m_segments.size();
-	int seg = std::min((int)scaledT, (int)m_segments.size() - 1);
-	float localT = scaledT - (float)seg;
-	localT = std::max(0.f, std::min(1.f, localT));
-
 	return EvalCubicTangent(m_segments[seg], localT);
 }
 
@@ -108,7 +104,15 @@ void BezierMoveAction::Start(StateManager& l_sm)
 {
 	(void)l_sm;
 	m_elapsed = 0.f;
-	ApplyPathState(0.f);
+	if (m_duration <= 0.f)
+	{
+		m_elapsed = m_duration;
+		ApplyPathState(1.f);
+	}
+	else
+	{
+		ApplyPathState(0.f);
+	}
 }
 
 bool BezierMoveAction::Update(float l_dt, StateManager& l_sm)

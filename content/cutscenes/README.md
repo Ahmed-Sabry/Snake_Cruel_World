@@ -40,7 +40,7 @@ Any field that accepts a string (positions, dimensions, charSize) is evaluated a
 
 `+` `-` `*` `/` — standard precedence (`*` `/` before `+` `-`). Tokens must be space-separated.
 
-```
+```text
 "cx - 100 * s"    → center X minus (100 × scale)
 "w * 0.2"          → 20% of screen width
 "h / 2 + 50"       → half height plus 50
@@ -193,17 +193,17 @@ Attach a continuous mathematical animation to an entity property. Runs every fra
 | Field | Type | Default | Notes |
 |-------|------|---------|-------|
 | `func` | string | "sin" | `sin` `cos` `triangle` `sawtooth` `breathing` |
-| `frequency` | number | 1.0 | Oscillation frequency (Hz) |
+| `frequency` | number | 1.0 | rad/s for sin/cos; Hz for triangle/sawtooth/breathing |
 | `amplitude` | number | 10.0 | |
-| `phase` | number | 0.0 | Phase offset (sin/cos only) |
+| `phase` | number | 0.0 | Radians (sin/cos only) |
 | `offset` | number/expr | 0 | Base value added to oscillation |
 
-**Formulas:**
-- `sin`: `sin(t × freq + phase) × amplitude + offset`
-- `cos`: `cos(t × freq + phase) × amplitude + offset`
-- `triangle`: triangle wave at freq/amplitude + offset
-- `sawtooth`: sawtooth wave at freq/amplitude + offset
-- `breathing`: `offset + sin(t × 2π / (1/freq)) × amplitude` — smooth breathing effect
+**Formulas** (where `freq` = JSON `frequency`, `t` = elapsed seconds):
+- `sin`: `sin(t × freq + phase) × amplitude + offset` — freq is rad/s
+- `cos`: `cos(t × freq + phase) × amplitude + offset` — freq is rad/s
+- `triangle`: triangle wave with period `1/freq` seconds, ± amplitude + offset
+- `sawtooth`: sawtooth wave with period `1/freq` seconds, ± amplitude + offset
+- `breathing`: `offset + sin(2π × freq × t) × amplitude` — freq is Hz
 
 ### camera
 

@@ -134,7 +134,7 @@ void CutsceneEntity::RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_
 		if (isApple)
 		{
 			// Breathing animation (period ≈ 2s)
-			float t = spawnClock.getElapsedTime().asSeconds();
+			float t = totalTime;
 			r *= 1.0f + std::sin(t * static_cast<float>(M_PI)) * 0.05f;
 
 			// Ink-tint outline (matches gameplay)
@@ -288,7 +288,7 @@ void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l
 	// Only copy fields needed for RenderDirect — intentionally excluded:
 	// texture/texturePath/textureLoaded (sprites don't go through this path),
 	// updateCallbacks (not needed for rendering), parent (local draw),
-	// totalTime (not used in draw), spawnClock (uses source entity's clock).
+	// spawnClock (not used in draw — totalTime used instead).
 	CutsceneEntity temp;
 	temp.name = name;
 	temp.shape = shape;
@@ -311,6 +311,7 @@ void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l
 	temp.hasEyes = hasEyes;
 	temp.isApple = isApple;
 	temp.zOrder = zOrder;
+	temp.totalTime = totalTime;
 
 	switch (shape)
 	{

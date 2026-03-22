@@ -24,12 +24,15 @@ std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 				CutsceneLoader::CutsceneMetadata meta;
 				if (CutsceneLoader::ReadMetadata(entry.path().string(), meta))
 				{
-					// Skip if already in hardcoded list
+					// Check if already in list
 					bool exists = false;
-					for (const auto& e : entries)
+					for (auto& e : entries)
 					{
 						if (e.id == meta.id)
 						{
+							// Fill in path for preseeded entries that lack one
+							if (e.path.empty())
+								e.path = entry.path().string();
 							exists = true;
 							break;
 						}
@@ -83,5 +86,15 @@ CutsceneTimeline CutsceneDefs::Build(const std::string& l_id, StateManager& l_sm
 	}
 
 	// Unknown cutscene ID — return empty timeline (instantly finishes)
+	// Still set flags for known cutscenes so they don't re-queue
+	if (l_id == "intro")
+	{
+		CutsceneTimeline tl;
+		tl.Add(std::make_unique<LambdaAction>([](StateManager& sm)
+		{
+			sm.introPlayed = true;
+		}));
+		return tl;
+	}
 	return CutsceneTimeline{};
 }

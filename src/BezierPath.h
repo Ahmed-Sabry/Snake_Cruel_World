@@ -24,6 +24,8 @@ public:
 	bool IsEmpty() const { return m_segments.empty(); }
 
 private:
+	bool MapToSegment(float l_t, int& l_seg, float& l_localT) const;
+
 	std::vector<BezierSegment> m_segments;
 
 	static sf::Vector2f EvalCubic(const BezierSegment& seg, float t);
