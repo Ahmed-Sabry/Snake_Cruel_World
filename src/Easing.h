@@ -32,6 +32,28 @@ namespace Easing
 		if (t >= 1.f) return 1.f;
 		return std::pow(2.f, -10.f * t) * std::sin((t * 10.f - 0.75f) * 2.094f) + 1.f;
 	}
+
+	inline float EaseInBack(float t)
+	{
+		const float c = 1.70158f;
+		return (c + 1.f) * t * t * t - c * t * t;
+	}
+
+	inline float EaseInOutBack(float t)
+	{
+		const float c = 1.70158f * 1.525f;
+		if (t < 0.5f)
+			return 0.5f * (4.f * t * t * ((c + 1.f) * 2.f * t - c));
+		float u = 2.f * t - 2.f;
+		return 0.5f * (u * u * ((c + 1.f) * u + c) + 2.f);
+	}
+
+	inline float EaseInElastic(float t)
+	{
+		if (t <= 0.f) return 0.f;
+		if (t >= 1.f) return 1.f;
+		return -std::pow(2.f, 10.f * t - 10.f) * std::sin((t * 10.f - 10.75f) * 2.094f);
+	}
 }
 
 using EasingFunc = float(*)(float);

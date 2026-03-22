@@ -23,6 +23,7 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 	sf::Color darkInk(45, 35, 30);
 	sf::Color redInk(180, 50, 40);
 	sf::Color crimson(160, 30, 30);
+	sf::Color appleRed(180, 55, 45); // matches Level 1 apple color
 
 	// Entity sizes
 	float headSz = 24.f * s;
@@ -71,6 +72,10 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 			sf::Vector2f(cx, cy + 20.f * s), inkColor, 15)
 	));
 
+	// 4b. Border settle oscillation — dampened bounce after overshoot
+	tl.Add(ScaleToAction::Create("border", {0.98f, 0.98f}, 0.12f, Easing::EaseInQuad));
+	tl.Add(ScaleToAction::Create("border", {1.0f, 1.0f}, 0.15f, Easing::EaseOutQuad));
+
 	// 5. Ink dust at all 4 corners (decorative flourish)
 	tl.AddParallel(Actions(
 		std::make_unique<ParticleAction>(ParticleSpawnType::InkDust,
@@ -81,13 +86,13 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 			sf::Vector2f(cx - 240.f * s, cy + 195.f * s), inkColor, 4),
 		std::make_unique<ParticleAction>(ParticleSpawnType::InkDust,
 			sf::Vector2f(cx + 240.f * s, cy + 195.f * s), inkColor, 4),
-		std::make_unique<WaitAction>(0.3f)
+		std::make_unique<WaitAction>(0.6f)
 	));
 
 	// 6. Narration
 	tl.Add(std::make_unique<TypewriterTextAction>(
 		"A world, drawn on notebook paper.",
-		sf::Vector2f(cx - 230.f * s, cy - 220.f * s),
+		sf::Vector2f(cx - 230.f * s, cy - 260.f * s),
 		(unsigned int)(28 * s), inkColor, 24.f, false));
 
 	// 7. Brief pause
@@ -120,6 +125,8 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 			e.corruption = 0.08f;
 			e.seed = 7;
 			e.alpha = 0.f;
+			e.filled = true;
+			e.hasEyes = true;
 		}));
 	tl.Add(FadeEntityAction::Create("sHead", 255.f, 0.4f, Easing::EaseOutCubic));
 
@@ -134,6 +141,7 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 			e.corruption = 0.08f;
 			e.seed = 11;
 			e.alpha = 0.f;
+			e.filled = true;
 		}));
 	tl.Add(FadeEntityAction::Create("sB1", 255.f, 0.3f, Easing::EaseOutCubic));
 
@@ -148,6 +156,7 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 			e.corruption = 0.08f;
 			e.seed = 13;
 			e.alpha = 0.f;
+			e.filled = true;
 		}));
 
 	// 14. Fade in body2 + narration (parallel)
@@ -155,17 +164,35 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 		FadeEntityAction::Create("sB2", 255.f, 0.3f, Easing::EaseOutCubic),
 		std::make_unique<TypewriterTextAction>(
 			"And in this world, lived a small snake.",
-			sf::Vector2f(cx - 275.f * s, cy - 175.f * s),
+			sf::Vector2f(cx - 275.f * s, cy - 225.f * s),
 			(unsigned int)(28 * s), inkColor, 22.f, false)
 	));
 
-	// 15. Snake wiggle — gives it personality!
-	tl.Add(std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
-		0.f, 5.f, 0.25f, Easing::EaseOutQuad));
-	tl.Add(std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
-		5.f, -5.f, 0.3f, Easing::EaseOutQuad));
-	tl.Add(std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
-		-5.f, 0.f, 0.25f, Easing::EaseOutElastic));
+	// 15. Snake wiggle with body follow-through
+	tl.AddParallel(Actions(
+		std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
+			0.f, 8.f, 0.25f, Easing::EaseOutQuad),
+		std::make_unique<AnimateAction>("sB1", AnimProperty::Rotation,
+			0.f, 4.f, 0.28f, Easing::EaseOutQuad),
+		std::make_unique<AnimateAction>("sB2", AnimProperty::Rotation,
+			0.f, 2.f, 0.30f, Easing::EaseOutQuad)
+	));
+	tl.AddParallel(Actions(
+		std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
+			8.f, -8.f, 0.3f, Easing::EaseInOutQuad),
+		std::make_unique<AnimateAction>("sB1", AnimProperty::Rotation,
+			4.f, -4.f, 0.33f, Easing::EaseInOutQuad),
+		std::make_unique<AnimateAction>("sB2", AnimProperty::Rotation,
+			2.f, -2.f, 0.35f, Easing::EaseInOutQuad)
+	));
+	tl.AddParallel(Actions(
+		std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
+			-8.f, 0.f, 0.25f, Easing::EaseOutElastic),
+		std::make_unique<AnimateAction>("sB1", AnimProperty::Rotation,
+			-4.f, 0.f, 0.28f, Easing::EaseOutElastic),
+		std::make_unique<AnimateAction>("sB2", AnimProperty::Rotation,
+			-2.f, 0.f, 0.30f, Easing::EaseOutElastic)
+	));
 
 	// 16. Ink dust + pause
 	tl.AddParallel(Actions(
@@ -182,16 +209,19 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 	float appleX = cx + 100.f * s;
 	float appleY = cy + 20.f * s;
 
-	// 17. Spawn apple
-	tl.Add(std::make_unique<SpawnEntityAction>("apple", EntityShape::Star,
-		[appleX, appleY, redInk, s](CutsceneEntity& e)
+	// 17. Spawn apple (behind snake so head can overlap it)
+	tl.Add(std::make_unique<SpawnEntityAction>("apple", EntityShape::Circle,
+		[appleX, appleY, appleRed, s](CutsceneEntity& e)
 		{
 			e.position = {appleX, appleY};
 			e.radius = 10.f * s;
-			e.color = redInk;
+			e.color = appleRed;
 			e.corruption = 0.1f;
 			e.seed = 99;
 			e.alpha = 0.f;
+			e.filled = true;
+			e.isApple = true;
+			e.zOrder = -1;
 		}));
 
 	// 18. Apple fades in + narration
@@ -199,32 +229,73 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 		FadeEntityAction::Create("apple", 255.f, 0.5f, Easing::EaseOutCubic),
 		std::make_unique<TypewriterTextAction>(
 			"It ate apples. It was happy.",
-			sf::Vector2f(cx - 200.f * s, cy - 130.f * s),
+			sf::Vector2f(cx - 200.f * s, cy - 190.f * s),
 			(unsigned int)(28 * s), inkColor, 22.f, false)
 	));
 
-	// 19. Snake moves toward apple — staggered via duration differences
-	//     Head arrives first, each body segment takes slightly longer
 	float moveTargetHeadX = cx + 76.f * s;
 	float moveTargetB1X   = cx + 54.f * s;
 	float moveTargetB2X   = cx + 32.f * s;
 
+	// 18b. Anticipation — snake coils slightly before pounce
 	tl.AddParallel(Actions(
 		std::make_unique<AnimateAction>("sHead", AnimProperty::PositionX,
-			headX, moveTargetHeadX, 1.0f, Easing::EaseInOutCubic),
+			headX, headX - 4.f * s, 0.18f, Easing::EaseOutQuad),
+		ScaleToAction::Create("sHead", {0.92f, 1.08f}, 0.18f, Easing::EaseOutQuad)
+	));
+
+	// 19. Snake moves toward apple — staggered + scale restore from coil
+	tl.AddParallel(Actions(
+		std::make_unique<AnimateAction>("sHead", AnimProperty::PositionX,
+			headX - 4.f * s, moveTargetHeadX, 1.0f, Easing::EaseInOutCubic),
+		ScaleToAction::Create("sHead", {1.f, 1.f}, 0.15f, Easing::EaseOutQuad),
 		std::make_unique<AnimateAction>("sB1", AnimProperty::PositionX,
 			b1X, moveTargetB1X, 1.1f, Easing::EaseInOutCubic),
 		std::make_unique<AnimateAction>("sB2", AnimProperty::PositionX,
 			b2X, moveTargetB2X, 1.2f, Easing::EaseInOutCubic)
 	));
 
-	// 20. Apple eaten! Destruction + celebration
+	// 20a. First bite — head covers apple, apple shifts right + shrinks
+	//       (crescent of apple peeks out past the head = "bitten" look)
+	float bitenAppleX = appleX + 8.f * s; // shift right so remnant peeks out
 	tl.AddParallel(Actions(
-		std::make_unique<DestroyEntityAction>("apple"),
+		std::make_unique<AnimateAction>("apple", AnimProperty::PositionX,
+			appleX, bitenAppleX, 0.12f, Easing::EaseOutQuad),
+		ScaleToAction::Create("apple", {0.55f, 0.55f}, 0.12f, Easing::EaseOutQuad),
 		std::make_unique<SoundAction>("apple_eat"),
+		std::make_unique<ParticleAction>(ParticleSpawnType::InkSplat,
+			sf::Vector2f(appleX, appleY), appleRed, 6)
+	));
+
+	// 20b. Pause — the remaining apple is visible as a small piece past the head
+	tl.Add(std::make_unique<WaitAction>(0.3f));
+
+	// 20c. Second bite — head lunges forward, swallows the rest
+	float bite2X = moveTargetHeadX + 8.f * s;
+	tl.AddParallel(Actions(
+		std::make_unique<AnimateAction>("sHead", AnimProperty::PositionX,
+			moveTargetHeadX, bite2X, 0.15f, Easing::EaseOutQuad),
+		ScaleToAction::Create("apple", {0.f, 0.f}, 0.15f, Easing::EaseInCubic),
+		ScaleToAction::Create("sHead", {1.15f, 1.15f}, 0.15f, Easing::EaseOutQuad),
 		std::make_unique<SoundAction>("combo_3x"),
 		std::make_unique<ParticleAction>(ParticleSpawnType::InkSplat,
-			sf::Vector2f(appleX, appleY), redInk, 10)
+			sf::Vector2f(bitenAppleX, appleY), appleRed, 10)
+	));
+
+	// 20d. Head snaps back + destroy apple
+	tl.AddParallel(Actions(
+		ScaleToAction::Create("sHead", {1.f, 1.f}, 0.2f, Easing::EaseOutElastic),
+		std::make_unique<DestroyEntityAction>("apple")
+	));
+
+	// 20e. Swallow pulse — wave down the body
+	tl.AddParallel(Actions(
+		ScaleToAction::Create("sB1", {1.12f, 1.12f}, 0.12f, Easing::EaseOutQuad),
+		ScaleToAction::Create("sB2", {1.08f, 1.08f}, 0.2f, Easing::EaseOutQuad)
+	));
+	tl.AddParallel(Actions(
+		ScaleToAction::Create("sB1", {1.f, 1.f}, 0.2f, Easing::EaseOutElastic),
+		ScaleToAction::Create("sB2", {1.f, 1.f}, 0.2f, Easing::EaseOutElastic)
 	));
 
 	// 21. Snake grows! New body segment pops in with EaseOutBack
@@ -240,17 +311,42 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 			e.corruption = 0.08f;
 			e.seed = 17;
 			e.alpha = 255.f;
+			e.filled = true;
 			e.scale = {0.f, 0.f};
 		}));
 	tl.Add(ScaleToAction::Create("sB3", {1.f, 1.f}, 0.4f, Easing::EaseOutBack));
 
-	// 22. Happy wiggle
-	tl.Add(std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
-		0.f, 4.f, 0.15f, Easing::EaseOutQuad));
-	tl.Add(std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
-		4.f, -4.f, 0.2f, Easing::EaseOutQuad));
-	tl.Add(std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
-		-4.f, 0.f, 0.15f, Easing::EaseOutElastic));
+	// 22. Happy wiggle with body follow-through
+	tl.AddParallel(Actions(
+		std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
+			0.f, 7.f, 0.15f, Easing::EaseOutQuad),
+		std::make_unique<AnimateAction>("sB1", AnimProperty::Rotation,
+			0.f, 3.5f, 0.18f, Easing::EaseOutQuad),
+		std::make_unique<AnimateAction>("sB2", AnimProperty::Rotation,
+			0.f, 1.8f, 0.20f, Easing::EaseOutQuad),
+		std::make_unique<AnimateAction>("sB3", AnimProperty::Rotation,
+			0.f, 1.f, 0.22f, Easing::EaseOutQuad)
+	));
+	tl.AddParallel(Actions(
+		std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
+			7.f, -7.f, 0.2f, Easing::EaseInOutQuad),
+		std::make_unique<AnimateAction>("sB1", AnimProperty::Rotation,
+			3.5f, -3.5f, 0.23f, Easing::EaseInOutQuad),
+		std::make_unique<AnimateAction>("sB2", AnimProperty::Rotation,
+			1.8f, -1.8f, 0.25f, Easing::EaseInOutQuad),
+		std::make_unique<AnimateAction>("sB3", AnimProperty::Rotation,
+			1.f, -1.f, 0.27f, Easing::EaseInOutQuad)
+	));
+	tl.AddParallel(Actions(
+		std::make_unique<AnimateAction>("sHead", AnimProperty::Rotation,
+			-7.f, 0.f, 0.15f, Easing::EaseOutElastic),
+		std::make_unique<AnimateAction>("sB1", AnimProperty::Rotation,
+			-3.5f, 0.f, 0.18f, Easing::EaseOutElastic),
+		std::make_unique<AnimateAction>("sB2", AnimProperty::Rotation,
+			-1.8f, 0.f, 0.20f, Easing::EaseOutElastic),
+		std::make_unique<AnimateAction>("sB3", AnimProperty::Rotation,
+			-1.f, 0.f, 0.22f, Easing::EaseOutElastic)
+	));
 
 	// 23. Pause
 	tl.Add(std::make_unique<WaitAction>(0.5f));
@@ -258,6 +354,14 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 	// ===================================================================
 	// ACT 5 — THE TURN
 	// ===================================================================
+
+	// 23b. Dim snake — visual de-emphasis before the tonal shift
+	tl.AddParallel(Actions(
+		FadeEntityAction::Create("sHead", 200.f, 0.3f, Easing::EaseOutQuad),
+		FadeEntityAction::Create("sB1", 200.f, 0.3f, Easing::EaseOutQuad),
+		FadeEntityAction::Create("sB2", 200.f, 0.3f, Easing::EaseOutQuad),
+		FadeEntityAction::Create("sB3", 200.f, 0.3f, Easing::EaseOutQuad)
+	));
 
 	// 24. Clear all previous text
 	tl.Add(std::make_unique<ClearPersistentAction>());
@@ -268,13 +372,24 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 	// 26. Heartbeat
 	tl.Add(std::make_unique<SoundAction>("heartbeat"));
 
+	// 26b. Snake snaps back to full visibility
+	tl.AddParallel(Actions(
+		FadeEntityAction::Create("sHead", 255.f, 0.15f, Easing::EaseOutQuad),
+		FadeEntityAction::Create("sB1", 255.f, 0.15f, Easing::EaseOutQuad),
+		FadeEntityAction::Create("sB2", 255.f, 0.15f, Easing::EaseOutQuad),
+		FadeEntityAction::Create("sB3", 255.f, 0.15f, Easing::EaseOutQuad)
+	));
+
 	// 27. THE pivotal line — only text that waits for input
 	tl.Add(std::make_unique<TypewriterTextAction>(
 		"But the world had other plans.",
 		sf::Vector2f(cx - 220.f * s, cy - 220.f * s),
 		(unsigned int)(30 * s), darkInk, 14.f, true));
 
-	// 28. First shrink: 1.0 → 0.8
+	// 27b. World inhale — anticipation for first shrink
+	tl.Add(ScaleToAction::Create("border", {1.03f, 1.03f}, 0.25f, Easing::EaseOutQuad));
+
+	// 28. First shrink: 1.0 → 0.8 + snake distress begins
 	tl.AddParallel(Actions(
 		ScaleToAction::Create("border", {0.8f, 0.8f}, 1.5f, Easing::EaseInOutCubic),
 		std::make_unique<ShakeAction>(0.4f, 4.f),
@@ -282,18 +397,36 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 		std::make_unique<TypewriterTextAction>(
 			"The walls began to close in.",
 			sf::Vector2f(cx - 200.f * s, cy - 175.f * s),
-			(unsigned int)(28 * s), darkInk, 22.f, false)
+			(unsigned int)(28 * s), darkInk, 22.f, false),
+		std::make_unique<AnimateAction>("sHead", AnimProperty::Corruption,
+			0.08f, 0.15f, 1.5f, Easing::EaseInQuad),
+		std::make_unique<AnimateAction>("sB1", AnimProperty::Corruption,
+			0.08f, 0.15f, 1.5f, Easing::EaseInQuad),
+		std::make_unique<AnimateAction>("sB2", AnimProperty::Corruption,
+			0.08f, 0.15f, 1.5f, Easing::EaseInQuad)
+		// sB3 omitted — just spawned, stays "clean" until second shrink
 	));
 
 	// 29. Pause
 	tl.Add(std::make_unique<WaitAction>(0.6f));
 
-	// 30. Second shrink: 0.8 → 0.65 + visual corruption begins
+	// 29b. World inhale — second anticipation
+	tl.Add(ScaleToAction::Create("border", {0.83f, 0.83f}, 0.2f, Easing::EaseOutQuad));
+
+	// 30. Second shrink: 0.8 → 0.65 + visual corruption + snake agitation
 	tl.AddParallel(Actions(
 		ScaleToAction::Create("border", {0.65f, 0.65f}, 1.2f, Easing::EaseInOutCubic),
 		std::make_unique<ShakeAction>(0.5f, 6.f),
 		std::make_unique<SoundAction>("world_shrink"),
-		std::make_unique<PostProcessAction>(0.3f)
+		std::make_unique<PostProcessAction>(0.3f),
+		std::make_unique<AnimateAction>("sHead", AnimProperty::Corruption,
+			0.15f, 0.25f, 1.2f, Easing::EaseInQuad),
+		std::make_unique<AnimateAction>("sB1", AnimProperty::Corruption,
+			0.15f, 0.25f, 1.2f, Easing::EaseInQuad),
+		std::make_unique<AnimateAction>("sB2", AnimProperty::Corruption,
+			0.15f, 0.25f, 1.2f, Easing::EaseInQuad),
+		std::make_unique<AnimateAction>("sB3", AnimProperty::Corruption,
+			0.08f, 0.25f, 1.2f, Easing::EaseInQuad)
 	));
 
 	// 31. Snake squeezed back toward center
@@ -315,24 +448,31 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 	// 33. Clear text for the final act
 	tl.Add(std::make_unique<ClearPersistentAction>());
 
-	// 34. Ramp up visual corruption
-	tl.Add(std::make_unique<PostProcessAction>(0.6f, true, true));
+	// 34. Ramp up visual corruption (animated over 0.8s)
+	tl.Add(std::make_unique<AnimatePostProcessAction>(0.3f, 0.6f, 0.8f, Easing::EaseInQuad, true, true));
 
-	// 35. Third shrink: 0.65 → 0.45 + border turns crimson
+	// 34b. World inhale — final anticipation
+	tl.Add(ScaleToAction::Create("border", {0.68f, 0.68f}, 0.2f, Easing::EaseOutQuad));
+
+	// 35. Third shrink: 0.65 → 0.45 + border color bleeds to crimson + max distress
 	tl.AddParallel(Actions(
 		ScaleToAction::Create("border", {0.45f, 0.45f}, 1.5f, Easing::EaseInCubic),
 		std::make_unique<SoundAction>("earthquake"),
 		std::make_unique<ShakeAction>(0.7f, 8.f),
-		std::make_unique<LambdaAction>([crimson](StateManager& sm)
-		{
-			(void)sm;
-			if (CutsceneState::s_active)
-			{
-				auto* border = CutsceneState::s_active->GetScene().Get("border");
-				if (border)
-					border->color = crimson;
-			}
-		})
+		std::make_unique<AnimateAction>("border", AnimProperty::ColorR,
+			(float)inkColor.r, (float)crimson.r, 1.5f, Easing::EaseInCubic),
+		std::make_unique<AnimateAction>("border", AnimProperty::ColorG,
+			(float)inkColor.g, (float)crimson.g, 1.5f, Easing::EaseInCubic),
+		std::make_unique<AnimateAction>("border", AnimProperty::ColorB,
+			(float)inkColor.b, (float)crimson.b, 1.5f, Easing::EaseInCubic),
+		std::make_unique<AnimateAction>("sHead", AnimProperty::Corruption,
+			0.25f, 0.45f, 1.5f, Easing::EaseInQuad),
+		std::make_unique<AnimateAction>("sB1", AnimProperty::Corruption,
+			0.25f, 0.45f, 1.5f, Easing::EaseInQuad),
+		std::make_unique<AnimateAction>("sB2", AnimProperty::Corruption,
+			0.25f, 0.45f, 1.5f, Easing::EaseInQuad),
+		std::make_unique<AnimateAction>("sB3", AnimProperty::Corruption,
+			0.25f, 0.45f, 1.5f, Easing::EaseInQuad)
 	));
 
 	// 36. Urgent narration + impact
@@ -362,8 +502,8 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 	// 39. Clear everything
 	tl.Add(std::make_unique<ClearPersistentAction>());
 
-	// 40. Full post-processing chaos
-	tl.Add(std::make_unique<PostProcessAction>(1.0f, true, true, true));
+	// 40. Full post-processing chaos (ramped over 0.5s)
+	tl.Add(std::make_unique<AnimatePostProcessAction>(0.6f, 1.0f, 0.5f, Easing::EaseInCubic, true, true, true));
 
 	// 41. Destroy the world — everything gone in a burst of red ink
 	tl.AddParallel(Actions(
@@ -379,7 +519,7 @@ static CutsceneTimeline BuildIntroCutscene(StateManager& l_sm)
 	));
 
 	// 42. Let the ink settle
-	tl.Add(std::make_unique<WaitAction>(0.3f));
+	tl.Add(std::make_unique<WaitAction>(0.7f));
 
 	// 43. THE TITLE
 	tl.Add(std::make_unique<TypewriterTextAction>(

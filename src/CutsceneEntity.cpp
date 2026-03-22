@@ -1,5 +1,7 @@
 #include "CutsceneEntity.h"
 #include "InkRenderer.h"
+#include <algorithm>
+#include <cmath>
 
 // File-scope statics for rotated-entity render texture (only grows; released via ReleaseStaticResources)
 static sf::RenderTexture s_rt;
@@ -36,20 +38,95 @@ void CutsceneEntity::RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_
 		// Scale from center: offset position so center stays fixed
 		float drawX = position.x + (width - w) * 0.5f;
 		float drawY = position.y + (height - h) * 0.5f;
+		sf::Color fillCol = filled ? drawColor : sf::Color::Transparent;
+		sf::Color outCol = filled
+			? sf::Color((sf::Uint8)(drawColor.r * 0.6f), (sf::Uint8)(drawColor.g * 0.6f),
+						(sf::Uint8)(drawColor.b * 0.6f), drawColor.a)
+			: drawColor;
 		InkRenderer::DrawWobblyRect(l_target,
 									drawX, drawY, w, h,
-									sf::Color::Transparent, drawColor,
-									2.f, corruption, seed);
+									fillCol, outCol,
+									filled ? 1.f : 2.f, corruption, seed);
+		if (hasEyes && filled)
+		{
+			float cx = drawX + w * 0.5f;
+			float cy = drawY + h * 0.5f;
+			float eyeR = std::max(2.5f, w * 0.12f);
+			float pupilR = std::max(1.0f, eyeR * 0.4f);
+			float fwd = w * 0.2f;
+			float side = h * 0.2f;
+			// Eyes face right
+			float ex1 = cx + fwd, ey1 = cy - side;
+			float ex2 = cx + fwd, ey2 = cy + side;
+
+			sf::CircleShape eye(eyeR);
+			eye.setOrigin(eyeR, eyeR);
+			eye.setFillColor(outCol);
+			eye.setPosition(ex1, ey1);
+			l_target.draw(eye);
+			eye.setPosition(ex2, ey2);
+			l_target.draw(eye);
+
+			sf::CircleShape pupil(pupilR);
+			pupil.setOrigin(pupilR, pupilR);
+			pupil.setFillColor(sf::Color(255, 255, 255, drawColor.a));
+			pupil.setPosition(ex1, ey1);
+			l_target.draw(pupil);
+			pupil.setPosition(ex2, ey2);
+			l_target.draw(pupil);
+		}
 		break;
 	}
 	case EntityShape::Circle:
 	{
-		// Circle center is already at position — scale only affects radius
 		float r = radius * scale.x;
-		InkRenderer::DrawWobblyCircle(l_target,
-									  position.x, position.y, r,
-									  sf::Color::Transparent, drawColor,
-									  2.f, corruption, seed);
+
+		if (isApple)
+		{
+			// Breathing animation (period ≈ 2s)
+			float t = spawnClock.getElapsedTime().asSeconds();
+			r *= 1.0f + std::sin(t * static_cast<float>(M_PI)) * 0.05f;
+
+			// Ink-tint outline (matches gameplay)
+			sf::Color inkOutline(45, 40, 55, (sf::Uint8)(drawColor.a * 0.78f));
+			InkRenderer::DrawWobblyCircle(l_target,
+										  position.x, position.y, r,
+										  drawColor, inkOutline,
+										  1.5f, corruption, seed, 16);
+
+			// Leaf (V shape at top) — scaled to radius
+			float leafLen = r * 0.5f;
+			float leafSpread = r * 0.3f;
+			sf::Color leafCol(45, 40, 55, (sf::Uint8)(drawColor.a * 0.7f));
+			InkRenderer::DrawWobblyLine(l_target,
+										position.x, position.y - r,
+										position.x + leafSpread, position.y - r - leafLen,
+										leafCol, 1.f, corruption * 0.5f, seed + 1);
+			InkRenderer::DrawWobblyLine(l_target,
+										position.x, position.y - r,
+										position.x - leafSpread * 0.7f, position.y - r - leafLen * 0.8f,
+										leafCol, 1.f, corruption * 0.5f, seed + 2);
+
+			// Highlight dot — scaled to radius
+			float hlR = std::max(1.f, r * 0.15f);
+			sf::CircleShape hl(hlR);
+			hl.setOrigin(hlR, hlR);
+			hl.setPosition(position.x - r * 0.3f, position.y - r * 0.3f);
+			hl.setFillColor(sf::Color(255, 255, 255, (sf::Uint8)(drawColor.a * 0.31f)));
+			l_target.draw(hl);
+		}
+		else
+		{
+			sf::Color fillCol = filled ? drawColor : sf::Color::Transparent;
+			sf::Color outCol = filled
+				? sf::Color((sf::Uint8)(drawColor.r * 0.6f), (sf::Uint8)(drawColor.g * 0.6f),
+							(sf::Uint8)(drawColor.b * 0.6f), drawColor.a)
+				: drawColor;
+			InkRenderer::DrawWobblyCircle(l_target,
+										  position.x, position.y, r,
+										  fillCol, outCol,
+										  filled ? 1.5f : 2.f, corruption, seed);
+		}
 		break;
 	}
 	case EntityShape::Star:

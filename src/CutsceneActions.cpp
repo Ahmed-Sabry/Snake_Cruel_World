@@ -413,6 +413,10 @@ void AnimateAction::ApplyValue(float l_value)
 	case AnimProperty::ScaleY:    entity->scale.y = l_value; break;
 	case AnimProperty::Rotation:  entity->rotation = l_value; break;
 	case AnimProperty::Alpha:     entity->alpha = l_value; break;
+	case AnimProperty::ColorR:    entity->color.r = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
+	case AnimProperty::ColorG:    entity->color.g = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
+	case AnimProperty::ColorB:    entity->color.b = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
+	case AnimProperty::Corruption: entity->corruption = l_value; break;
 	default: break;
 	}
 }
@@ -657,6 +661,61 @@ bool PostProcessAction::Update(float l_dt, StateManager& l_sm)
 {
 	(void)l_dt; (void)l_sm;
 	return true;
+}
+
+// ── AnimatePostProcessAction ──────────────────────────────────────
+
+AnimatePostProcessAction::AnimatePostProcessAction(float l_fromCorruption, float l_toCorruption,
+												   float l_duration, EasingFunc l_easing,
+												   bool l_inkBleed, bool l_chromatic,
+												   bool l_psychedelic)
+	: m_fromCorruption(l_fromCorruption), m_toCorruption(l_toCorruption),
+	  m_duration(l_duration), m_easing(l_easing),
+	  m_inkBleed(l_inkBleed), m_chromatic(l_chromatic), m_psychedelic(l_psychedelic)
+{
+}
+
+LevelConfig AnimatePostProcessAction::MakeConfig(float corruption) const
+{
+	LevelConfig config{};
+	config.corruption = corruption;
+	config.enableInkBleed = m_inkBleed;
+	config.enableChromatic = m_chromatic;
+	config.enablePsychedelic = m_psychedelic;
+	return config;
+}
+
+void AnimatePostProcessAction::Start(StateManager& l_sm)
+{
+	(void)l_sm;
+	m_elapsed = 0.f;
+	if (CutsceneState::s_active)
+		CutsceneState::s_active->GetPostProcessor().Configure(MakeConfig(m_fromCorruption));
+}
+
+bool AnimatePostProcessAction::Update(float l_dt, StateManager& l_sm)
+{
+	(void)l_sm;
+	if (m_duration <= 0.f)
+	{
+		if (CutsceneState::s_active)
+			CutsceneState::s_active->GetPostProcessor().Configure(MakeConfig(m_toCorruption));
+		return true;
+	}
+	m_elapsed += l_dt;
+	float t = std::min(1.f, m_elapsed / m_duration);
+	float eased = m_easing(t);
+	float corruption = m_fromCorruption + (m_toCorruption - m_fromCorruption) * eased;
+	if (CutsceneState::s_active)
+		CutsceneState::s_active->GetPostProcessor().Configure(MakeConfig(corruption));
+	return m_elapsed >= m_duration;
+}
+
+void AnimatePostProcessAction::Skip()
+{
+	m_elapsed = m_duration;
+	if (CutsceneState::s_active)
+		CutsceneState::s_active->GetPostProcessor().Configure(MakeConfig(m_toCorruption));
 }
 
 // ── ClearPersistentAction ─────────────────────────────────────────

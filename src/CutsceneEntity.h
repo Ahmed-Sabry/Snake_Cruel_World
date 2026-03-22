@@ -30,7 +30,11 @@ struct CutsceneEntity
 
 	// State
 	bool visible = true;
+	bool filled = false;
+	bool hasEyes = false;
+	bool isApple = false;
 	int zOrder = 0;
+	mutable sf::Clock spawnClock;
 
 	void Render(sf::RenderTarget& l_target, const sf::Font& l_font) const;
 

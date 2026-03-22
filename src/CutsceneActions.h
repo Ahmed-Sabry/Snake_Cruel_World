@@ -103,7 +103,7 @@ private:
 
 // ── Phase 3: Animation Actions ────────────────────────────────────
 
-enum class AnimProperty { PositionX, PositionY, ScaleX, ScaleY, Rotation, Alpha };
+enum class AnimProperty { PositionX, PositionY, ScaleX, ScaleY, Rotation, Alpha, ColorR, ColorG, ColorB, Corruption };
 
 class SpawnEntityAction : public CutsceneAction
 {
@@ -281,6 +281,24 @@ private:
 	bool m_inkBleed;
 	bool m_chromatic;
 	bool m_psychedelic;
+};
+
+class AnimatePostProcessAction : public CutsceneAction
+{
+public:
+	AnimatePostProcessAction(float l_fromCorruption, float l_toCorruption,
+							 float l_duration, EasingFunc l_easing,
+							 bool l_inkBleed = false, bool l_chromatic = false,
+							 bool l_psychedelic = false);
+	void Start(StateManager& l_sm) override;
+	bool Update(float l_dt, StateManager& l_sm) override;
+	void Skip() override;
+private:
+	LevelConfig MakeConfig(float corruption) const;
+	float m_fromCorruption, m_toCorruption, m_duration;
+	EasingFunc m_easing;
+	bool m_inkBleed, m_chromatic, m_psychedelic;
+	float m_elapsed = 0.f;
 };
 
 class ClearPersistentAction : public CutsceneAction
