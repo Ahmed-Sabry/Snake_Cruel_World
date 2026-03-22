@@ -6,8 +6,14 @@
 #include <fstream>
 #include <filesystem>
 
+static std::vector<CutsceneDefs::CutsceneEntry> s_cachedEntries;
+static bool s_entriesCached = false;
+
 std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 {
+	if (s_entriesCached)
+		return s_cachedEntries;
+
 	std::vector<CutsceneEntry> entries = {
 		{"intro", "The Cruel Beginning", [](const StateManager& sm) { return sm.introPlayed; }, ""}
 	};
@@ -48,7 +54,15 @@ std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 		}
 	}
 
+	s_cachedEntries = entries;
+	s_entriesCached = true;
 	return entries;
+}
+
+void CutsceneDefs::InvalidateCache()
+{
+	s_entriesCached = false;
+	s_cachedEntries.clear();
 }
 
 CutsceneTimeline CutsceneDefs::Build(const std::string& l_id, StateManager& l_sm)
