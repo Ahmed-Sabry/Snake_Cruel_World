@@ -7,10 +7,12 @@
 #include <filesystem>
 #include <iostream>
 
+static constexpr const char* kCutsceneDir = "content/cutscenes";
+
 static std::vector<CutsceneDefs::CutsceneEntry> s_cachedEntries;
 static bool s_entriesCached = false;
 
-std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
+const std::vector<CutsceneDefs::CutsceneEntry>& CutsceneDefs::GetAllEntries()
 {
 	if (s_entriesCached)
 		return s_cachedEntries;
@@ -21,7 +23,7 @@ std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 
 	// Scan content/cutscenes/ for JSON cutscene files
 	namespace fs = std::filesystem;
-	const std::string cutsceneDir = "content/cutscenes";
+	const std::string cutsceneDir = kCutsceneDir;
 	std::error_code ec;
 	if (fs::exists(cutsceneDir, ec) && fs::is_directory(cutsceneDir, ec))
 	{
@@ -69,9 +71,9 @@ std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 		}
 	}
 
-	s_cachedEntries = entries;
+	s_cachedEntries = std::move(entries);
 	s_entriesCached = true;
-	return entries;
+	return s_cachedEntries;
 }
 
 void CutsceneDefs::InvalidateCache()
@@ -93,7 +95,7 @@ CutsceneTimeline CutsceneDefs::Build(const std::string& l_id, StateManager& l_sm
 		}
 	}
 	if (jsonPath.empty())
-		jsonPath = "content/cutscenes/" + l_id + ".json";
+		jsonPath = std::string(kCutsceneDir) + "/" + l_id + ".json";
 
 	{
 		std::ifstream test(jsonPath);

@@ -18,6 +18,6 @@ namespace CutsceneDefs
 	};
 
 	CutsceneTimeline Build(const std::string& l_id, StateManager& l_sm);
-	std::vector<CutsceneEntry> GetAllEntries();
+	const std::vector<CutsceneEntry>& GetAllEntries();
 	void InvalidateCache();
 }

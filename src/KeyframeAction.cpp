@@ -18,7 +18,13 @@ void KeyframeAction::Start(StateManager& l_sm)
 	(void)l_sm;
 	m_elapsed = 0.f;
 	if (!m_keyframes.empty())
-		ApplyValue(m_keyframes.front().value);
+	{
+		// For degenerate tracks, snap to final value immediately
+		if (m_keyframes.size() < 2 || m_totalDuration <= 0.f)
+			ApplyValue(m_keyframes.back().value);
+		else
+			ApplyValue(m_keyframes.front().value);
+	}
 }
 
 bool KeyframeAction::Update(float l_dt, StateManager& l_sm)
@@ -51,7 +57,7 @@ bool KeyframeAction::Update(float l_dt, StateManager& l_sm)
 	const Keyframe& kfB = m_keyframes[seg + 1];
 
 	float segDuration = kfB.time - kfA.time;
-	float localT = (segDuration > 0.f) ? std::min(1.f, (t - kfA.time) / segDuration) : 1.f;
+	float localT = (segDuration > 0.f) ? std::max(0.f, std::min(1.f, (t - kfA.time) / segDuration)) : 1.f;
 	float eased = kfB.easing(localT);
 	float value = kfA.value + (kfB.value - kfA.value) * eased;
 
@@ -110,7 +116,16 @@ bool DeferredKeyframeAction::Update(float l_dt, StateManager& l_sm)
 
 void DeferredKeyframeAction::Skip()
 {
-	if (m_inner) m_inner->Skip();
+	if (!m_inner)
+	{
+		// Start was never called — construct inner and fast-forward
+		// Use default from value since we can't read the entity at skip time
+		auto keyframes = m_keyframes;
+		if (!keyframes.empty())
+			keyframes.front().value = m_defaultFrom;
+		m_inner = std::make_unique<KeyframeAction>(m_entityName, m_prop, std::move(keyframes));
+	}
+	m_inner->Skip();
 }
 
 // ── Convenience Factories ────────────────────────────────────────
