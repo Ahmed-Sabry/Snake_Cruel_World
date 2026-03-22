@@ -2,8 +2,10 @@
 
 #include "Platform/Platform.hpp"
 #include <string>
+#include <vector>
+#include <functional>
 
-enum class EntityShape { None, Rect, Circle, Line, Star, Text };
+enum class EntityShape { None, Rect, Circle, Line, Star, Text, Sprite };
 
 struct CutsceneEntity
 {
@@ -28,6 +30,25 @@ struct CutsceneEntity
 	// Line-specific (x2, y2 stored as width/height offset from position)
 	// Line goes from position to (position.x + width, position.y + height)
 
+	// Sprite support
+	std::string texturePath;
+	sf::Texture texture;
+	bool textureLoaded = false;
+	bool flipX = false;
+	bool flipY = false;
+
+	bool LoadTexture();
+
+	// Parent-child grouping (empty = root entity)
+	std::string parent;
+	mutable const CutsceneEntity* parentPtr = nullptr; // cached; resolved by CutsceneScene
+
+	// Per-entity update callbacks (used by ExpressionAction)
+	// Signature: void(float dt, float totalTime)
+	std::vector<std::function<void(float, float)>> updateCallbacks;
+	float totalTime = 0.f;
+	void ClearUpdateCallbacks() { updateCallbacks.clear(); }
+
 	// State
 	bool visible = true;
 	bool filled = false;
@@ -36,11 +57,16 @@ struct CutsceneEntity
 	int zOrder = 0;
 	mutable sf::Clock spawnClock;
 
-	void Render(sf::RenderTarget& l_target, const sf::Font& l_font) const;
+	void Render(sf::RenderTarget& l_target, const sf::Font& l_font,
+				const sf::Transform& l_parentTransform = sf::Transform::Identity) const;
 
 	static void ReleaseStaticResources();
 
 private:
-	void RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_font) const;
-	void RenderRotated(sf::RenderTarget& l_target, const sf::Font& l_font) const;
+	void RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_font,
+					  const sf::Transform& l_parentTransform) const;
+	void RenderRotated(sf::RenderTarget& l_target, const sf::Font& l_font,
+					   const sf::Transform& l_parentTransform) const;
+	void RenderSprite(sf::RenderTarget& l_target,
+					  const sf::Transform& l_parentTransform) const;
 };

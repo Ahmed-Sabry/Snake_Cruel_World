@@ -22,6 +22,9 @@ void CutsceneState::OnEnter()
 	Window& window = m_stateManager.GetWindow();
 	sf::Vector2u winSize = window.GetWindowSize();
 
+	// Initialize camera
+	m_camera.Init(winSize);
+
 	// Initialize post-processor
 	m_postProcessor.Init(winSize.x, winSize.y);
 	LevelConfig defaultConfig{};
@@ -90,6 +93,8 @@ void CutsceneState::Update(float l_dt)
 	}
 
 	m_screenShake.Update(l_dt, m_stateManager.GetWindow());
+	m_camera.Update(l_dt, m_scene);
+	m_scene.Update(l_dt);
 	m_particles.Update(l_dt);
 	m_postProcessor.Update(l_dt);
 
@@ -110,12 +115,18 @@ void CutsceneState::Render()
 		? m_postProcessor.GetTarget()
 		: (sf::RenderTarget&)window.GetRenderWindow();
 
-	// Paper background
+	// Paper background (rendered in screen space, before camera)
 	if (m_paperBg.IsGenerated())
 		m_paperBg.Render(target);
 
+	// Apply camera transform for scene entities
+	m_camera.Apply(target);
+
 	// Scene entities
 	m_scene.Render(target, m_font);
+
+	// Reset camera for UI elements (text, particles rendered in screen space)
+	m_camera.Reset(target);
 
 	// Timeline (persistent text, current action renders)
 	m_timeline.Render(target);
@@ -128,4 +139,20 @@ void CutsceneState::Render()
 		m_postProcessor.End();
 		m_postProcessor.Apply(window);
 	}
+}
+
+void CutsceneState::CaptureFrame(sf::RenderTexture& l_target)
+{
+	// Render current scene state into the provided render texture
+	if (m_paperBg.IsGenerated())
+		m_paperBg.Render(l_target);
+
+	m_camera.Apply(l_target);
+	m_scene.Render(l_target, m_font);
+	m_camera.Reset(l_target);
+
+	m_timeline.Render(l_target);
+	m_particles.RenderTo(l_target);
+
+	l_target.display();
 }

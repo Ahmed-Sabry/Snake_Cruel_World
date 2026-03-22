@@ -103,7 +103,11 @@ private:
 
 // ── Phase 3: Animation Actions ────────────────────────────────────
 
-enum class AnimProperty { PositionX, PositionY, ScaleX, ScaleY, Rotation, Alpha, ColorR, ColorG, ColorB, Corruption };
+enum class AnimProperty {
+	PositionX, PositionY, ScaleX, ScaleY, Rotation, Alpha,
+	ColorR, ColorG, ColorB, Corruption,
+	CameraX, CameraY, CameraZoom, CameraRotation
+};
 
 class SpawnEntityAction : public CutsceneAction
 {
@@ -318,3 +322,32 @@ private:
 	std::function<void(StateManager&)> m_func;
 	bool m_executed = false;
 };
+
+// ── Camera Actions ───────────────────────────────────────────────
+
+class CameraFollowAction : public CutsceneAction
+{
+public:
+	CameraFollowAction(const std::string& l_entityName, float l_smoothing = 5.0f);
+	void Start(StateManager& l_sm) override;
+	bool Update(float l_dt, StateManager& l_sm) override;
+private:
+	std::string m_entityName;
+	float m_smoothing;
+};
+
+class CameraStopFollowAction : public CutsceneAction
+{
+public:
+	void Start(StateManager& l_sm) override;
+	bool Update(float l_dt, StateManager& l_sm) override;
+};
+
+// ── AnimProperty name lookup (for JSON loader) ───────────────────
+
+namespace AnimPropertyUtil
+{
+	AnimProperty FromName(const std::string& l_name);
+	std::string ToName(AnimProperty l_prop);
+	void Apply(const std::string& l_entityName, AnimProperty l_prop, float l_value);
+}

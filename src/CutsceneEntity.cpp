@@ -8,24 +8,74 @@ static sf::RenderTexture s_rt;
 static unsigned int s_rtW = 0, s_rtH = 0;
 static bool s_rtValid = false;
 
-void CutsceneEntity::Render(sf::RenderTarget& l_target, const sf::Font& l_font) const
+bool CutsceneEntity::LoadTexture()
+{
+	if (texturePath.empty())
+		return false;
+	textureLoaded = texture.loadFromFile(texturePath);
+	if (textureLoaded)
+		texture.setSmooth(true);
+	return textureLoaded;
+}
+
+void CutsceneEntity::Render(sf::RenderTarget& l_target, const sf::Font& l_font,
+							const sf::Transform& l_parentTransform) const
 {
 	if (!visible)
 		return;
+
+	// Sprites use SFML's native transform system — no RenderTexture workaround needed
+	if (shape == EntityShape::Sprite)
+	{
+		RenderSprite(l_target, l_parentTransform);
+		return;
+	}
 
 	// Non-Text shapes with non-zero rotation need to be drawn via a temp texture
 	// since InkRenderer draws with absolute coordinates and doesn't support transforms
 	if (rotation != 0.f && shape != EntityShape::Text && shape != EntityShape::None)
 	{
-		RenderRotated(l_target, l_font);
+		RenderRotated(l_target, l_font, l_parentTransform);
 		return;
 	}
 
-	RenderDirect(l_target, l_font);
+	RenderDirect(l_target, l_font, l_parentTransform);
 }
 
-void CutsceneEntity::RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_font) const
+void CutsceneEntity::RenderSprite(sf::RenderTarget& l_target,
+								  const sf::Transform& l_parentTransform) const
 {
+	if (!textureLoaded)
+		return;
+
+	sf::Sprite spr(texture);
+	sf::FloatRect bounds = spr.getLocalBounds();
+	spr.setOrigin(bounds.width * 0.5f, bounds.height * 0.5f);
+	spr.setPosition(position);
+	spr.setScale(scale.x * (flipX ? -1.f : 1.f),
+				 scale.y * (flipY ? -1.f : 1.f));
+	spr.setRotation(rotation);
+	spr.setColor(sf::Color(255, 255, 255,
+						   (sf::Uint8)std::max(0.f, std::min(255.f, alpha))));
+
+	sf::RenderStates states;
+	states.transform = l_parentTransform;
+	l_target.draw(spr, states);
+}
+
+void CutsceneEntity::RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_font,
+								  const sf::Transform& l_parentTransform) const
+{
+	// For parent-child: if there's a non-identity parent transform, we need to apply it.
+	// InkRenderer uses absolute coordinates, so for parented ink entities we fall back
+	// to the RenderRotated path (which renders to temp texture then composites with transform).
+	bool hasParentTransform = (l_parentTransform != sf::Transform::Identity);
+	if (hasParentTransform && shape != EntityShape::Text && shape != EntityShape::None)
+	{
+		RenderRotated(l_target, l_font, l_parentTransform);
+		return;
+	}
+
 	sf::Color drawColor = color;
 	drawColor.a = (sf::Uint8)std::max(0.f, std::min(255.f, alpha));
 
@@ -84,7 +134,7 @@ void CutsceneEntity::RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_
 		if (isApple)
 		{
 			// Breathing animation (period ≈ 2s)
-			float t = spawnClock.getElapsedTime().asSeconds();
+			float t = totalTime;
 			r *= 1.0f + std::sin(t * static_cast<float>(M_PI)) * 0.05f;
 
 			// Ink-tint outline (matches gameplay)
@@ -157,16 +207,21 @@ void CutsceneEntity::RenderDirect(sf::RenderTarget& l_target, const sf::Font& l_
 		textObj.setPosition(position);
 		textObj.setRotation(rotation);
 		textObj.setScale(scale);
-		l_target.draw(textObj);
+
+		sf::RenderStates states;
+		states.transform = l_parentTransform;
+		l_target.draw(textObj, states);
 		break;
 	}
 	case EntityShape::None:
+	case EntityShape::Sprite:
 	default:
 		break;
 	}
 }
 
-void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l_font) const
+void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l_font,
+									const sf::Transform& l_parentTransform) const
 {
 	// Compute the actual rendered size and world center for this shape
 	float padding = 10.f + corruption * 20.f;
@@ -229,9 +284,34 @@ void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l
 	if (!s_rtValid) return;
 	s_rt.clear(sf::Color::Transparent);
 
-	// Draw a non-rotated copy into the temp texture at local coordinates
-	CutsceneEntity temp = *this;
+	// Draw a non-rotated copy into the temp texture at local coordinates.
+	// Only copy fields needed for RenderDirect — intentionally excluded:
+	// texture/texturePath/textureLoaded (sprites don't go through this path),
+	// updateCallbacks (not needed for rendering), parent (local draw),
+	// spawnClock (not used in draw — totalTime used instead).
+	CutsceneEntity temp;
+	temp.name = name;
+	temp.shape = shape;
+	temp.position = position;
+	temp.scale = scale;
 	temp.rotation = 0.f;
+	temp.alpha = alpha;
+	temp.color = color;
+	temp.width = width;
+	temp.height = height;
+	temp.radius = radius;
+	temp.corruption = corruption;
+	temp.seed = seed;
+	temp.text = text;
+	temp.charSize = charSize;
+	temp.flipX = flipX;
+	temp.flipY = flipY;
+	temp.visible = visible;
+	temp.filled = filled;
+	temp.hasEyes = hasEyes;
+	temp.isApple = isApple;
+	temp.zOrder = zOrder;
+	temp.totalTime = totalTime;
 
 	switch (shape)
 	{
@@ -268,16 +348,19 @@ void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l
 		break;
 	}
 
-	temp.RenderDirect(s_rt, l_font);
+	temp.RenderDirect(s_rt, l_font, sf::Transform::Identity);
 	s_rt.display();
 
-	// Draw the texture rotated around its center
+	// Draw the texture rotated around its center, applying parent transform
 	sf::Sprite spr(s_rt.getTexture());
 	spr.setTextureRect(sf::IntRect(0, 0, tw, th));
 	spr.setOrigin(localW * 0.5f, localH * 0.5f);
 	spr.setPosition(worldCX, worldCY);
 	spr.setRotation(rotation);
-	l_target.draw(spr);
+
+	sf::RenderStates states;
+	states.transform = l_parentTransform;
+	l_target.draw(spr, states);
 }
 
 void CutsceneEntity::ReleaseStaticResources()
