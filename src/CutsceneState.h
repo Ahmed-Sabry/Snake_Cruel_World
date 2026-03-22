@@ -33,6 +33,7 @@ public:
 
 	void CaptureFrame(sf::RenderTexture& l_target);
 
+	// Set in OnEnter(), cleared in OnExit(). Non-owning. Only valid during the active cutscene state.
 	static CutsceneState* s_active;
 
 private:

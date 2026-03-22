@@ -14,6 +14,7 @@ namespace CutsceneDefs
 		std::string id;
 		std::string displayName;
 		std::function<bool(const StateManager&)> isUnlocked;
+		std::string path; // filesystem path to JSON file (empty for hardcoded entries)
 	};
 
 	CutsceneTimeline Build(const std::string& l_id, StateManager& l_sm);

@@ -8,13 +8,10 @@ void main()
     vec2 uv = gl_TexCoord[0].xy;
     vec4 texColor = texture2D(texture, uv);
 
-    // Compute wipe position along the direction axis
-    // Map UV from [0,1] to [-1,1] for directional calculation
-    float wipePos = dot(uv, abs(direction));
-
-    // Adjust for direction sign (left/up wipes go in reverse)
-    if (direction.x < 0.0 || direction.y < 0.0)
-        wipePos = 1.0 - wipePos;
+    // Compute wipe position along the direction axis, reversing each axis independently
+    float xContrib = (direction.x < 0.0) ? (1.0 - uv.x) * abs(direction.x) : uv.x * abs(direction.x);
+    float yContrib = (direction.y < 0.0) ? (1.0 - uv.y) * abs(direction.y) : uv.y * abs(direction.y);
+    float wipePos = xContrib + yContrib;
 
     // Soft edge width for ink-like feathering
     float edgeWidth = 0.05;

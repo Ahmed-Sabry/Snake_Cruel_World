@@ -1,6 +1,4 @@
 #include "KeyframeAction.h"
-#include "CutsceneState.h"
-#include "CutsceneCamera.h"
 #include <algorithm>
 #include <cmath>
 
@@ -69,37 +67,7 @@ void KeyframeAction::Skip()
 
 void KeyframeAction::ApplyValue(float l_value)
 {
-	if (!CutsceneState::s_active)
-		return;
-
-	// Camera properties don't need an entity
-	switch (m_property)
-	{
-	case AnimProperty::CameraX:        CutsceneState::s_active->GetCamera().position.x = l_value; return;
-	case AnimProperty::CameraY:        CutsceneState::s_active->GetCamera().position.y = l_value; return;
-	case AnimProperty::CameraZoom:     CutsceneState::s_active->GetCamera().zoom = l_value; return;
-	case AnimProperty::CameraRotation: CutsceneState::s_active->GetCamera().rotation = l_value; return;
-	default: break;
-	}
-
-	CutsceneEntity* entity = CutsceneState::s_active->GetScene().Get(m_entityName);
-	if (!entity)
-		return;
-
-	switch (m_property)
-	{
-	case AnimProperty::PositionX: entity->position.x = l_value; break;
-	case AnimProperty::PositionY: entity->position.y = l_value; break;
-	case AnimProperty::ScaleX:    entity->scale.x = l_value; break;
-	case AnimProperty::ScaleY:    entity->scale.y = l_value; break;
-	case AnimProperty::Rotation:  entity->rotation = l_value; break;
-	case AnimProperty::Alpha:     entity->alpha = l_value; break;
-	case AnimProperty::ColorR:    entity->color.r = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
-	case AnimProperty::ColorG:    entity->color.g = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
-	case AnimProperty::ColorB:    entity->color.b = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
-	case AnimProperty::Corruption: entity->corruption = l_value; break;
-	default: break;
-	}
+	AnimPropertyUtil::Apply(m_entityName, m_property, l_value);
 }
 
 // ── DeferredKeyframeAction ───────────────────────────────────────

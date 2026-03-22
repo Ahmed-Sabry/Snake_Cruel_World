@@ -41,11 +41,13 @@ struct CutsceneEntity
 
 	// Parent-child grouping (empty = root entity)
 	std::string parent;
+	mutable const CutsceneEntity* parentPtr = nullptr; // cached; resolved by CutsceneScene
 
 	// Per-entity update callbacks (used by ExpressionAction)
 	// Signature: void(float dt, float totalTime)
 	std::vector<std::function<void(float, float)>> updateCallbacks;
 	float totalTime = 0.f;
+	void ClearUpdateCallbacks() { updateCallbacks.clear(); }
 
 	// State
 	bool visible = true;

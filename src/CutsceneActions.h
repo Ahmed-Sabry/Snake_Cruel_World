@@ -349,4 +349,5 @@ namespace AnimPropertyUtil
 {
 	AnimProperty FromName(const std::string& l_name);
 	std::string ToName(AnimProperty l_prop);
+	void Apply(const std::string& l_entityName, AnimProperty l_prop, float l_value);
 }

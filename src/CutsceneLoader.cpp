@@ -293,7 +293,27 @@ static CutsceneActionPtr ParseAnimate(const json& j, const ExprContext& ctx)
 	if (prop == AnimProperty::Rotation)
 		return RotateAction::Create(entity, to, duration, easing);
 
-	// Generic deferred single
+	// Camera properties: read current value from camera, not entity
+	if (prop == AnimProperty::CameraX || prop == AnimProperty::CameraY ||
+		prop == AnimProperty::CameraZoom || prop == AnimProperty::CameraRotation)
+	{
+		float fromValue = 0.f;
+		if (CutsceneState::s_active)
+		{
+			auto& cam = CutsceneState::s_active->GetCamera();
+			switch (prop)
+			{
+			case AnimProperty::CameraX:        fromValue = cam.position.x; break;
+			case AnimProperty::CameraY:        fromValue = cam.position.y; break;
+			case AnimProperty::CameraZoom:     fromValue = cam.zoom; break;
+			case AnimProperty::CameraRotation: fromValue = cam.rotation; break;
+			default: break;
+			}
+		}
+		return std::make_unique<AnimateAction>(entity, prop, fromValue, to, duration, easing);
+	}
+
+	// Generic deferred single (entity-based properties)
 	return std::make_unique<DeferredSingleAnimAction>(
 		entity, prop, to, 0.f, duration, easing,
 		[prop](const CutsceneEntity& e) -> float

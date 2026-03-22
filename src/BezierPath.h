@@ -41,6 +41,8 @@ public:
 	void Skip() override;
 
 private:
+	void ApplyPathState(float l_t);
+
 	std::string m_entityName;
 	BezierPath m_path;
 	float m_duration;

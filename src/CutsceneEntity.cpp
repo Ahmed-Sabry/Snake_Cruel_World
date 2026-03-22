@@ -285,8 +285,10 @@ void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l
 	s_rt.clear(sf::Color::Transparent);
 
 	// Draw a non-rotated copy into the temp texture at local coordinates.
-	// Only copy the fields needed for rendering — skip expensive members
-	// (texture, updateCallbacks) since RenderRotated is only for ink shapes.
+	// Only copy fields needed for RenderDirect — intentionally excluded:
+	// texture/texturePath/textureLoaded (sprites don't go through this path),
+	// updateCallbacks (not needed for rendering), parent (local draw),
+	// totalTime (not used in draw), spawnClock (uses source entity's clock).
 	CutsceneEntity temp;
 	temp.name = name;
 	temp.shape = shape;
@@ -302,10 +304,13 @@ void CutsceneEntity::RenderRotated(sf::RenderTarget& l_target, const sf::Font& l
 	temp.seed = seed;
 	temp.text = text;
 	temp.charSize = charSize;
+	temp.flipX = flipX;
+	temp.flipY = flipY;
 	temp.visible = visible;
 	temp.filled = filled;
 	temp.hasEyes = hasEyes;
 	temp.isApple = isApple;
+	temp.zOrder = zOrder;
 
 	switch (shape)
 	{

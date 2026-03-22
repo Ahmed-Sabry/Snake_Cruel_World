@@ -21,15 +21,22 @@ void CutsceneCamera::Init(sf::Vector2u l_windowSize)
 
 void CutsceneCamera::Update(float l_dt, const CutsceneScene& l_scene)
 {
-	// Follow entity (smooth lerp toward target position)
+	// Follow entity (smooth lerp toward target's world position)
 	if (m_following)
 	{
 		const CutsceneEntity* target = l_scene.Get(m_followTarget);
 		if (target)
 		{
+			// Use world position to account for parent transforms
+			sf::Vector2f worldPos = target->position;
+			if (!target->parent.empty())
+			{
+				sf::Transform wt = l_scene.GetWorldTransform(m_followTarget);
+				worldPos = wt.transformPoint(target->position);
+			}
 			float factor = 1.f - std::exp(-m_followSmoothing * l_dt);
-			position.x += (target->position.x - position.x) * factor;
-			position.y += (target->position.y - position.y) * factor;
+			position.x += (worldPos.x - position.x) * factor;
+			position.y += (worldPos.y - position.y) * factor;
 		}
 	}
 }
@@ -40,7 +47,8 @@ void CutsceneCamera::Apply(sf::RenderTarget& l_target)
 	m_savedView = l_target.getView();
 
 	sf::View cameraView;
-	cameraView.setSize((float)m_windowSize.x * zoom, (float)m_windowSize.y * zoom);
+	float safeZoom = std::max(zoom, 0.001f);
+	cameraView.setSize((float)m_windowSize.x * safeZoom, (float)m_windowSize.y * safeZoom);
 	cameraView.setCenter(position);
 	cameraView.setRotation(rotation);
 

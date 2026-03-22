@@ -12,6 +12,7 @@ CutsceneEntity& CutsceneScene::Spawn(const std::string& l_name, EntityShape l_sh
 	entity.shape = l_shape;
 	m_entities.push_back(std::move(entity));
 	m_sortDirty = true;
+	ResolveParentPointers();
 	return m_entities.back();
 }
 
@@ -48,6 +49,7 @@ void CutsceneScene::Destroy(const std::string& l_name)
 	{
 		m_entities.erase(it, m_entities.end());
 		m_sortDirty = true;
+		ResolveParentPointers();
 	}
 }
 
@@ -81,8 +83,22 @@ void CutsceneScene::Render(sf::RenderTarget& l_target, const sf::Font& l_font)
 	{
 		sf::Transform worldTransform = sf::Transform::Identity;
 		if (!entity.parent.empty())
-			worldTransform = BuildWorldTransform(entity, 0);
+		{
+			std::unordered_set<const CutsceneEntity*> visited;
+			worldTransform = BuildWorldTransform(entity, visited);
+		}
 		entity.Render(l_target, l_font, worldTransform);
+	}
+}
+
+void CutsceneScene::ResolveParentPointers()
+{
+	for (auto& entity : m_entities)
+	{
+		if (entity.parent.empty())
+			entity.parentPtr = nullptr;
+		else
+			entity.parentPtr = GetConst(entity.parent);
 	}
 }
 
@@ -91,23 +107,25 @@ sf::Transform CutsceneScene::GetWorldTransform(const std::string& l_name) const
 	const CutsceneEntity* entity = GetConst(l_name);
 	if (!entity)
 		return sf::Transform::Identity;
-	return BuildWorldTransform(*entity, 0);
+	std::unordered_set<const CutsceneEntity*> visited;
+	return BuildWorldTransform(*entity, visited);
 }
 
-sf::Transform CutsceneScene::BuildWorldTransform(const CutsceneEntity& l_entity, int l_depth) const
+sf::Transform CutsceneScene::BuildWorldTransform(const CutsceneEntity& l_entity,
+												  std::unordered_set<const CutsceneEntity*>& l_visited) const
 {
 	// Guard against circular parent chains
-	if (l_depth > 16)
+	if (!l_visited.insert(&l_entity).second)
 		return sf::Transform::Identity;
 
-	sf::Transform local;
 	if (!l_entity.parent.empty())
 	{
-		const CutsceneEntity* parentEntity = GetConst(l_entity.parent);
+		const CutsceneEntity* parentEntity = l_entity.parentPtr
+			? l_entity.parentPtr : GetConst(l_entity.parent);
 		if (parentEntity)
 		{
 			// Build parent's world transform first
-			sf::Transform parentWorld = BuildWorldTransform(*parentEntity, l_depth + 1);
+			sf::Transform parentWorld = BuildWorldTransform(*parentEntity, l_visited);
 			// Parent's local transform: translate + rotate + scale around parent position
 			sf::Transform parentLocal;
 			parentLocal.translate(parentEntity->position);

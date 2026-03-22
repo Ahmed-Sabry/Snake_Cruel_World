@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <string>
+#include <unordered_map>
 
 namespace Easing
 {
@@ -152,33 +153,36 @@ namespace Easing
 
 	inline Func FromName(const std::string& name)
 	{
-		if (name == "Linear")          return Linear;
-		if (name == "EaseInQuad")      return EaseInQuad;
-		if (name == "EaseOutQuad")     return EaseOutQuad;
-		if (name == "EaseInOutQuad")   return EaseInOutQuad;
-		if (name == "EaseInCubic")     return EaseInCubic;
-		if (name == "EaseOutCubic")    return EaseOutCubic;
-		if (name == "EaseInOutCubic")  return EaseInOutCubic;
-		if (name == "EaseInQuart")     return EaseInQuart;
-		if (name == "EaseOutQuart")    return EaseOutQuart;
-		if (name == "EaseInOutQuart")  return EaseInOutQuart;
-		if (name == "EaseInQuint")     return EaseInQuint;
-		if (name == "EaseOutQuint")    return EaseOutQuint;
-		if (name == "EaseInOutQuint")  return EaseInOutQuint;
-		if (name == "EaseInExpo")      return EaseInExpo;
-		if (name == "EaseOutExpo")     return EaseOutExpo;
-		if (name == "EaseInOutExpo")   return EaseInOutExpo;
-		if (name == "EaseInBack")      return EaseInBack;
-		if (name == "EaseOutBack")     return EaseOutBack;
-		if (name == "EaseInOutBack")   return EaseInOutBack;
-		if (name == "EaseInElastic")   return EaseInElastic;
-		if (name == "EaseOutElastic")  return EaseOutElastic;
-		if (name == "EaseInOutElastic") return EaseInOutElastic;
-		if (name == "BounceIn")        return BounceIn;
-		if (name == "BounceOut")       return BounceOut;
-		if (name == "BounceInOut")     return BounceInOut;
-		if (name == "Spring")          return Spring;
-		return EaseOutQuad; // default
+		static const std::unordered_map<std::string, Func> lookup = {
+			{"Linear",          Linear},
+			{"EaseInQuad",      EaseInQuad},
+			{"EaseOutQuad",     EaseOutQuad},
+			{"EaseInOutQuad",   EaseInOutQuad},
+			{"EaseInCubic",     EaseInCubic},
+			{"EaseOutCubic",    EaseOutCubic},
+			{"EaseInOutCubic",  EaseInOutCubic},
+			{"EaseInQuart",     EaseInQuart},
+			{"EaseOutQuart",    EaseOutQuart},
+			{"EaseInOutQuart",  EaseInOutQuart},
+			{"EaseInQuint",     EaseInQuint},
+			{"EaseOutQuint",    EaseOutQuint},
+			{"EaseInOutQuint",  EaseInOutQuint},
+			{"EaseInExpo",      EaseInExpo},
+			{"EaseOutExpo",     EaseOutExpo},
+			{"EaseInOutExpo",   EaseInOutExpo},
+			{"EaseInBack",      EaseInBack},
+			{"EaseOutBack",     EaseOutBack},
+			{"EaseInOutBack",   EaseInOutBack},
+			{"EaseInElastic",   EaseInElastic},
+			{"EaseOutElastic",  EaseOutElastic},
+			{"EaseInOutElastic", EaseInOutElastic},
+			{"BounceIn",        BounceIn},
+			{"BounceOut",       BounceOut},
+			{"BounceInOut",     BounceInOut},
+			{"Spring",          Spring},
+		};
+		auto it = lookup.find(name);
+		return (it != lookup.end()) ? it->second : EaseOutQuad;
 	}
 }
 

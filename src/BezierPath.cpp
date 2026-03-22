@@ -3,6 +3,8 @@
 #include <cmath>
 #include <algorithm>
 
+namespace { constexpr float kPi = 3.14159265358979323846f; }
+
 // ── BezierPath ───────────────────────────────────────────────────
 
 void BezierPath::AddCubic(sf::Vector2f l_p0, sf::Vector2f l_c1,
@@ -83,25 +85,30 @@ BezierMoveAction::BezierMoveAction(const std::string& l_entityName, BezierPath l
 {
 }
 
+void BezierMoveAction::ApplyPathState(float l_t)
+{
+	if (!CutsceneState::s_active || m_path.IsEmpty())
+		return;
+
+	CutsceneEntity* entity = CutsceneState::s_active->GetScene().Get(m_entityName);
+	if (!entity)
+		return;
+
+	entity->position = m_path.Evaluate(l_t);
+	if (m_orientToPath)
+	{
+		sf::Vector2f tangent = m_path.EvaluateTangent(l_t);
+		float len = std::sqrt(tangent.x * tangent.x + tangent.y * tangent.y);
+		if (len > 0.001f)
+			entity->rotation = std::atan2(tangent.y, tangent.x) * 180.f / kPi;
+	}
+}
+
 void BezierMoveAction::Start(StateManager& l_sm)
 {
 	(void)l_sm;
 	m_elapsed = 0.f;
-
-	if (!CutsceneState::s_active || m_path.IsEmpty())
-		return;
-
-	sf::Vector2f pos = m_path.Evaluate(0.f);
-	CutsceneEntity* entity = CutsceneState::s_active->GetScene().Get(m_entityName);
-	if (entity)
-	{
-		entity->position = pos;
-		if (m_orientToPath)
-		{
-			sf::Vector2f tangent = m_path.EvaluateTangent(0.f);
-			entity->rotation = std::atan2(tangent.y, tangent.x) * 180.f / (float)M_PI;
-		}
-	}
+	ApplyPathState(0.f);
 }
 
 bool BezierMoveAction::Update(float l_dt, StateManager& l_sm)
@@ -112,46 +119,14 @@ bool BezierMoveAction::Update(float l_dt, StateManager& l_sm)
 
 	m_elapsed += l_dt;
 	float t = std::min(1.f, m_elapsed / m_duration);
-	float eased = m_easing(t);
-
-	if (!CutsceneState::s_active)
-		return m_elapsed >= m_duration;
-
-	CutsceneEntity* entity = CutsceneState::s_active->GetScene().Get(m_entityName);
-	if (entity)
-	{
-		entity->position = m_path.Evaluate(eased);
-
-		if (m_orientToPath)
-		{
-			sf::Vector2f tangent = m_path.EvaluateTangent(eased);
-			float len = std::sqrt(tangent.x * tangent.x + tangent.y * tangent.y);
-			if (len > 0.001f)
-				entity->rotation = std::atan2(tangent.y, tangent.x) * 180.f / (float)M_PI;
-		}
-	}
-
+	ApplyPathState(m_easing(t));
 	return m_elapsed >= m_duration;
 }
 
 void BezierMoveAction::Skip()
 {
 	m_elapsed = m_duration;
-	if (!CutsceneState::s_active || m_path.IsEmpty())
-		return;
-
-	CutsceneEntity* entity = CutsceneState::s_active->GetScene().Get(m_entityName);
-	if (entity)
-	{
-		entity->position = m_path.Evaluate(1.f);
-		if (m_orientToPath)
-		{
-			sf::Vector2f tangent = m_path.EvaluateTangent(1.f);
-			float len = std::sqrt(tangent.x * tangent.x + tangent.y * tangent.y);
-			if (len > 0.001f)
-				entity->rotation = std::atan2(tangent.y, tangent.x) * 180.f / (float)M_PI;
-		}
-	}
+	ApplyPathState(1.f);
 }
 
 // ── Convenience Factory ──────────────────────────────────────────

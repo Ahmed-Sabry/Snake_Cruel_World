@@ -6,6 +6,7 @@
 #include "ParticleSystem.h"
 #include "ScreenShake.h"
 #include "PaperBackground.h"
+#include <iostream>
 #include "PostProcessor.h"
 #include <algorithm>
 #include <cmath>
@@ -400,37 +401,7 @@ void AnimateAction::Skip()
 
 void AnimateAction::ApplyValue(float l_value)
 {
-	if (!CutsceneState::s_active)
-		return;
-
-	// Camera properties don't need an entity
-	switch (m_property)
-	{
-	case AnimProperty::CameraX:        CutsceneState::s_active->GetCamera().position.x = l_value; return;
-	case AnimProperty::CameraY:        CutsceneState::s_active->GetCamera().position.y = l_value; return;
-	case AnimProperty::CameraZoom:     CutsceneState::s_active->GetCamera().zoom = l_value; return;
-	case AnimProperty::CameraRotation: CutsceneState::s_active->GetCamera().rotation = l_value; return;
-	default: break;
-	}
-
-	CutsceneEntity* entity = CutsceneState::s_active->GetScene().Get(m_entityName);
-	if (!entity)
-		return;
-
-	switch (m_property)
-	{
-	case AnimProperty::PositionX: entity->position.x = l_value; break;
-	case AnimProperty::PositionY: entity->position.y = l_value; break;
-	case AnimProperty::ScaleX:    entity->scale.x = l_value; break;
-	case AnimProperty::ScaleY:    entity->scale.y = l_value; break;
-	case AnimProperty::Rotation:  entity->rotation = l_value; break;
-	case AnimProperty::Alpha:     entity->alpha = l_value; break;
-	case AnimProperty::ColorR:    entity->color.r = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
-	case AnimProperty::ColorG:    entity->color.g = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
-	case AnimProperty::ColorB:    entity->color.b = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
-	case AnimProperty::Corruption: entity->corruption = l_value; break;
-	default: break;
-	}
+	AnimPropertyUtil::Apply(m_entityName, m_property, l_value);
 }
 
 // ── DeferredSingleAnimAction ──────────────────────────────────────
@@ -817,6 +788,7 @@ AnimProperty AnimPropertyUtil::FromName(const std::string& l_name)
 	if (l_name == "cameraY" || l_name == "CameraY")     return AnimProperty::CameraY;
 	if (l_name == "cameraZoom" || l_name == "CameraZoom") return AnimProperty::CameraZoom;
 	if (l_name == "cameraRotation" || l_name == "CameraRotation") return AnimProperty::CameraRotation;
+	std::cerr << "AnimPropertyUtil: unknown property name '" << l_name << "'\n";
 	return AnimProperty::PositionX; // default
 }
 
@@ -839,5 +811,40 @@ std::string AnimPropertyUtil::ToName(AnimProperty l_prop)
 	case AnimProperty::CameraZoom:     return "cameraZoom";
 	case AnimProperty::CameraRotation: return "cameraRotation";
 	default:                           return "positionX";
+	}
+}
+
+void AnimPropertyUtil::Apply(const std::string& l_entityName, AnimProperty l_prop, float l_value)
+{
+	if (!CutsceneState::s_active)
+		return;
+
+	// Camera properties don't need an entity
+	switch (l_prop)
+	{
+	case AnimProperty::CameraX:        CutsceneState::s_active->GetCamera().position.x = l_value; return;
+	case AnimProperty::CameraY:        CutsceneState::s_active->GetCamera().position.y = l_value; return;
+	case AnimProperty::CameraZoom:     CutsceneState::s_active->GetCamera().zoom = l_value; return;
+	case AnimProperty::CameraRotation: CutsceneState::s_active->GetCamera().rotation = l_value; return;
+	default: break;
+	}
+
+	CutsceneEntity* entity = CutsceneState::s_active->GetScene().Get(l_entityName);
+	if (!entity)
+		return;
+
+	switch (l_prop)
+	{
+	case AnimProperty::PositionX: entity->position.x = l_value; break;
+	case AnimProperty::PositionY: entity->position.y = l_value; break;
+	case AnimProperty::ScaleX:    entity->scale.x = l_value; break;
+	case AnimProperty::ScaleY:    entity->scale.y = l_value; break;
+	case AnimProperty::Rotation:  entity->rotation = l_value; break;
+	case AnimProperty::Alpha:     entity->alpha = l_value; break;
+	case AnimProperty::ColorR:    entity->color.r = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
+	case AnimProperty::ColorG:    entity->color.g = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
+	case AnimProperty::ColorB:    entity->color.b = static_cast<sf::Uint8>(std::max(0.f, std::min(255.f, l_value))); break;
+	case AnimProperty::Corruption: entity->corruption = l_value; break;
+	default: break;
 	}
 }

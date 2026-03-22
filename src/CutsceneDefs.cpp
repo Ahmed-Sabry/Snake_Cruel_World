@@ -9,7 +9,7 @@
 std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 {
 	std::vector<CutsceneEntry> entries = {
-		{"intro", "The Cruel Beginning", [](const StateManager& sm) { return sm.introPlayed; }}
+		{"intro", "The Cruel Beginning", [](const StateManager& sm) { return sm.introPlayed; }, ""}
 	};
 
 	// Scan content/cutscenes/ for JSON cutscene files
@@ -37,7 +37,8 @@ std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 					if (!exists)
 					{
 						entries.push_back({meta.id, meta.displayName,
-							[](const StateManager&) { return true; }});
+							[](const StateManager&) { return true; },
+							entry.path().string()});
 					}
 				}
 			}
@@ -49,8 +50,19 @@ std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 
 CutsceneTimeline CutsceneDefs::Build(const std::string& l_id, StateManager& l_sm)
 {
-	// Load from JSON cutscene file
-	std::string jsonPath = "content/cutscenes/" + l_id + ".json";
+	// Resolve JSON path: check entries for a stored path, otherwise reconstruct
+	std::string jsonPath;
+	for (const auto& e : GetAllEntries())
+	{
+		if (e.id == l_id && !e.path.empty())
+		{
+			jsonPath = e.path;
+			break;
+		}
+	}
+	if (jsonPath.empty())
+		jsonPath = "content/cutscenes/" + l_id + ".json";
+
 	{
 		std::ifstream test(jsonPath);
 		if (test.good())

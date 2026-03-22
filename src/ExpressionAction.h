@@ -49,7 +49,8 @@ namespace Expr
 	inline ExprFunc Breathing(float l_baseValue, float l_amplitude, float l_period)
 	{
 		return [=](float t, const CutsceneEntity*) -> float {
-			float freq = (l_period != 0.f) ? 2.f * 3.14159265f / l_period : 0.f;
+			static constexpr float kPi = 3.14159265358979323846f;
+			float freq = (l_period != 0.f) ? 2.f * kPi / l_period : 0.f;
 			return l_baseValue + std::sin(t * freq) * l_amplitude;
 		};
 	}

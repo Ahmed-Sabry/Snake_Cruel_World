@@ -3,6 +3,7 @@
 #include "CutsceneEntity.h"
 #include <vector>
 #include <string>
+#include <unordered_set>
 
 class CutsceneScene
 {
@@ -15,11 +16,13 @@ public:
 
 	void Update(float l_dt);
 	void Render(sf::RenderTarget& l_target, const sf::Font& l_font);
+	void ResolveParentPointers();
 
 	sf::Transform GetWorldTransform(const std::string& l_name) const;
 
 private:
-	sf::Transform BuildWorldTransform(const CutsceneEntity& l_entity, int l_depth = 0) const;
+	sf::Transform BuildWorldTransform(const CutsceneEntity& l_entity,
+									  std::unordered_set<const CutsceneEntity*>& l_visited) const;
 	const CutsceneEntity* GetConst(const std::string& l_name) const;
 
 	std::vector<CutsceneEntity> m_entities;

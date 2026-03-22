@@ -12,7 +12,7 @@ void main()
     vec2 center = vec2(0.5, 0.5);
 
     // Aspect-corrected distance from center
-    vec2 aspect = vec2(resolution.x / resolution.y, 1.0);
+    vec2 aspect = vec2(resolution.x / max(resolution.y, 1.0), 1.0);
     float dist = length((uv - center) * aspect);
 
     // Maximum radius (corner distance)
