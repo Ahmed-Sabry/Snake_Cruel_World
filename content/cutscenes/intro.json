@@ -1,0 +1,526 @@
+{
+  "id": "intro",
+  "displayName": "The Cruel Beginning",
+  "referenceResolution": [1366, 768],
+  "timeline": [
+
+    {"_comment": "========== ACT 1 — DARKNESS =========="},
+    {"_comment": "Black void. A single ink dot. The world begins as a thought."},
+
+    {"type": "animate", "entity": "", "property": "cameraZoom",
+      "from": 0.5, "to": 0.5, "duration": 0.01, "easing": "Linear"},
+
+    {"type": "spawn", "name": "inkDot", "shape": "circle",
+      "position": ["cx", "cy"],
+      "radius": "6 * s", "color": [60,50,45], "corruption": 0.05, "seed": 1,
+      "alpha": 0, "filled": true, "scale": [0, 0]},
+
+    {"type": "parallel", "actions": [
+      {"type": "fade", "toBlack": false, "duration": 2.0},
+      {"type": "animate", "entity": "", "property": "cameraZoom",
+        "from": 0.5, "to": 1.0, "duration": 3.5, "easing": "EaseOutCubic"},
+      {"type": "animate", "entity": "inkDot", "property": "alpha",
+        "from": 0, "to": 255, "duration": 1.5, "easing": "EaseOutCubic"},
+      {"type": "animate", "entity": "inkDot", "property": "scale",
+        "to": [1, 1], "duration": 2.5, "easing": "EaseOutCubic"}
+    ]},
+
+    {"type": "wait", "duration": 0.5},
+
+    {"_comment": "========== ACT 2 — THE CANVAS AWAKENS =========="},
+    {"_comment": "Notebook paper materializes. Ruled lines sweep across the full screen."},
+
+    {"type": "destroy", "name": "inkDot"},
+
+    {"_comment": "Horizontal ruled lines spanning full screen width"},
+    {"type": "parallel", "actions": [
+      {"type": "spawn", "name": "line1", "shape": "line",
+        "position": ["0", "h * 0.2"], "width": "w", "height": "0",
+        "color": [160,150,135], "alpha": 0, "corruption": 0.02, "seed": 20},
+      {"type": "spawn", "name": "line2", "shape": "line",
+        "position": ["0", "h * 0.35"], "width": "w", "height": "0",
+        "color": [160,150,135], "alpha": 0, "corruption": 0.02, "seed": 21},
+      {"type": "spawn", "name": "line3", "shape": "line",
+        "position": ["0", "h * 0.5"], "width": "w", "height": "0",
+        "color": [160,150,135], "alpha": 0, "corruption": 0.02, "seed": 22},
+      {"type": "spawn", "name": "line4", "shape": "line",
+        "position": ["0", "h * 0.65"], "width": "w", "height": "0",
+        "color": [160,150,135], "alpha": 0, "corruption": 0.02, "seed": 23},
+      {"type": "spawn", "name": "line5", "shape": "line",
+        "position": ["0", "h * 0.8"], "width": "w", "height": "0",
+        "color": [160,150,135], "alpha": 0, "corruption": 0.02, "seed": 24}
+    ]},
+
+    {"_comment": "Staggered line fade-ins — paper being drawn into existence"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "line1", "property": "alpha",
+        "from": 0, "to": 100, "duration": 0.8, "easing": "EaseOutCubic"},
+      {"type": "animate", "entity": "line3", "property": "alpha",
+        "from": 0, "to": 100, "duration": 0.9, "easing": "EaseOutCubic"},
+      {"type": "animate", "entity": "line5", "property": "alpha",
+        "from": 0, "to": 100, "duration": 1.0, "easing": "EaseOutCubic"},
+      {"type": "particles", "kind": "inkDust", "position": ["w * 0.2", "cy"], "color": [60,50,45], "count": 4},
+      {"type": "particles", "kind": "inkDust", "position": ["w * 0.8", "cy"], "color": [60,50,45], "count": 4},
+      {"type": "wait", "duration": 0.5}
+    ]},
+
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "line2", "property": "alpha",
+        "from": 0, "to": 100, "duration": 0.7, "easing": "EaseOutCubic"},
+      {"type": "animate", "entity": "line4", "property": "alpha",
+        "from": 0, "to": 100, "duration": 0.8, "easing": "EaseOutCubic"}
+    ]},
+
+    {"_comment": "Red margin line on the left edge — notebook signature"},
+    {"type": "spawn", "name": "margin", "shape": "line",
+      "position": ["48 * s", "0"], "width": "0", "height": "h",
+      "color": [200,120,120], "alpha": 0, "corruption": 0.01, "seed": 30},
+
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "margin", "property": "alpha",
+        "from": 0, "to": 140, "duration": 1.0, "easing": "EaseOutCubic"},
+      {"type": "particles", "kind": "inkDust", "position": ["cx", "h * 0.3"], "color": [60,50,45], "count": 6},
+      {"type": "particles", "kind": "inkDust", "position": ["w * 0.7", "h * 0.7"], "color": [60,50,45], "count": 4},
+      {"type": "sound", "sound": "phase_advance"}
+    ]},
+
+    {"type": "text", "text": "A world, drawn on notebook paper.",
+      "position": ["80 * s", "h * 0.08"],
+      "charSize": "34 * s", "color": [60,50,45], "charsPerSec": 22, "waitForInput": false},
+
+    {"type": "wait", "duration": 1.0},
+
+    {"_comment": "========== ACT 3 — THE SNAKE IS BORN =========="},
+    {"_comment": "The snake appears LARGE, center of the full open canvas. No border. Freedom."},
+
+    {"type": "particles", "kind": "inkSplat", "position": ["cx", "cy"], "color": [60,50,45], "count": 12},
+
+    {"type": "spawn", "name": "sHead", "shape": "rect",
+      "position": ["cx - 20 * s", "cy - 10 * s"],
+      "width": "40 * s", "height": "40 * s",
+      "color": [60,50,45], "corruption": 0.08, "seed": 7,
+      "alpha": 0, "filled": true, "hasEyes": true},
+
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sHead", "property": "alpha",
+        "from": 0, "to": 255, "duration": 0.6, "easing": "EaseOutCubic"},
+      {"type": "animate", "entity": "", "property": "cameraZoom",
+        "from": 1.0, "to": 0.92, "duration": 1.5, "easing": "EaseOutCubic"},
+      {"type": "sound", "sound": "phase_advance"}
+    ]},
+
+    {"_comment": "Breathing expression — the snake is alive"},
+    {"type": "expression", "entity": "sHead", "property": "scaleX",
+      "expr": {"func": "breathing", "frequency": 0.4, "amplitude": 0.025, "offset": 1.0}},
+    {"type": "expression", "entity": "sHead", "property": "scaleY",
+      "expr": {"func": "breathing", "frequency": 0.4, "amplitude": 0.025, "offset": 1.0}},
+
+    {"type": "spawn", "name": "sB1", "shape": "rect",
+      "position": ["cx - 58 * s", "cy - 6 * s"],
+      "width": "34 * s", "height": "34 * s",
+      "color": [60,50,45], "corruption": 0.08, "seed": 11,
+      "alpha": 0, "filled": true},
+
+    {"type": "animate", "entity": "sB1", "property": "alpha",
+      "from": 0, "to": 255, "duration": 0.4, "easing": "EaseOutCubic"},
+
+    {"type": "spawn", "name": "sB2", "shape": "rect",
+      "position": ["cx - 96 * s", "cy - 6 * s"],
+      "width": "34 * s", "height": "34 * s",
+      "color": [60,50,45], "corruption": 0.08, "seed": 13,
+      "alpha": 0, "filled": true},
+
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sB2", "property": "alpha",
+        "from": 0, "to": 255, "duration": 0.4, "easing": "EaseOutCubic"},
+      {"type": "text", "text": "And in this world, lived a small snake.",
+        "position": ["cx - 280 * s", "cy + 60 * s"],
+        "charSize": "32 * s", "color": [60,50,45], "charsPerSec": 20, "waitForInput": false}
+    ]},
+
+    {"_comment": "Big confident wiggle — the snake is happy and free"},
+    {"type": "parallel", "actions": [
+      {"type": "keyframe", "entity": "sHead", "property": "rotation",
+        "keyframes": [
+          {"time": 0, "value": 0},
+          {"time": 0.3, "value": 12, "easing": "EaseOutQuad"},
+          {"time": 0.7, "value": -12, "easing": "EaseInOutQuad"},
+          {"time": 1.0, "value": 0, "easing": "EaseOutElastic"}
+        ]},
+      {"type": "keyframe", "entity": "sB1", "property": "rotation",
+        "keyframes": [
+          {"time": 0, "value": 0},
+          {"time": 0.35, "value": 6, "easing": "EaseOutQuad"},
+          {"time": 0.75, "value": -6, "easing": "EaseInOutQuad"},
+          {"time": 1.1, "value": 0, "easing": "EaseOutElastic"}
+        ]},
+      {"type": "keyframe", "entity": "sB2", "property": "rotation",
+        "keyframes": [
+          {"time": 0, "value": 0},
+          {"time": 0.4, "value": 3, "easing": "EaseOutQuad"},
+          {"time": 0.8, "value": -3, "easing": "EaseInOutQuad"},
+          {"time": 1.2, "value": 0, "easing": "EaseOutElastic"}
+        ]}
+    ]},
+
+    {"type": "parallel", "actions": [
+      {"type": "particles", "kind": "inkDust", "position": ["cx - 40 * s", "cy + 30 * s"], "color": [60,50,45], "count": 5},
+      {"type": "particles", "kind": "inkDust", "position": ["cx + 40 * s", "cy - 20 * s"], "color": [60,50,45], "count": 4},
+      {"type": "wait", "duration": 0.5}
+    ]},
+
+    {"_comment": "========== ACT 4 — THE HAPPY LIFE =========="},
+    {"_comment": "Apple appears far right. Snake crosses the ENTIRE screen to eat it."},
+
+    {"type": "spawn", "name": "apple", "shape": "circle",
+      "position": ["w * 0.82", "cy"],
+      "radius": "16 * s", "color": [180,55,45], "corruption": 0.1, "seed": 99,
+      "alpha": 0, "filled": true, "isApple": true, "zOrder": -1},
+
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "apple", "property": "alpha",
+        "from": 0, "to": 255, "duration": 0.6, "easing": "EaseOutCubic"},
+      {"type": "text", "text": "It ate apples. It was happy.",
+        "position": ["cx - 210 * s", "h * 0.12"],
+        "charSize": "32 * s", "color": [60,50,45], "charsPerSec": 20, "waitForInput": false}
+    ]},
+
+    {"_comment": "Anticipation coil"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sHead", "property": "positionX",
+        "from": "cx - 20 * s", "to": "cx - 28 * s", "duration": 0.2, "easing": "EaseOutQuad"},
+      {"type": "animate", "entity": "sHead", "property": "scale",
+        "to": [0.9, 1.12], "duration": 0.2, "easing": "EaseOutQuad"}
+    ]},
+
+    {"_comment": "Sweeping bezier arc across the screen — the world is vast and free"},
+    {"type": "parallel", "actions": [
+      {"type": "bezier", "entity": "sHead",
+        "path": [{"p0": ["cx - 28 * s", "cy - 10 * s"],
+                  "c1": ["cx + 100 * s", "cy - 120 * s"],
+                  "c2": ["w * 0.6", "cy + 80 * s"],
+                  "p3": ["w * 0.78", "cy"]}],
+        "duration": 1.6, "easing": "EaseInOutCubic"},
+      {"type": "animate", "entity": "sHead", "property": "scale",
+        "to": [1, 1], "duration": 0.2, "easing": "EaseOutQuad"},
+      {"type": "animate", "entity": "sB1", "property": "positionX",
+        "from": "cx - 58 * s", "to": "w * 0.72", "duration": 1.8, "easing": "EaseInOutCubic"},
+      {"type": "animate", "entity": "sB2", "property": "positionX",
+        "from": "cx - 96 * s", "to": "w * 0.66", "duration": 2.0, "easing": "EaseInOutCubic"},
+      {"type": "animate", "entity": "", "property": "cameraX",
+        "from": "cx", "to": "cx + 80 * s", "duration": 1.6, "easing": "EaseInOutCubic"}
+    ]},
+
+    {"_comment": "First bite — impact!"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "apple", "property": "scale",
+        "to": [0.5, 0.5], "duration": 0.12, "easing": "EaseOutQuad"},
+      {"type": "sound", "sound": "apple_eat"},
+      {"type": "particles", "kind": "inkSplat", "position": ["w * 0.82", "cy"], "color": [180,55,45], "count": 10},
+      {"type": "shake", "duration": 0.15, "intensity": 3}
+    ]},
+
+    {"type": "wait", "duration": 0.25},
+
+    {"_comment": "Second bite — devour"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "apple", "property": "scale",
+        "to": [0, 0], "duration": 0.15, "easing": "EaseInCubic"},
+      {"type": "animate", "entity": "sHead", "property": "scale",
+        "to": [1.2, 1.2], "duration": 0.15, "easing": "EaseOutQuad"},
+      {"type": "sound", "sound": "combo_3x"},
+      {"type": "particles", "kind": "inkSplat", "position": ["w * 0.82", "cy"], "color": [180,55,45], "count": 15}
+    ]},
+
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sHead", "property": "scale",
+        "to": [1, 1], "duration": 0.25, "easing": "EaseOutElastic"},
+      {"type": "destroy", "name": "apple"}
+    ]},
+
+    {"_comment": "Swallow pulse down body"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sB1", "property": "scale",
+        "to": [1.15, 1.15], "duration": 0.12, "easing": "EaseOutQuad"},
+      {"type": "animate", "entity": "sB2", "property": "scale",
+        "to": [1.1, 1.1], "duration": 0.2, "easing": "EaseOutQuad"}
+    ]},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sB1", "property": "scale",
+        "to": [1, 1], "duration": 0.25, "easing": "EaseOutElastic"},
+      {"type": "animate", "entity": "sB2", "property": "scale",
+        "to": [1, 1], "duration": 0.25, "easing": "EaseOutElastic"}
+    ]},
+
+    {"_comment": "New body segment bounces in"},
+    {"type": "spawn", "name": "sB3", "shape": "rect",
+      "position": ["w * 0.60", "cy - 6 * s"],
+      "width": "34 * s", "height": "34 * s",
+      "color": [60,50,45], "corruption": 0.08, "seed": 17,
+      "alpha": 255, "filled": true, "scale": [0, 0]},
+
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sB3", "property": "scale",
+        "to": [1, 1], "duration": 0.5, "easing": "BounceOut"},
+      {"type": "particles", "kind": "inkDust", "position": ["w * 0.60", "cy"], "color": [60,50,45], "count": 5}
+    ]},
+
+    {"_comment": "Happy wiggle + camera drifts back to center"},
+    {"type": "parallel", "actions": [
+      {"type": "keyframe", "entity": "sHead", "property": "rotation",
+        "keyframes": [
+          {"time": 0, "value": 0},
+          {"time": 0.2, "value": 10, "easing": "EaseOutQuad"},
+          {"time": 0.5, "value": -10, "easing": "EaseInOutQuad"},
+          {"time": 0.7, "value": 0, "easing": "EaseOutElastic"}
+        ]},
+      {"type": "keyframe", "entity": "sB1", "property": "rotation",
+        "keyframes": [
+          {"time": 0, "value": 0},
+          {"time": 0.25, "value": 5, "easing": "EaseOutQuad"},
+          {"time": 0.55, "value": -5, "easing": "EaseInOutQuad"},
+          {"time": 0.8, "value": 0, "easing": "EaseOutElastic"}
+        ]},
+      {"type": "animate", "entity": "", "property": "cameraX",
+        "from": "cx + 80 * s", "to": "cx", "duration": 1.0, "easing": "EaseInOutQuad"},
+      {"type": "animate", "entity": "", "property": "cameraZoom",
+        "from": 0.92, "to": 1.0, "duration": 1.0, "easing": "EaseInOutQuad"}
+    ]},
+
+    {"type": "wait", "duration": 0.6},
+
+    {"_comment": "========== ACT 5 — THE TURN =========="},
+    {"_comment": "Silence. Then the border appears — trapping the snake for the first time."},
+
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sHead", "property": "alpha", "to": 180, "duration": 0.4, "easing": "EaseOutQuad"},
+      {"type": "animate", "entity": "sB1", "property": "alpha", "to": 180, "duration": 0.4, "easing": "EaseOutQuad"},
+      {"type": "animate", "entity": "sB2", "property": "alpha", "to": 180, "duration": 0.4, "easing": "EaseOutQuad"},
+      {"type": "animate", "entity": "sB3", "property": "alpha", "to": 180, "duration": 0.4, "easing": "EaseOutQuad"}
+    ]},
+
+    {"type": "clearPersistent"},
+    {"type": "wait", "duration": 1.2},
+    {"type": "sound", "sound": "heartbeat"},
+
+    {"_comment": "Heartbeat camera punch"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sHead", "property": "alpha", "to": 255, "duration": 0.15, "easing": "EaseOutQuad"},
+      {"type": "animate", "entity": "sB1", "property": "alpha", "to": 255, "duration": 0.15, "easing": "EaseOutQuad"},
+      {"type": "animate", "entity": "sB2", "property": "alpha", "to": 255, "duration": 0.15, "easing": "EaseOutQuad"},
+      {"type": "animate", "entity": "sB3", "property": "alpha", "to": 255, "duration": 0.15, "easing": "EaseOutQuad"},
+      {"type": "keyframe", "entity": "", "property": "cameraZoom",
+        "keyframes": [
+          {"time": 0, "value": 1.0},
+          {"time": 0.08, "value": 0.94, "easing": "EaseOutQuad"},
+          {"time": 0.5, "value": 1.0, "easing": "EaseOutElastic"}
+        ]},
+      {"type": "shake", "duration": 0.2, "intensity": 3}
+    ]},
+
+    {"type": "text", "text": "But the world had other plans.",
+      "position": ["cx - 240 * s", "cy - 120 * s"],
+      "charSize": "36 * s", "color": [45,35,30], "charsPerSec": 12, "waitForInput": true},
+
+    {"_comment": "THE BORDER APPEARS — full screen size, then immediately starts shrinking"},
+    {"type": "spawn", "name": "border", "shape": "rect",
+      "position": ["0", "0"],
+      "width": "w", "height": "h",
+      "color": [60,50,45], "corruption": 0.12, "seed": 42,
+      "alpha": 0, "zOrder": -2},
+
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "border", "property": "alpha",
+        "from": 0, "to": 255, "duration": 0.5, "easing": "EaseOutQuad"},
+      {"type": "sound", "sound": "world_shrink"},
+      {"type": "shake", "duration": 0.3, "intensity": 4},
+      {"type": "particles", "kind": "inkSplat", "position": ["cx", "cy"], "color": [60,50,45], "count": 20}
+    ]},
+
+    {"_comment": "Move snake segments back to center for confinement"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "sHead", "property": "position",
+        "to": ["cx - 20 * s", "cy - 10 * s"], "duration": 0.8, "easing": "EaseInOutQuad"},
+      {"type": "animate", "entity": "sB1", "property": "position",
+        "to": ["cx - 58 * s", "cy - 6 * s"], "duration": 0.9, "easing": "EaseInOutQuad"},
+      {"type": "animate", "entity": "sB2", "property": "position",
+        "to": ["cx - 96 * s", "cy - 6 * s"], "duration": 1.0, "easing": "EaseInOutQuad"},
+      {"type": "animate", "entity": "sB3", "property": "position",
+        "to": ["cx - 134 * s", "cy - 6 * s"], "duration": 1.1, "easing": "EaseInOutQuad"}
+    ]},
+
+    {"_comment": "First shrink: full-screen to 80% — the walls close in"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "border", "property": "scale",
+        "to": [0.8, 0.8], "duration": 1.8, "easing": "EaseInOutCubic"},
+      {"type": "animate", "entity": "", "property": "cameraZoom",
+        "from": 1.0, "to": 0.92, "duration": 1.8, "easing": "EaseInOutCubic"},
+      {"type": "animate", "entity": "", "property": "cameraRotation",
+        "from": 0, "to": -0.6, "duration": 1.8, "easing": "EaseInQuad"},
+      {"type": "shake", "duration": 0.5, "intensity": 4},
+      {"type": "sound", "sound": "world_shrink"},
+      {"type": "text", "text": "The walls began to close in.",
+        "position": ["cx - 220 * s", "h * 0.12"],
+        "charSize": "30 * s", "color": [45,35,30], "charsPerSec": 20, "waitForInput": false},
+      {"type": "animate", "entity": "sHead", "property": "corruption",
+        "from": 0.08, "to": 0.18, "duration": 1.8, "easing": "EaseInQuad"},
+      {"type": "animate", "entity": "sB1", "property": "corruption",
+        "from": 0.08, "to": 0.18, "duration": 1.8, "easing": "EaseInQuad"},
+      {"type": "animate", "entity": "sB2", "property": "corruption",
+        "from": 0.08, "to": 0.18, "duration": 1.8, "easing": "EaseInQuad"},
+      {"type": "expression", "entity": "sHead", "property": "rotation",
+        "expr": {"func": "sin", "frequency": 12, "amplitude": 2, "offset": 0}}
+    ]},
+
+    {"type": "wait", "duration": 0.5},
+
+    {"_comment": "========== ACT 6 — THE CRUEL TRUTH =========="},
+    {"_comment": "The border crushes inward. Everything deteriorates."},
+
+    {"_comment": "Second shrink inhale"},
+    {"type": "animate", "entity": "border", "property": "scale",
+      "to": [0.83, 0.83], "duration": 0.2, "easing": "EaseOutQuad"},
+
+    {"_comment": "Second shrink: 80% to 55%"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "border", "property": "scale",
+        "to": [0.55, 0.55], "duration": 1.4, "easing": "EaseInOutCubic"},
+      {"type": "animate", "entity": "", "property": "cameraZoom",
+        "from": 0.92, "to": 0.82, "duration": 1.4, "easing": "EaseInOutCubic"},
+      {"type": "animate", "entity": "", "property": "cameraRotation",
+        "from": -0.6, "to": -1.5, "duration": 1.4, "easing": "EaseInQuad"},
+      {"type": "shake", "duration": 0.6, "intensity": 7},
+      {"type": "sound", "sound": "world_shrink"},
+      {"type": "postProcess", "corruption": 0.35},
+      {"type": "animate", "entity": "sHead", "property": "corruption",
+        "from": 0.18, "to": 0.3, "duration": 1.4, "easing": "EaseInQuad"},
+      {"type": "animate", "entity": "sB1", "property": "corruption",
+        "from": 0.18, "to": 0.3, "duration": 1.4, "easing": "EaseInQuad"},
+      {"type": "animate", "entity": "sB2", "property": "corruption",
+        "from": 0.18, "to": 0.3, "duration": 1.4, "easing": "EaseInQuad"},
+      {"type": "animate", "entity": "sB3", "property": "corruption",
+        "from": 0.08, "to": 0.3, "duration": 1.4, "easing": "EaseInQuad"},
+      {"type": "particles", "kind": "inkDrips", "position": ["cx - 100 * s", "25 * s"], "color": [45,35,30], "count": 8},
+      {"type": "particles", "kind": "inkDrips", "position": ["cx + 120 * s", "20 * s"], "color": [45,35,30], "count": 6}
+    ]},
+
+    {"type": "clearPersistent"},
+    {"type": "wait", "duration": 0.4},
+
+    {"_comment": "Ramp up post-processing"},
+    {"type": "postProcess", "fromCorruption": 0.35, "toCorruption": 0.65,
+      "duration": 0.6, "easing": "EaseInQuad", "inkBleed": true, "chromatic": true},
+
+    {"_comment": "Third shrink inhale"},
+    {"type": "animate", "entity": "border", "property": "scale",
+      "to": [0.58, 0.58], "duration": 0.2, "easing": "EaseOutQuad"},
+
+    {"_comment": "Third shrink: 55% to 35% — border bleeds crimson"},
+    {"type": "parallel", "actions": [
+      {"type": "animate", "entity": "border", "property": "scale",
+        "to": [0.35, 0.35], "duration": 1.8, "easing": "EaseInCubic"},
+      {"type": "animate", "entity": "", "property": "cameraZoom",
+        "from": 0.82, "to": 0.72, "duration": 1.8, "easing": "EaseInCubic"},
+      {"type": "animate", "entity": "", "property": "cameraRotation",
+        "from": -1.5, "to": -3.0, "duration": 1.8, "easing": "EaseInCubic"},
+      {"type": "sound", "sound": "earthquake"},
+      {"type": "shake", "duration": 1.0, "intensity": 10},
+      {"type": "animate", "entity": "border", "property": "colorR",
+        "from": 60, "to": 160, "duration": 1.8, "easing": "EaseInCubic"},
+      {"type": "animate", "entity": "border", "property": "colorG",
+        "from": 50, "to": 30, "duration": 1.8, "easing": "EaseInCubic"},
+      {"type": "animate", "entity": "border", "property": "colorB",
+        "from": 45, "to": 30, "duration": 1.8, "easing": "EaseInCubic"},
+      {"type": "animate", "entity": "sHead", "property": "corruption",
+        "from": 0.3, "to": 0.5, "duration": 1.8, "easing": "EaseInQuad"},
+      {"type": "animate", "entity": "sB1", "property": "corruption",
+        "from": 0.3, "to": 0.5, "duration": 1.8, "easing": "EaseInQuad"},
+      {"type": "animate", "entity": "sB2", "property": "corruption",
+        "from": 0.3, "to": 0.5, "duration": 1.8, "easing": "EaseInQuad"},
+      {"type": "animate", "entity": "sB3", "property": "corruption",
+        "from": 0.3, "to": 0.5, "duration": 1.8, "easing": "EaseInQuad"},
+      {"type": "particles", "kind": "inkDrips", "position": ["cx - 80 * s", "20 * s"], "color": [160,30,30], "count": 10},
+      {"type": "particles", "kind": "inkDrips", "position": ["cx + 60 * s", "15 * s"], "color": [160,30,30], "count": 8},
+      {"type": "particles", "kind": "inkDrips", "position": ["cx", "10 * s"], "color": [160,30,30], "count": 6}
+    ]},
+
+    {"_comment": "Urgent narration with impact"},
+    {"type": "parallel", "actions": [
+      {"type": "text", "text": "And with every apple...",
+        "position": ["cx - 180 * s", "h * 0.15"],
+        "charSize": "32 * s", "color": [180,50,40], "charsPerSec": 28, "waitForInput": false},
+      {"type": "sound", "sound": "wall_death"},
+      {"type": "particles", "kind": "inkSplat", "position": ["cx", "cy"], "color": [180,50,40], "count": 30},
+      {"type": "shake", "duration": 0.4, "intensity": 6}
+    ]},
+
+    {"type": "parallel", "actions": [
+      {"type": "text", "text": "...the world grew crueler.",
+        "position": ["cx - 220 * s", "h * 0.25"],
+        "charSize": "40 * s", "color": [180,50,40], "charsPerSec": 26, "waitForInput": false},
+      {"type": "shake", "duration": 0.3, "intensity": 4},
+      {"type": "particles", "kind": "inkDrips", "position": ["cx", "10 * s"], "color": [160,30,30], "count": 8}
+    ]},
+
+    {"type": "wait", "duration": 1.5},
+
+    {"_comment": "========== ACT 7 — THE TITLE =========="},
+    {"_comment": "Everything is destroyed. From the ashes: the title."},
+
+    {"type": "clearPersistent"},
+
+    {"type": "postProcess", "fromCorruption": 0.65, "toCorruption": 1.0,
+      "duration": 0.5, "easing": "EaseInCubic", "inkBleed": true, "chromatic": true, "psychedelic": true},
+
+    {"_comment": "Destroy EVERYTHING — world, snake, ruled lines, margin"},
+    {"type": "parallel", "actions": [
+      {"type": "sound", "sound": "phase_advance"},
+      {"type": "shake", "duration": 1.0, "intensity": 14},
+      {"type": "destroy", "name": "border"},
+      {"type": "destroy", "name": "sHead"},
+      {"type": "destroy", "name": "sB1"},
+      {"type": "destroy", "name": "sB2"},
+      {"type": "destroy", "name": "sB3"},
+      {"type": "destroy", "name": "line1"},
+      {"type": "destroy", "name": "line2"},
+      {"type": "destroy", "name": "line3"},
+      {"type": "destroy", "name": "line4"},
+      {"type": "destroy", "name": "line5"},
+      {"type": "destroy", "name": "margin"},
+      {"type": "particles", "kind": "inkSplat", "position": ["cx", "cy"], "color": [180,50,40], "count": 40},
+      {"type": "particles", "kind": "inkSplat", "position": ["cx - 150 * s", "cy"], "color": [160,30,30], "count": 15},
+      {"type": "particles", "kind": "inkSplat", "position": ["cx + 150 * s", "cy"], "color": [160,30,30], "count": 15}
+    ]},
+
+    {"_comment": "Iris close — ink blot swallows the chaos"},
+    {"type": "transition", "kind": "irisClose", "duration": 1.2, "color": [0,0,0], "easing": "EaseInCubic"},
+
+    {"_comment": "Reset everything while screen is black"},
+    {"type": "animate", "entity": "", "property": "cameraZoom",
+      "from": 0.72, "to": 1.0, "duration": 0.01, "easing": "Linear"},
+    {"type": "animate", "entity": "", "property": "cameraRotation",
+      "from": -3.0, "to": 0.0, "duration": 0.01, "easing": "Linear"},
+    {"type": "animate", "entity": "", "property": "cameraX",
+      "from": "cx", "to": "cx", "duration": 0.01, "easing": "Linear"},
+
+    {"type": "clearPersistent"},
+    {"type": "postProcess", "corruption": 0},
+
+    {"_comment": "Iris open — reveal the title on a clean, empty stage"},
+    {"type": "transition", "kind": "irisOpen", "duration": 1.5, "color": [0,0,0], "easing": "EaseOutCubic"},
+
+    {"_comment": "THE TITLE — massive, centered, crimson"},
+    {"type": "text", "text": "HELLO, CRUEL WORLD.",
+      "position": ["cx - 280 * s", "cy - 40 * s"],
+      "charSize": "56 * s", "color": [160,30,30], "charsPerSec": 35, "waitForInput": false},
+
+    {"type": "wait", "duration": 2.5},
+
+    {"_comment": "========== ACT 8 — FADE OUT =========="},
+
+    {"type": "clearPersistent"},
+
+    {"_comment": "Dissolve to black — the world is gone"},
+    {"type": "transition", "kind": "dissolve", "duration": 2.5, "color": [0,0,0], "easing": "EaseInCubic"}
+  ]
+}

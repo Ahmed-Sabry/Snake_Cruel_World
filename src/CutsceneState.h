@@ -4,6 +4,7 @@
 #include "StateManager.h"
 #include "CutsceneTimeline.h"
 #include "CutsceneScene.h"
+#include "CutsceneCamera.h"
 #include "PaperBackground.h"
 #include "ParticleSystem.h"
 #include "PostProcessor.h"
@@ -22,6 +23,7 @@ public:
 	void Render() override;
 
 	CutsceneScene& GetScene() { return m_scene; }
+	CutsceneCamera& GetCamera() { return m_camera; }
 	ParticleSystem& GetParticles() { return m_particles; }
 	PostProcessor& GetPostProcessor() { return m_postProcessor; }
 	ScreenShake& GetScreenShake() { return m_screenShake; }
@@ -29,11 +31,14 @@ public:
 	sf::Font& GetFont() { return m_font; }
 	void ClearAllPersistent() { m_timeline.ClearAllPersistent(); }
 
+	void CaptureFrame(sf::RenderTexture& l_target);
+
 	static CutsceneState* s_active;
 
 private:
 	CutsceneTimeline m_timeline;
 	CutsceneScene m_scene;
+	CutsceneCamera m_camera;
 	PaperBackground m_paperBg;
 	ParticleSystem m_particles;
 	PostProcessor m_postProcessor;
