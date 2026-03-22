@@ -1,4 +1,5 @@
 #include "KeyframeAction.h"
+#include "CutsceneState.h"
 #include <algorithm>
 #include <cmath>
 

@@ -5,6 +5,7 @@
 #include "StateManager.h"
 #include <fstream>
 #include <filesystem>
+#include <iostream>
 
 static std::vector<CutsceneDefs::CutsceneEntry> s_cachedEntries;
 static bool s_entriesCached = false;
@@ -21,24 +22,38 @@ std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 	// Scan content/cutscenes/ for JSON cutscene files
 	namespace fs = std::filesystem;
 	const std::string cutsceneDir = "content/cutscenes";
-	if (fs::exists(cutsceneDir) && fs::is_directory(cutsceneDir))
+	std::error_code ec;
+	if (fs::exists(cutsceneDir, ec) && fs::is_directory(cutsceneDir, ec))
 	{
-		for (const auto& entry : fs::directory_iterator(cutsceneDir))
+		for (auto it = fs::directory_iterator(cutsceneDir, ec); it != fs::directory_iterator(); it.increment(ec))
 		{
-			if (entry.path().extension() == ".json")
+			if (ec)
+			{
+				std::cerr << "CutsceneDefs: directory iteration error: " << ec.message() << "\n";
+				break;
+			}
+			if (it->path().extension() == ".json")
 			{
 				CutsceneLoader::CutsceneMetadata meta;
-				if (CutsceneLoader::ReadMetadata(entry.path().string(), meta))
+				if (CutsceneLoader::ReadMetadata(it->path().string(), meta))
 				{
-					// Check if already in list
+					// Check for duplicate id
 					bool exists = false;
 					for (auto& e : entries)
 					{
 						if (e.id == meta.id)
 						{
-							// Fill in path for preseeded entries that lack one
 							if (e.path.empty())
-								e.path = entry.path().string();
+							{
+								// Fill in path for preseeded entries
+								e.path = it->path().string();
+							}
+							else
+							{
+								std::cerr << "CutsceneDefs: duplicate cutscene id '"
+										  << meta.id << "' in " << it->path().string()
+										  << " (already loaded from " << e.path << ")\n";
+							}
 							exists = true;
 							break;
 						}
@@ -47,7 +62,7 @@ std::vector<CutsceneDefs::CutsceneEntry> CutsceneDefs::GetAllEntries()
 					{
 						entries.push_back({meta.id, meta.displayName,
 							[](const StateManager&) { return true; },
-							entry.path().string()});
+							it->path().string()});
 					}
 				}
 			}
