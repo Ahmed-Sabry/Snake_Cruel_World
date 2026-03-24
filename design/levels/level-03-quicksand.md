@@ -40,7 +40,7 @@ The player navigates a grid littered with 3x3 quicksand patches. Touching quicks
 ### Quicksand Behavior (existing mechanic - with modifications)
 
 - **Existing**: 3x3 tile patches (`QuicksandPatch` struct), relocate on timer, `IsOnQuicksand()` check
-- **Modification for redesign**: Touching quicksand should apply a **severe speed penalty** (snake speed halved for 1 second) rather than instant death. This makes quicksand a hazard that punishes routing mistakes without being instantly lethal, creating more interesting gameplay.
+- **Modification for redesign**: Touching regular quicksand should apply a **severe speed penalty** (`0.5x` movement speed while the snake is on the patch) rather than instant death. This makes quicksand a hazard that punishes routing mistakes without being instantly lethal, creating more interesting gameplay.
 - **Visual**: Sepia-brown tiles with a subtle "sinking" animation (tiles pulse slightly darker in waves)
 
 ### Difficulty Curve Within Stage
@@ -78,7 +78,7 @@ A massive slug-like ink creature that oozes across the arena. It leaves a perman
 
 **Visual design:**
 - Body: elongated blob, ~6 tiles long, 2 tiles wide. Dark brown-black with glistening wet texture.
-- Trail: darker quicksand patches that are visually distinct from the floor quicksand (these are permanent and slightly more dangerous - touching the fresh trail slows you MORE than regular quicksand).
+- Trail: darker quicksand patches that are visually distinct from the floor quicksand. Touching regular quicksand slows the snake to `50%` of normal speed (`0.5x`), while touching The Mire's fresh trail slows the snake to `25%` of normal speed (`0.25x`).
 - Head: blunt rounded front with two dim amber eyes.
 - Movement: slow, deliberate oozing animation. Segments compress and expand like a real slug.
 
@@ -87,7 +87,7 @@ A massive slug-like ink creature that oozes across the arena. It leaves a perman
 **Arena layout:**
 - The entire floor starts as quicksand EXCEPT for 3-4 narrow "dry paths" (1-tile-wide corridors) that form a loose grid pattern.
 - Dry paths shift position every 8 seconds (old paths sink into quicksand, new paths emerge elsewhere). A 1.5s warning glow shows where new paths will appear.
-- The snake moves at full speed on dry paths, severely slowed on quicksand.
+- The snake moves at full speed on dry paths, at `0.5x` speed on regular quicksand, and at `0.25x` speed on The Mire's fresh trail.
 
 **The Mire's behavior:**
 - Moves along the dry paths (it's fast on dry ground too).
@@ -115,7 +115,7 @@ A massive slug-like ink creature that oozes across the arena. It leaves a perman
 
 - **Hit condition**: Eat apple off The Mire's back while it's stuck in a corner
 - **Hits to defeat**: 3
-- **Counter-ability bonus (Shed Skin)**: Using Shed Skin drops body segments that create temporary dry patches (5 seconds). These are new safe ground the player can walk on, and they also block The Mire's trail from spreading. Effectively creates escape routes and shortens the distance to corners. Additionally, shed segments placed in The Mire's path slow it down for 2 seconds (it has to "consume" them).
+- **Counter-ability bonus (Shed Skin)**: On replay runs after the player has already earned Shed Skin, activating it drops body segments that create temporary dry patches (5 seconds). These are new safe ground the player can walk on, and they also block The Mire's trail from spreading. Effectively creates escape routes and shortens the distance to corners. Additionally, shed segments placed in The Mire's path slow it down for 2 seconds (it has to "consume" them).
 - **Visual feedback on hit**: Mire convulses, chunks of its body splatter off as ink particles. It shrinks slightly. Fresh quicksand it left behind briefly solidifies into dry ground (3 seconds of relief).
 
 ### Boss Defeat
@@ -148,12 +148,12 @@ After The Mire dissolves:
 | Duration | Instant (shed segments last 5s) |
 | Activation Key | Spacebar (ability key) |
 | Available After | Defeating The Mire (L3 boss) |
-| Minimum Length | Snake must have at least 4 body segments to use |
+| Minimum Length | Snake must have at least 5 body segments to use |
 
 ### Effect Details
 
 When activated:
-1. **Immediate**: Snake drops its last 3 body segments in place. Snake length decreases by 3.
+1. **Immediate**: Snake drops its last 3 body segments in place. Snake length decreases by 3, and activation is only allowed when at least 5 segments remain before the shed so the post-effect snake is still 2 segments long and playable.
 2. **Shed segments**: Remain on the grid as solid obstacles for 5 seconds.
    - Block enemy movement (Predator, Mirror Ghost must path around them)
    - Block quicksand spreading (The Mire's trail cannot cross them)
@@ -277,6 +277,7 @@ This is a good **2nd or 3rd level** for players. The quicksand mechanic is more 
   - Spawn them as temporary solid obstacles
   - 5-second lifetime with dissolve animation
   - Collision registration (enemies, quicksand blocking)
+  - Validation case: with a 5-segment snake, activate Shed Skin and verify the snake survives at 2 segments, can still move on the next input, and can still eat the next apple normally
 
 ### Existing LevelConfig Values (reference)
 

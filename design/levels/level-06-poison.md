@@ -31,7 +31,7 @@ Poison apples spawn alongside real apples. They look similar but have subtle vis
 | Base Speed | 12.0 | Moderate - speed boost from poison makes it feel much faster |
 | Apples to Win | 12 | Standard count |
 | Shrink Interval | 4 apples | Walls close every 4 real apples eaten |
-| Poison Spawn Rate | 1 poison per real apple | Always one poison apple on the field alongside the real one |
+| Poison Spawn Rate | 1 poison paired with 1 real apple | Exactly two apples are present per spawn cycle: one real and one poison. Eating either apple immediately restores the pair, and poison apples never accumulate beyond a single active poison apple. |
 | Control Inversion Duration | 3.0s | How long controls stay inverted after eating poison |
 | Speed Boost Amount | 1.5x | Speed multiplier during poison effect |
 | Extra Growth | 2 segments | Eating poison grows you 2 extra segments (3 total instead of 1) |
@@ -45,7 +45,7 @@ Poison apples spawn alongside real apples. They look similar but have subtle vis
   - **Apples 1-4**: Poison apple is clearly different color (sickly yellow-green vs red)
   - **Apples 5-8**: Colors converge - poison becomes more red-tinted, harder to distinguish
   - **Apples 9-12**: Nearly identical colors. Player must rely on subtle cues: poison apple has a faint outline shimmer, or slightly different size (0.9x scale)
-- **Recovery**: After eating poison, all effects wear off after 3 seconds. Eating a real apple during poison immediately clears all poison effects, incentivizing aggressive play even while poisoned.
+- **Recovery**: Eating a real apple while poisoned does **not** remove the active poison timers or the extra body length already gained; it only advances the spawn cycle and breaks the consecutive-poison chain, so any poison-added segments remain until lost through normal play.
 
 ### Difficulty Curve Within Stage
 
@@ -92,7 +92,7 @@ An ink creature that attaches to the snake's tail and slowly converts body segme
 - The Parasite starts by converting the last body segment to "poisoned" (green, pulsing)
 - Every 3 seconds, it converts the next segment toward the head
 - If all segments are converted (the parasite reaches the head), the player dies
-- The player has a body of 12+ segments at this point, so they have ~36 seconds before total infection
+- Total infection time is dynamic: if the snake currently has `N` infectable body segments, full infection takes `N x 3 seconds` unless the player pushes the parasite back by eating real apples
 
 **How to fight back:**
 - Eating a real apple pushes the parasite back 2 segments (heals 2 segments)
@@ -103,7 +103,7 @@ An ink creature that attaches to the snake's tail and slowly converts body segme
 **The Parasite fights back:**
 - **Spit attack**: Every 8 seconds, the parasite "spits" at the nearest real apple, converting it to poison. Visual: green projectile arcs from the tail to the apple, it changes color.
 - **Phase 2 (after 2 real apples)**: Spit interval decreases to 5 seconds. Converts 2 apples at once.
-- **Phase 3 (after 4 real apples)**: Spit interval = 3 seconds. The parasite also starts pulsing the infected segments, causing them to expand slightly and potentially collide with the snake's healthy path.
+- **Phase 3 (after 4 real apples)**: Spit interval = 3 seconds. On each spit cadence, all currently infected segments pulse to `1.2x` their normal radius with a smooth `0.15s` expand, `0.4s` hold, and `0.15s` shrink. The expanded state is a real head-collision hazard for that `0.7s` window: if the snake's head overlaps an expanded infected segment, the player dies immediately. The pulse does not push or solid-block the snake's existing body; it is a timed head-avoidance threat, not a full-body physics obstacle.
 
 ### Damage System
 
@@ -226,7 +226,7 @@ Betrayal was the deepest wound - the page where things looked right but weren't.
 ### Without Any Abilities (First Playthrough)
 
 - Stage phase: **Medium**. Poison is punishing but survivable. The visual deception creates tension. Players who rush will eat more poison; players who observe will thrive. Deaths: 2-4 attempts average.
-- Boss phase: **Hard**. The 5-consecutive-real requirement is demanding when the Parasite is converting apples. The pressure of the infection timer (36 seconds before death) creates urgency. Players must balance speed with caution. Deaths: 4-7 attempts average.
+- Boss phase: **Hard**. The 5-consecutive-real requirement is demanding when the Parasite is converting apples. The pressure of the infection timer (`current infectable segments x 3 seconds` before death, before any healing) creates urgency. Players must balance speed with caution. Deaths: 4-7 attempts average.
 
 ### With Abilities
 

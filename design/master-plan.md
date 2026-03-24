@@ -115,6 +115,16 @@ Predator ──(Hunter's Dash)──► Timed Apples
 Control Shuffle ──(Ink Memory)──► Poison
 ```
 
+### Canonical Ability Data
+
+The `8 Abilities` table above and the `Counter-Ability Web` are the canonical source of truth for unlock source, cooldown, duration, core effect, and strong-counter relationships. Each level document should mirror these values exactly unless this master plan is updated first.
+
+Validation step for doc maintenance:
+
+- Add a lightweight doc check in CI or a pre-merge hook that compares every level doc against the master ability table and counter web.
+- Validate at minimum: earned ability name, cooldown, duration, primary effect summary, and strong-counter target.
+- Surface mismatches as warnings during active design iteration and promote them to failures once implementation begins, so level docs cannot silently drift away from the master spec.
+
 ### Visual Transform Per Ability
 
 When activated, the snake's appearance changes for the ability's duration:
@@ -222,6 +232,8 @@ Before any code, create detailed design docs for:
 - Core system architectures (Ability framework, Boss base class, Stage Select)
 - Level 10 multi-phase boss design
 - Narrative/cutscene script
+
+During this phase, treat the master ability table and counter web in this document as the canonical reference, and resolve any per-level discrepancies here before updating the individual level docs.
 
 ### Code Implementation Phases (after design is complete)
 
