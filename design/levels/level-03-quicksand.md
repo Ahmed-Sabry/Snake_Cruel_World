@@ -32,7 +32,7 @@ The player navigates a grid littered with 3x3 quicksand patches. Touching quicks
 | Apples to Win | 15 | Standard count - routing around patches adds time naturally |
 | Shrink Interval | 0 (time-based) | Walls shrink every 8.0s instead of per-apple |
 | Shrink Timer | 8.0s | Constant pressure - arena gets tighter, patches get harder to avoid |
-| Patch Count (initial) | 4 | Manageable at start |
+| Patch Count | 4 → 8 (progressive) | Starts at 4, then 6, then 8 per milestone; see **Difficulty Curve Within Stage** (apples 1–5 / 6–10 / 11–15) |
 | Patch Relocate Interval | 6.0s → 4.0s (progressive) | Starts at 6.0s, then 5.0s, then 4.0s per milestone; see **Difficulty Curve Within Stage** (apples 1–5 / 6–10 / 11–15) |
 | Star Threshold (2 stars) | 10 self-collisions | Very generous - quicksand causes many accidental crashes |
 | Star Threshold (3 stars) | 0 self-collisions | Perfect run only - rewards flawless routing |
@@ -78,7 +78,7 @@ A massive slug-like ink creature that oozes across the arena. It leaves a perman
 
 **Visual design:**
 - Body: elongated blob, ~6 tiles long, 2 tiles wide. Dark brown-black with glistening wet texture.
-- Trail: darker quicksand patches that are visually distinct from the floor quicksand. Touching regular quicksand slows the snake to `50%` of normal speed (`0.5x`), while touching The Mire's fresh trail slows the snake to `25%` of normal speed (`0.25x`).
+- Trail: darker quicksand patches that are visually distinct from the floor quicksand. Touching regular quicksand slows the snake to `0.5x` of normal speed, while touching The Mire's fresh trail slows the snake to `0.25x` of normal speed.
 - Head: blunt rounded front with two dim amber eyes.
 - Movement: slow, deliberate oozing animation. Segments compress and expand like a real slug.
 
@@ -86,7 +86,11 @@ A massive slug-like ink creature that oozes across the arena. It leaves a perman
 
 **Arena layout:**
 - The entire floor starts as quicksand EXCEPT for 3-4 narrow "dry paths" (1-tile-wide corridors) that form a loose grid pattern.
-- Dry paths shift position every 8 seconds (old paths sink into quicksand, new paths emerge elsewhere). A 1.5s warning glow shows where new paths will appear. When a warned segment actually sinks, any player standing on that segment is first moved to the nearest remaining dry-path tile within a 1-tile Manhattan radius if one exists (preserve facing and do not cancel the current input buffer); if no such tile exists, the player instead enters regular quicksand underfoot and immediately receives the regular quicksand speed penalty (`0.5x`, not instant death) plus a brief `0.5s` grace window before any additional stacking penalties from that sink event apply. While on The Mire's fresh trail, the snake uses the stricter `0.25x` modifier as elsewhere in this doc.
+- Dry paths shift position every 8 seconds (old paths sink into quicksand, new paths emerge elsewhere). A 1.5s warning glow shows where new paths will appear.
+- **When a warned segment sinks:**
+  1. If the player is standing on that segment, move them to the nearest remaining dry-path tile within a 1-tile Manhattan radius if one exists (preserve facing and do not cancel the current input buffer).
+  2. If no such tile exists, the player instead enters regular quicksand underfoot and immediately receives the regular quicksand speed penalty (`0.5x`, not instant death) plus a brief `0.5s` grace window before any additional stacking penalties from that sink event apply.
+- While on The Mire's fresh trail, the snake uses the stricter `0.25x` modifier as elsewhere in this doc.
 - The snake moves at full speed on dry paths, at `0.5x` speed on regular quicksand, and at `0.25x` speed on The Mire's fresh trail.
 
 **The Mire's behavior:**
@@ -114,7 +118,7 @@ A massive slug-like ink creature that oozes across the arena. It leaves a perman
 
 - **Hit condition**: Eat apple off The Mire's back while it's stuck in a corner
 - **Hits to defeat**: 3
-- **Counter-ability bonus (Shed Skin)**: On replay runs after the player has already earned Shed Skin, activating it drops body segments that create temporary dry patches (5 seconds). These are new safe ground the player can walk on, and they also block The Mire's trail from spreading. Effectively creates escape routes and shortens the distance to corners. Additionally, shed segments placed in The Mire's path slow it down for 2 seconds (it has to "consume" them).
+- **Replay bonus with Shed Skin**: On replay runs after the player has already earned Shed Skin, activating it drops body segments that create temporary dry patches (5 seconds). These are new safe ground the player can walk on, and they also block The Mire's trail from spreading. Effectively creates escape routes and shortens the distance to corners. Additionally, shed segments placed in The Mire's path slow it down for 2 seconds (it has to "consume" them).
 - **Visual feedback on hit**: Mire convulses, chunks of its body splatter off as ink particles. It shrinks slightly. Fresh quicksand it left behind briefly solidifies into dry ground (3 seconds of relief).
 
 ### Boss Defeat
