@@ -33,7 +33,7 @@ The player navigates a grid littered with 3x3 quicksand patches. Touching quicks
 | Shrink Interval | 0 (time-based) | Walls shrink every 8.0s instead of per-apple |
 | Shrink Timer | 8.0s | Constant pressure - arena gets tighter, patches get harder to avoid |
 | Patch Count (initial) | 4 | Manageable at start |
-| Patch Relocate Interval | 6.0s | Patches shift positions periodically |
+| Patch Relocate Interval | 6.0s → 4.0s (progressive) | Starts at 6.0s, then 5.0s, then 4.0s per milestone; see **Difficulty Curve Within Stage** (apples 1–5 / 6–10 / 11–15) |
 | Star Threshold (2 stars) | 10 self-collisions | Very generous - quicksand causes many accidental crashes |
 | Star Threshold (3 stars) | 0 self-collisions | Perfect run only - rewards flawless routing |
 
@@ -86,7 +86,7 @@ A massive slug-like ink creature that oozes across the arena. It leaves a perman
 
 **Arena layout:**
 - The entire floor starts as quicksand EXCEPT for 3-4 narrow "dry paths" (1-tile-wide corridors) that form a loose grid pattern.
-- Dry paths shift position every 8 seconds (old paths sink into quicksand, new paths emerge elsewhere). A 1.5s warning glow shows where new paths will appear.
+- Dry paths shift position every 8 seconds (old paths sink into quicksand, new paths emerge elsewhere). A 1.5s warning glow shows where new paths will appear. When a warned segment actually sinks, any player standing on that segment is first moved to the nearest remaining dry-path tile within a 1-tile Manhattan radius if one exists (preserve facing and do not cancel the current input buffer); if no such tile exists, the player instead enters regular quicksand underfoot and immediately receives the regular quicksand speed penalty (`0.5x`, not instant death) plus a brief `0.5s` grace window before any additional stacking penalties from that sink event apply. While on The Mire's fresh trail, the snake uses the stricter `0.25x` modifier as elsewhere in this doc.
 - The snake moves at full speed on dry paths, at `0.5x` speed on regular quicksand, and at `0.25x` speed on The Mire's fresh trail.
 
 **The Mire's behavior:**
@@ -95,14 +95,13 @@ A massive slug-like ink creature that oozes across the arena. It leaves a perman
 - Periodically, The Mire pauses and "spreads" - extending its body to cover a wider area, blocking entire path intersections.
 
 **How to damage:**
-- An apple spawns on The Mire's back (riding on it).
+- An apple spawns on The Mire's back (riding on it) **immediately when the boss phase begins** (first apple is present from frame one of the fight).
 - The player must lure The Mire into a wall corner. When it hits a corner, it gets stuck for 3 seconds (visually: it compresses against the walls, struggling).
 - While stuck, the player can approach and eat the apple off its back = 1 damage.
 - After taking damage, The Mire thrashes (ink splatter particles), frees itself, and resumes. A new apple appears on its back after 2 seconds.
 
 **How to lure The Mire into corners:**
-- The Mire follows the dry paths. It always moves toward the nearest path intersection.
-- The player can influence its direction by being on a specific path - The Mire will chase the player when within 5 tiles on the same path.
+- Movement priority (highest first): **Priority 1** — if the player is on the same dry path as The Mire and within 5 tiles along that path, The Mire **chases the player**. **Priority 2** — otherwise, The Mire moves along the dry paths toward the **nearest path intersection** (its default routing when no valid chase applies).
 - Strategy: position yourself so the Mire chases you down a path that leads to a corner.
 
 ### Boss Phases
@@ -154,7 +153,7 @@ After The Mire dissolves:
 
 When activated:
 1. **Immediate**: Snake drops its last 3 body segments in place. Snake length decreases by 3, and activation is only allowed when the snake has at least 5 total segments before the shed so the post-effect snake is still 2 total segments long and playable.
-2. **Shed segments**: Remain on the grid as solid obstacles for 5 seconds.
+2. **Shed segments**: At the instant of activation, snapshot the grid coordinates of the snake's last three body segments (e.g. the tail end of `snake.body` — **not** stale positions from a previous tick and not inferred from the head alone). Those exact cells spawn solid shed obstacles for 5 seconds. Activation still requires `>= 5` total segments so the post-shed snake remains playable.
    - Block enemy movement (Predator, Mirror Ghost must path around them)
    - Block quicksand spreading (The Mire's trail cannot cross them)
    - Create stable ground during earthquakes (anchor points)
