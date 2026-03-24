@@ -148,12 +148,12 @@ After The Mire dissolves:
 | Duration | Instant (shed segments last 5s) |
 | Activation Key | Spacebar (ability key) |
 | Available After | Defeating The Mire (L3 boss) |
-| Minimum Length | Snake must have at least 5 body segments to use |
+| Minimum Length | Snake must have at least 5 total segments to use |
 
 ### Effect Details
 
 When activated:
-1. **Immediate**: Snake drops its last 3 body segments in place. Snake length decreases by 3, and activation is only allowed when at least 5 segments remain before the shed so the post-effect snake is still 2 segments long and playable.
+1. **Immediate**: Snake drops its last 3 body segments in place. Snake length decreases by 3, and activation is only allowed when the snake has at least 5 total segments before the shed so the post-effect snake is still 2 total segments long and playable.
 2. **Shed segments**: Remain on the grid as solid obstacles for 5 seconds.
    - Block enemy movement (Predator, Mirror Ghost must path around them)
    - Block quicksand spreading (The Mire's trail cannot cross them)
@@ -277,7 +277,7 @@ This is a good **2nd or 3rd level** for players. The quicksand mechanic is more 
   - Spawn them as temporary solid obstacles
   - 5-second lifetime with dissolve animation
   - Collision registration (enemies, quicksand blocking)
-  - Validation case: with a 5-segment snake, activate Shed Skin and verify the snake survives at 2 segments, can still move on the next input, and can still eat the next apple normally
+  - Validation case: with a 5-total-segment snake, activate Shed Skin and verify the snake survives at 2 total segments, can still move on the next input, and can still eat the next apple normally
 
 ### Existing LevelConfig Values (reference)
 

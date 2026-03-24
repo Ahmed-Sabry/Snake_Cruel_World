@@ -101,9 +101,9 @@ An ink creature that attaches to the snake's tail and slowly converts body segme
 - **Win condition**: Eat 5 consecutive real apples without eating any poison. This purges the parasite completely.
 
 **The Parasite fights back:**
-- **Spit attack**: Every 8 seconds, the parasite "spits" at the nearest real apple, converting it to poison. Visual: green projectile arcs from the tail to the apple, it changes color.
-- **Phase 2 (after 2 real apples)**: Spit interval decreases to 5 seconds. Converts 2 apples at once.
-- **Phase 3 (after 4 real apples)**: Spit interval = 3 seconds. On each spit cadence, all currently infected segments pulse to `1.2x` their normal radius with a smooth `0.15s` expand, `0.4s` hold, and `0.15s` shrink. The expanded state is a real head-collision hazard for that `0.7s` window: if the snake's head overlaps an expanded infected segment, the player dies immediately. The pulse does not push or solid-block the snake's existing body; it is a timed head-avoidance threat, not a full-body physics obstacle.
+- **Spit attack**: Every 8 seconds, the parasite samples from the pool of currently spawned real apples on the field and converts the nearest eligible real apple to poison. It never spawns extra apples just to satisfy a spit conversion; if no real apples are currently available, the spit simply fails to convert anything. Visual: green projectile arcs from the tail to the target apple, and the apple changes color.
+- **Phase 2 (after 2 real apples)**: Spit interval decreases to 5 seconds. Each spit converts up to 2 real apples at once using `min(2, currently spawned real apples)`, choosing the nearest eligible targets first.
+- **Phase 3 (after 4 real apples)**: Spit interval = 3 seconds. It keeps the same `min(2, currently spawned real apples)` conversion rule, and on each spit cadence all currently infected segments pulse to `1.2x` their normal radius with a smooth `0.15s` expand, `0.4s` hold, and `0.15s` shrink. The expanded state is a real head-collision hazard for that `0.7s` window: if the snake's head overlaps an expanded infected segment, the player dies immediately. The pulse does not push or solid-block the snake's existing body; it is a timed head-avoidance threat, not a full-body physics obstacle.
 
 ### Damage System
 
