@@ -169,7 +169,7 @@ When activated:
 | **L8 The Watcher (COUNTER)** | **Lay trail in Predator's path - it gets stunned for 3s. Create safe zones. Combined with Shadow Decoy, completely controls the Predator.** |
 | L2 Blackout | Trail glows in the dark, creating a visible path during blackouts |
 | L4 Mirror Ghost | Trail stuns the ghost for 3s if it crosses it |
-| L3 Quicksand (boss) | Trail damages The Mire if it crosses it |
+| L3 Quicksand (boss) | Venom Trail stuns The Mire for 3 seconds if it crosses the trail, briefly interrupting its path control without dealing damage |
 
 ---
 

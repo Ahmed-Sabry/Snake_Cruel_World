@@ -10,7 +10,7 @@
 |---|---|
 | Level Name | Quicksand |
 | Subtitle | "Some tiles are hungrier than others." |
-| Hazard | Quicksand patches (3x3 slowdown/death zones) |
+| Hazard | Quicksand patches (3x3 slowdown zones, `0.5x`) |
 | Boss | The Mire |
 | Ability Earned | Shed Skin |
 | Strong Counter Against | Level 7: Earthquake |
@@ -34,13 +34,13 @@ The player navigates a grid littered with 3x3 quicksand patches. Touching quicks
 | Shrink Timer | 8.0s | Constant pressure - arena gets tighter, patches get harder to avoid |
 | Patch Count (initial) | 4 | Manageable at start |
 | Patch Relocate Interval | 6.0s | Patches shift positions periodically |
-| Star Threshold (2 stars) | 10 self-collisions | Very generous - quicksand causes many accidental deaths |
+| Star Threshold (2 stars) | 10 self-collisions | Very generous - quicksand causes many accidental crashes |
 | Star Threshold (3 stars) | 0 self-collisions | Perfect run only - rewards flawless routing |
 
 ### Quicksand Behavior (existing mechanic - with modifications)
 
 - **Existing**: 3x3 tile patches (`QuicksandPatch` struct), relocate on timer, `IsOnQuicksand()` check
-- **Modification for redesign**: Touching regular quicksand should apply a **severe speed penalty** (`0.5x` movement speed while the snake is on the patch) rather than instant death. This makes quicksand a hazard that punishes routing mistakes without being instantly lethal, creating more interesting gameplay.
+- **Modification for redesign**: Touching regular quicksand should apply a **severe speed penalty** (`0.5x` movement speed while the snake is on the patch). This makes quicksand a hazard that punishes routing mistakes without abruptly ending the run, creating more interesting gameplay.
 - **Visual**: Sepia-brown tiles with a subtle "sinking" animation (tiles pulse slightly darker in waves)
 
 ### Difficulty Curve Within Stage
