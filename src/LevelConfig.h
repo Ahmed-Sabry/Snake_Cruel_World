@@ -13,6 +13,10 @@ struct LevelConfig
 	int id;
 	std::string name;
 	std::string subtitle;
+	std::string difficultyHint;
+	std::string corruptionLabel;
+	int stageSelectOrder;
+	bool isFinaleGate;
 	float baseSpeed;
 	int applesToWin;
 	int shrinkInterval; // 0 = time-based only
@@ -54,6 +58,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 		// Level 1: "False Hope" -- Fresh blue-black ballpoint pen on new notebook
 	l[0] = {
 		1, "False Hope", "See? It's not so bad.",
+		"tutorial", "Fresh Ink", -1, false,
 		12.0f, 15, 4, 0.0f,
 		sf::Color(28, 22, 30), sf::Color(175, 120, 75),
 		sf::Color(55, 45, 65), sf::Color(80, 70, 95), sf::Color(180, 55, 45), AbilityId::None,
@@ -66,6 +71,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 	// Level 2: "Lights Out" -- Dark India ink with amber candlelight
 	l[1] = {
 		2, "Lights Out", "Hope you memorized the layout.",
+		"early-friendly", "Darkness", 0, false,
 		11.0f, 12, 5, 0.0f,
 		sf::Color(8, 8, 18), sf::Color(45, 45, 75),
 		sf::Color(210, 120, 50), sf::Color(170, 95, 40), sf::Color(230, 175, 55), AbilityId::InkFlare,
@@ -78,6 +84,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 	// Level 3: "Quicksand" -- Sepia fountain pen on sun-bleached journal
 	l[2] = {
 		3, "Quicksand", "Some tiles are hungrier than others.",
+		"spatial puzzle", "Quicksand", 1, false,
 		13.0f, 15, 0, 8.0f,
 		sf::Color(55, 42, 25), sf::Color(170, 115, 45),
 		sf::Color(90, 50, 25), sf::Color(130, 80, 40), sf::Color(165, 40, 35), AbilityId::ShedSkin,
@@ -90,6 +97,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 	// Level 4: "Mirror Mirror" -- Graphite pencil on white drafting paper
 	l[3] = {
 		4, "Mirror Mirror", "Trust nothing. Especially yourself.",
+		"mind games", "Echoes", 2, false,
 		11.0f, 12, 4, 0.0f,
 		sf::Color(18, 18, 22), sf::Color(115, 115, 120),
 		sf::Color(35, 35, 40), sf::Color(70, 70, 75), sf::Color(230, 230, 225), AbilityId::ShadowDecoy,
@@ -102,6 +110,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 	// Level 5: "Famine" -- Fading olive-green ink on dried parchment
 	l[4] = {
 		5, "Famine", "Food is scarce. Patience is scarcer.",
+		"precision heavy", "Scarcity", 3, false,
 		14.0f, 20, 5, 0.0f,
 		sf::Color(25, 28, 18), sf::Color(85, 85, 45),
 		sf::Color(65, 75, 30), sf::Color(90, 100, 50), sf::Color(210, 170, 40), AbilityId::TimeFreeze,
@@ -114,6 +123,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 	// Level 6: "Betrayal" -- Forest-green ink on poisoned page
 	l[5] = {
 		6, "Betrayal", "Not everything green is good for you.",
+		"read carefully", "Poison", 4, false,
 		12.0f, 12, 4, 0.0f,
 		sf::Color(12, 28, 12), sf::Color(35, 75, 35),
 		sf::Color(55, 100, 50), sf::Color(75, 120, 65), sf::Color(185, 150, 40), AbilityId::VenomTrail,
@@ -126,6 +136,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 	// Level 7: "Earthquake" -- Rust-red ink on terracotta paper
 	l[6] = {
 		7, "Earthquake", "The ground has opinions about your route.",
+		"route planning", "Fault Lines", 5, false,
 		12.0f, 15, 3, 0.0f,
 		sf::Color(32, 12, 8), sf::Color(150, 40, 25),
 		sf::Color(140, 45, 20), sf::Color(170, 70, 35), sf::Color(215, 180, 50), AbilityId::InkAnchor,
@@ -138,6 +149,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 	// Level 8: "The Watcher" -- Cold steel-blue ink on clinical gray paper
 	l[7] = {
 		8, "The Watcher", "It learns.",
+		"late-game pursuit", "Predator", 6, false,
 		13.0f, 10, 3, 0.0f,
 		sf::Color(14, 16, 26), sf::Color(55, 65, 95),
 		sf::Color(50, 55, 90), sf::Color(70, 75, 110), sf::Color(200, 80, 60), AbilityId::HuntersDash,
@@ -150,6 +162,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 	// Level 9: "Amnesia" -- Purple-violet ink bleeding on wet paper
 	l[8] = {
 		9, "Amnesia", "What controls? What controls.",
+		"final pre-Eraser", "Scramble", 7, false,
 		10.0f, 15, 5, 0.0f,
 		sf::Color(38, 12, 48), sf::Color(210, 200, 230),
 		sf::Color(80, 35, 100), sf::Color(110, 55, 130), sf::Color(100, 180, 210), AbilityId::InkMemory,
@@ -162,6 +175,7 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 	// Level 10: "Cruel World" -- 4-phase escalation, starts as L1 callback
 	l[9] = {
 		10, "Cruel World", "Everything. All at once.",
+		"finale", "The Eraser", 8, true,
 		12.0f, 20, 4, 0.0f,
 		sf::Color(28, 22, 30), sf::Color(175, 120, 75),
 		sf::Color(55, 45, 65), sf::Color(80, 70, 95), sf::Color(180, 55, 45), AbilityId::None,

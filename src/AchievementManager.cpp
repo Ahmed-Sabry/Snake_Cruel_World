@@ -94,8 +94,7 @@ void AchievementManager::OnLevelComplete(const AchievementContext& l_ctx)
 		Unlock(AchievementId::AgainstAllOdds);
 
 	// Completionist: beat all 10 levels
-	// highestUnlockedLevel reaches NUM_LEVELS when the last level is beaten
-	if (l_ctx.highestUnlockedLevel >= NUM_LEVELS)
+	if (l_ctx.completedLevelCount >= NUM_LEVELS)
 		Unlock(AchievementId::Completionist);
 
 	// Perfectionist: 3 stars on all 10 levels

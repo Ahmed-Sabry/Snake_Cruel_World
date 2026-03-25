@@ -139,7 +139,7 @@ void PlayState::OnEnter()
 			if (m_stateManager.endlessMode)
 				shouldApplySkin = true;
 			else
-				shouldApplySkin = (m_stateManager.currentLevel < m_stateManager.highestUnlockedLevel);
+				shouldApplySkin = m_stateManager.HasCompletedLevel(m_stateManager.currentLevel);
 		}
 
 		auto skins = GetAllSkins();
@@ -205,7 +205,7 @@ void PlayState::OnEnter()
 	if (m_stateManager.endlessMode)
 	{
 		m_endlessCtrl = std::make_unique<EndlessModeController>(
-			m_stateManager.highestUnlockedLevel);
+			m_stateManager);
 	}
 	else
 	{
@@ -1638,17 +1638,12 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 		if (m_stateManager.selfCollisions <= m_levelConfig.starThreshold3)
 			stars = 3;
 
-		// Update persistent progress
-		int idx = m_stateManager.currentLevel - 1;
-		if (idx >= 0 && idx < NUM_LEVELS)
-		{
-			if (m_stateManager.score > m_stateManager.highScores[idx])
-				m_stateManager.highScores[idx] = m_stateManager.score;
-			if (stars > m_stateManager.starRatings[idx])
-				m_stateManager.starRatings[idx] = stars;
-		}
-		if (m_stateManager.currentLevel >= m_stateManager.highestUnlockedLevel)
-			m_stateManager.highestUnlockedLevel = std::min(NUM_LEVELS, m_stateManager.currentLevel + 1);
+		// Phase 2 bridge: stage clear temporarily heals L2-L9 pages until
+		// boss reward handoff exists in Phase 3.
+		const bool healPage = (m_stateManager.currentLevel >= 2 &&
+			m_stateManager.currentLevel <= 9);
+		m_stateManager.RecordLevelCompletion(
+			m_stateManager.currentLevel, m_stateManager.score, stars, healPage);
 
 		if (m_levelConfig.abilityReward != AbilityId::None)
 		{
@@ -1695,7 +1690,7 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 			ctx.reachedMinBodyFromCollision = m_reachedMinBody;
 			ctx.stats = &m_stateManager.GetStats().GetStats();
 			ctx.starRatings = m_stateManager.starRatings;
-			ctx.highestUnlockedLevel = m_stateManager.highestUnlockedLevel;
+			ctx.completedLevelCount = m_stateManager.GetCompletedLevelCount();
 			m_stateManager.GetAchievements().OnLevelComplete(ctx);
 			m_stateManager.GetAchievements().OnStatsUpdate(ctx);
 		}

@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 
-enum class GameOverAction { NextLevel, Retry, LevelSelect, MainMenu };
+enum class GameOverAction { StageSelect, Retry, MainMenu };
 
 class GameOverState : public BaseState
 {
@@ -29,11 +29,10 @@ private:
 	sf::Text m_taunt;
 	sf::Text m_stats[7]; // score, apples, combo, time, collisions, death#, best attempt
 	int m_statCount;
-	sf::Text m_menuItems[4]; // Next Level, Retry, Level Select, Main Menu
+	sf::Text m_menuItems[4]; // Stage Select, Retry, Main Menu
 	std::vector<GameOverAction> m_menuActions;
 	int m_selectedItem;
 	int m_itemCount;
-	bool m_hasNextLevel;
 	bool m_keyReleased;
 	ScreenShake m_screenShake;
 

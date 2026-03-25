@@ -4,6 +4,7 @@
 #include "GameState.h"
 #include "LevelConfig.h"
 #include "Window.h"
+#include <array>
 #include <unordered_map>
 #include <functional>
 #include <memory>
@@ -17,6 +18,14 @@ class AchievementManager;
 class StateManager
 {
 public:
+	struct LevelProgress
+	{
+		bool stageCompleted = false;
+		bool pageHealed = false;
+		int bestScore = 0;
+		int bestStars = 0;
+	};
+
 	StateManager(Window& l_window, AudioManager& l_audio,
 				 StatsManager& l_stats, AchievementManager& l_achievements);
 	~StateManager();
@@ -28,6 +37,18 @@ public:
 	void SwitchTo(StateType l_type);
 	void PushState(StateType l_type); // overlay (e.g. pause)
 	void PopState();
+
+	const LevelProgress& GetLevelProgress(int l_levelId) const;
+	LevelProgress& GetLevelProgress(int l_levelId);
+	bool HasCompletedLevel(int l_levelId) const;
+	bool IsPageHealed(int l_levelId) const;
+	bool HasUnlockedStageSelect() const;
+	bool CanAccessCampaignLevel(int l_levelId) const;
+	int GetHealedPageCount() const;
+	int GetCompletedLevelCount() const;
+	bool IsL10Unlocked() const;
+	void RecordLevelCompletion(int l_levelId, int l_score, int l_stars, bool l_healPage);
+	void SyncLegacyProgress();
 
 	Window& GetWindow();
 	AudioManager& GetAudio();
@@ -58,6 +79,7 @@ public:
 	int highestUnlockedLevel = 1;
 	int highScores[NUM_LEVELS] = {};
 	int starRatings[NUM_LEVELS] = {};
+	std::array<LevelProgress, NUM_LEVELS> campaignProgress = {};
 	bool unlockedAbilities[ABILITY_COUNT] = {};
 	AbilityId equippedAbility = GetDefaultEquippedAbility();
 

@@ -6,6 +6,7 @@
 #include "AchievementManager.h"
 #include "SnakeSkin.h"
 #include <array>
+#include <algorithm>
 #include <iostream>
 #include <cstring>
 #include <cstdint>
@@ -25,7 +26,7 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	}
 
 	// Version marker
-	int version = 4;
+	int version = 5;
 	file.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
 	// === V1 block (backwards-compatible) ===
@@ -71,6 +72,17 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 		l_state.unlockedAbilities, l_state.equippedAbility);
 	const int equippedAbility = static_cast<int>(equippedToSave);
 	file.write(reinterpret_cast<const char*>(&equippedAbility), sizeof(equippedAbility));
+
+	// === V5 block ===
+	for (const StateManager::LevelProgress& progress : l_state.campaignProgress)
+	{
+		const uint8_t stageCompleted = progress.stageCompleted ? 1 : 0;
+		const uint8_t pageHealed = progress.pageHealed ? 1 : 0;
+		file.write(reinterpret_cast<const char*>(&stageCompleted), sizeof(stageCompleted));
+		file.write(reinterpret_cast<const char*>(&pageHealed), sizeof(pageHealed));
+		file.write(reinterpret_cast<const char*>(&progress.bestScore), sizeof(progress.bestScore));
+		file.write(reinterpret_cast<const char*>(&progress.bestStars), sizeof(progress.bestStars));
+	}
 
 	file.close();
 }
@@ -263,6 +275,51 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 		l_state.equippedAbility = ResolveEquippedAbilityFromUnlocks(
 			l_state.unlockedAbilities, AbilityId::None);
 	}
+
+	// === V5 block (only if version >= 5) ===
+	if (version >= 5)
+	{
+		for (StateManager::LevelProgress& progress : l_state.campaignProgress)
+		{
+			uint8_t stageCompleted = 0;
+			uint8_t pageHealed = 0;
+			file.read(reinterpret_cast<char*>(&stageCompleted), sizeof(stageCompleted));
+			file.read(reinterpret_cast<char*>(&pageHealed), sizeof(pageHealed));
+			file.read(reinterpret_cast<char*>(&progress.bestScore), sizeof(progress.bestScore));
+			file.read(reinterpret_cast<char*>(&progress.bestStars), sizeof(progress.bestStars));
+			if (file.fail())
+			{
+				std::cerr << "SaveManager: Error reading v5 data, rebuilding progression from legacy stats." << std::endl;
+				for (StateManager::LevelProgress& resetProgress : l_state.campaignProgress)
+					resetProgress = StateManager::LevelProgress{};
+				break;
+			}
+
+			progress.stageCompleted = (stageCompleted != 0);
+			progress.pageHealed = (pageHealed != 0);
+			if (progress.bestScore < 0)
+				progress.bestScore = 0;
+			progress.bestStars = std::clamp(progress.bestStars, 0, 3);
+		}
+	}
+	else
+	{
+		for (int i = 0; i < NUM_LEVELS; ++i)
+		{
+			StateManager::LevelProgress& progress = l_state.campaignProgress[static_cast<std::size_t>(i)];
+			const bool clearedByStats = (l_state.starRatings[i] > 0) || (l_state.highScores[i] > 0);
+			const bool clearedByLinear = (i + 1) < l_state.highestUnlockedLevel;
+
+			progress.stageCompleted = clearedByStats || clearedByLinear;
+			progress.bestScore = l_state.highScores[i];
+			progress.bestStars = l_state.starRatings[i];
+
+			if (i >= 1 && i <= 8 && progress.stageCompleted)
+				progress.pageHealed = true;
+		}
+	}
+
+	l_state.SyncLegacyProgress();
 
 	file.close();
 }

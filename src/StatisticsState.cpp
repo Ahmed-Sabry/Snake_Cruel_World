@@ -164,15 +164,18 @@ void StatisticsState::OnEnter()
 	auto levels = GetAllLevels();
 	for (int i = 0; i < NUM_LEVELS; i++)
 	{
-		bool unlocked = (i + 1) <= m_stateManager.highestUnlockedLevel;
-		if (!unlocked)
+		const int levelId = i + 1;
+		int attempts = stats.attemptsPerLevel[i];
+		int deaths = stats.deathsPerLevel[i];
+		bool visible = m_stateManager.CanAccessCampaignLevel(levelId) ||
+			m_stateManager.HasCompletedLevel(levelId) ||
+			attempts > 0 || deaths > 0;
+		if (!visible)
 		{
-			addLine("Level " + std::to_string(i + 1) + "  ???", dimColor, 18);
+			addLine("Level " + std::to_string(levelId) + "  ???", dimColor, 18);
 			continue;
 		}
 
-		int attempts = stats.attemptsPerLevel[i];
-		int deaths = stats.deathsPerLevel[i];
 		int clears = std::max(0, attempts - deaths);
 		std::string best = FormatLevelTime(stats.fastestLevelTimes[i]);
 

@@ -273,7 +273,6 @@ GameOverState::GameOverState(StateManager& l_stateManager)
 	  m_statCount(5),
 	  m_selectedItem(0),
 	  m_itemCount(3),
-	  m_hasNextLevel(false),
 	  m_keyReleased(false)
 {
 }
@@ -412,23 +411,15 @@ void GameOverState::OnEnter()
 		}
 	}
 
-	// Menu items — "Next Level" only on victory and if not the last level (and not endless)
-	m_hasNextLevel = won && !endless && m_stateManager.currentLevel < NUM_LEVELS;
-
 	std::vector<std::string> items;
 	m_menuActions.clear();
-	if (m_hasNextLevel)
+	if (!endless)
 	{
-		items.push_back("Next Level");
-		m_menuActions.push_back(GameOverAction::NextLevel);
+		items.push_back("Stage Select");
+		m_menuActions.push_back(GameOverAction::StageSelect);
 	}
 	items.push_back("Retry");
 	m_menuActions.push_back(GameOverAction::Retry);
-	if (!endless)
-	{
-		items.push_back("Level Select");
-		m_menuActions.push_back(GameOverAction::LevelSelect);
-	}
 	items.push_back("Main Menu");
 	m_menuActions.push_back(GameOverAction::MainMenu);
 	m_itemCount = (int)items.size();
@@ -511,16 +502,12 @@ void GameOverState::HandleInput()
 		{
 			switch (m_menuActions[m_selectedItem])
 			{
-				case GameOverAction::NextLevel:
-					m_stateManager.currentLevel++;
-					m_stateManager.SwitchTo(StateType::Gameplay);
+				case GameOverAction::StageSelect:
+					m_stateManager.endlessMode = false;
+					m_stateManager.SwitchTo(StateType::StageSelect);
 					break;
 				case GameOverAction::Retry:
 					m_stateManager.SwitchTo(StateType::Gameplay);
-					break;
-				case GameOverAction::LevelSelect:
-					m_stateManager.endlessMode = false;
-					m_stateManager.SwitchTo(StateType::LevelSelect);
 					break;
 				case GameOverAction::MainMenu:
 					m_stateManager.endlessMode = false;

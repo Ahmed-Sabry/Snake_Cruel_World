@@ -40,11 +40,14 @@ void MenuState::BuildMenuItems()
 	};
 
 	addItem("Play");
-	addItem("Level Select");
+	const bool stageSelectUnlocked = m_stateManager.HasUnlockedStageSelect();
+	addItem("Stage Select", stageSelectUnlocked,
+			stageSelectUnlocked ? "" : "(Clear Level 1 to unlock)");
 
-	bool endlessUnlocked = m_stateManager.highestUnlockedLevel >= 6;
+	const int healedPages = m_stateManager.GetHealedPageCount();
+	bool endlessUnlocked = healedPages >= 4;
 	addItem("Endless Mode", endlessUnlocked,
-			endlessUnlocked ? "" : "(Beat Level 5 to unlock)");
+			endlessUnlocked ? "" : "(Heal 4 pages to unlock)");
 
 	addItem("Achievements");
 	addItem("Statistics");
@@ -190,12 +193,17 @@ void MenuState::OnItemSelected(int l_index)
 
 	if (label == "Play")
 	{
-		m_stateManager.currentLevel = 1;
-		m_stateManager.SwitchTo(StateType::Gameplay);
+		if (m_stateManager.HasUnlockedStageSelect())
+			m_stateManager.SwitchTo(StateType::StageSelect);
+		else
+		{
+			m_stateManager.currentLevel = 1;
+			m_stateManager.SwitchTo(StateType::Gameplay);
+		}
 	}
-	else if (label == "Level Select")
+	else if (label == "Stage Select")
 	{
-		m_stateManager.SwitchTo(StateType::LevelSelect);
+		m_stateManager.SwitchTo(StateType::StageSelect);
 	}
 	else if (label == "Endless Mode")
 	{
