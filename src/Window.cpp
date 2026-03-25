@@ -66,6 +66,7 @@ bool Window::IsKeyPressed(sf::Keyboard::Key l_key) const
 void Window::ToggleFullscreen()
 {
 	m_isFullscreen = !m_isFullscreen;
+	m_keyStates.fill(false);
 	m_window.close();
 	Create();
 }
