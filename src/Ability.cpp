@@ -236,16 +236,28 @@ bool AbilityController::CycleEquipped(int l_direction)
 		return false;
 
 	std::size_t current = 0;
+	bool foundEquipped = false;
 	for (std::size_t i = 0; i < unlockedCount; ++i)
 	{
 		if (unlockedIds[i] == m_equipped)
 		{
 			current = i;
+			foundEquipped = true;
 			break;
 		}
 	}
 
 	int step = (l_direction > 0) ? 1 : -1;
+	if (!foundEquipped)
+	{
+		// m_equipped is None or not unlocked — advance from a consistent base so we
+		// don't skip unlockedIds[0] (would happen if current stayed 0 and step == +1).
+		if (step > 0)
+			current = unlockedCount - 1;
+		else
+			current = 0;
+	}
+
 	int next = static_cast<int>(current) + step;
 	if (next < 0)
 		next = static_cast<int>(unlockedCount) - 1;

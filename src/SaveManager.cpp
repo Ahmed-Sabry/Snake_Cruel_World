@@ -67,7 +67,9 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 		unlockedAbilityFlags[i] = l_state.unlockedAbilities[i] ? 1 : 0;
 	file.write(reinterpret_cast<const char*>(unlockedAbilityFlags.data()),
 			   unlockedAbilityFlags.size() * sizeof(uint8_t));
-	int equippedAbility = static_cast<int>(l_state.equippedAbility);
+	const AbilityId equippedToSave = ResolveEquippedAbilityFromUnlocks(
+		l_state.unlockedAbilities, l_state.equippedAbility);
+	const int equippedAbility = static_cast<int>(equippedToSave);
 	file.write(reinterpret_cast<const char*>(&equippedAbility), sizeof(equippedAbility));
 
 	file.close();
@@ -238,8 +240,11 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 	}
 	else
 	{
-		// Pre-v4 saves have no ability block; infer unlocks from level progression
-		// and keep defaults for equipped unless invalid or not unlocked.
+		// Pre-v4 saves have no ability block; clear stale in-memory ability state,
+		// then infer unlocks from level progression only.
+		for (bool& unlocked : l_state.unlockedAbilities)
+			unlocked = false;
+
 		for (const LevelConfig& cfg : GetAllLevels())
 		{
 			if (cfg.abilityReward == AbilityId::None)
@@ -249,7 +254,7 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 		}
 
 		l_state.equippedAbility = ResolveEquippedAbilityFromUnlocks(
-			l_state.unlockedAbilities, l_state.equippedAbility);
+			l_state.unlockedAbilities, AbilityId::None);
 	}
 
 	file.close();
