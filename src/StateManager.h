@@ -113,7 +113,10 @@ private:
 	friend class SaveManager;
 	std::array<LevelProgress, NUM_LEVELS> campaignProgress = {};
 	void SetLevelProgressFromSave(int l_levelId, const LevelProgress& l_progress);
-	void ResetAllCampaignProgress();
+	// Clears only campaignProgress[]. SaveManager keeps v1 highScores/starRatings/
+	// highestUnlockedLevel intact so failed v5 reads can rebuild via SyncLegacyProgress,
+	// and pre-v5 migration can repopulate from those mirrors.
+	void ClearCampaignProgressEntries();
 
 	void ProcessPendingTransitions();
 	std::unique_ptr<BaseState> CreateState(StateType l_type);

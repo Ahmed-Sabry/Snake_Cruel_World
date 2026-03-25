@@ -294,7 +294,7 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			if (file.fail())
 			{
 				std::cerr << "SaveManager: Error reading v5 data, rebuilding progression from legacy stats." << std::endl;
-				l_state.ResetAllCampaignProgress();
+				l_state.ClearCampaignProgressEntries();
 				v5CampaignLoaded = false;
 				break;
 			}
@@ -309,7 +309,7 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 	}
 	else
 	{
-		l_state.ResetAllCampaignProgress();
+		l_state.ClearCampaignProgressEntries();
 		for (int i = 0; i < NUM_LEVELS; ++i)
 		{
 			StateManager::LevelProgress progress{};

@@ -15,6 +15,14 @@ namespace
 		out.bestStars = std::clamp(l_src.bestStars, 0, kMaxStarsPerLevel);
 		if (l_levelId < 2 || l_levelId > 9)
 			out.pageHealed = false;
+		const bool hasProgress =
+			(out.bestScore > 0 || out.bestStars > 0 || out.pageHealed);
+		// Level 1: legacy migration can mark the tutorial cleared via the linear
+		// ladder before any score/star row exists; keep an explicit save flag then.
+		if (l_levelId == 1)
+			out.stageCompleted = hasProgress || l_src.stageCompleted;
+		else
+			out.stageCompleted = hasProgress;
 		return out;
 	}
 }
@@ -121,7 +129,7 @@ void StateManager::SetLevelProgressFromSave(int l_levelId, const LevelProgress& 
 		SanitizeLevelProgressFromSave(l_levelId, l_progress);
 }
 
-void StateManager::ResetAllCampaignProgress()
+void StateManager::ClearCampaignProgressEntries()
 {
 	for (LevelProgress& p : campaignProgress)
 		p = LevelProgress{};
