@@ -96,6 +96,19 @@ const StateManager::LevelProgress& StateManager::GetLevelProgress(int l_levelId)
 	return campaignProgress[static_cast<std::size_t>(l_levelId - 1)];
 }
 
+void StateManager::SetLevelProgressFromSave(int l_levelId, const LevelProgress& l_progress)
+{
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return;
+	campaignProgress[static_cast<std::size_t>(l_levelId - 1)] = l_progress;
+}
+
+void StateManager::ResetAllCampaignProgress()
+{
+	for (LevelProgress& p : campaignProgress)
+		p = LevelProgress{};
+}
+
 bool StateManager::HasCompletedLevel(int l_levelId) const
 {
 	return GetLevelProgress(l_levelId).stageCompleted;

@@ -74,8 +74,9 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	file.write(reinterpret_cast<const char*>(&equippedAbility), sizeof(equippedAbility));
 
 	// === V5 block ===
-	for (const StateManager::LevelProgress& progress : l_state.campaignProgress)
+	for (int levelId = 1; levelId <= NUM_LEVELS; ++levelId)
 	{
+		const StateManager::LevelProgress& progress = l_state.GetLevelProgress(levelId);
 		const uint8_t stageCompleted = progress.stageCompleted ? 1 : 0;
 		const uint8_t pageHealed = progress.pageHealed ? 1 : 0;
 		file.write(reinterpret_cast<const char*>(&stageCompleted), sizeof(stageCompleted));
@@ -281,8 +282,9 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 	if (version >= 5)
 	{
 		v5CampaignLoaded = true;
-		for (StateManager::LevelProgress& progress : l_state.campaignProgress)
+		for (int levelId = 1; levelId <= NUM_LEVELS; ++levelId)
 		{
+			StateManager::LevelProgress progress{};
 			uint8_t stageCompleted = 0;
 			uint8_t pageHealed = 0;
 			file.read(reinterpret_cast<char*>(&stageCompleted), sizeof(stageCompleted));
@@ -292,8 +294,7 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			if (file.fail())
 			{
 				std::cerr << "SaveManager: Error reading v5 data, rebuilding progression from legacy stats." << std::endl;
-				for (StateManager::LevelProgress& resetProgress : l_state.campaignProgress)
-					resetProgress = StateManager::LevelProgress{};
+				l_state.ResetAllCampaignProgress();
 				v5CampaignLoaded = false;
 				break;
 			}
@@ -303,13 +304,15 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			if (progress.bestScore < 0)
 				progress.bestScore = 0;
 			progress.bestStars = std::clamp(progress.bestStars, 0, 3);
+			l_state.SetLevelProgressFromSave(levelId, progress);
 		}
 	}
 	else
 	{
+		l_state.ResetAllCampaignProgress();
 		for (int i = 0; i < NUM_LEVELS; ++i)
 		{
-			StateManager::LevelProgress& progress = l_state.campaignProgress[static_cast<std::size_t>(i)];
+			StateManager::LevelProgress progress{};
 			const bool clearedByStats = (l_state.starRatings[i] > 0) || (l_state.highScores[i] > 0);
 			const bool clearedByLinear = (i + 1) < l_state.highestUnlockedLevel;
 
@@ -319,6 +322,8 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 
 			if (i >= 1 && i <= 8 && progress.stageCompleted)
 				progress.pageHealed = true;
+
+			l_state.SetLevelProgressFromSave(i + 1, progress);
 		}
 	}
 

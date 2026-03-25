@@ -79,7 +79,6 @@ public:
 	int highestUnlockedLevel = 1;
 	int highScores[NUM_LEVELS] = {};
 	int starRatings[NUM_LEVELS] = {};
-	std::array<LevelProgress, NUM_LEVELS> campaignProgress = {};
 	bool unlockedAbilities[ABILITY_COUNT] = {};
 	AbilityId equippedAbility = GetDefaultEquippedAbility();
 
@@ -111,6 +110,11 @@ public:
 	DeathContext deathCtx;
 
 private:
+	friend class SaveManager;
+	std::array<LevelProgress, NUM_LEVELS> campaignProgress = {};
+	void SetLevelProgressFromSave(int l_levelId, const LevelProgress& l_progress);
+	void ResetAllCampaignProgress();
+
 	void ProcessPendingTransitions();
 	std::unique_ptr<BaseState> CreateState(StateType l_type);
 	void ExecuteSwitchTo(StateType l_type);
