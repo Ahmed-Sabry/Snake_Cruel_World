@@ -55,11 +55,6 @@ void Window::Update()
 	}
 }
 
-bool Window::PollEvent(sf::Event& l_event)
-{
-	return m_window.pollEvent(l_event);
-}
-
 bool Window::IsKeyPressed(sf::Keyboard::Key l_key) const
 {
 	if (l_key < 0 || l_key >= sf::Keyboard::KeyCount)

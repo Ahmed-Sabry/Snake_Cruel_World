@@ -13,7 +13,6 @@ public:
 	~Window();
 
 	void Update();
-	bool PollEvent(sf::Event& l_event);
 	bool IsKeyPressed(sf::Keyboard::Key l_key) const;
 
 	inline void SetBackground(sf::Color l_color)
