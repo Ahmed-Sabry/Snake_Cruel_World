@@ -22,7 +22,7 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	}
 
 	// Version marker
-	int version = 3;
+	int version = 4;
 	file.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
 	// === V1 block (backwards-compatible) ===
@@ -57,6 +57,11 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	// === V3 block ===
 	uint8_t introFlag = l_state.introPlayed ? 1 : 0;
 	file.write(reinterpret_cast<const char*>(&introFlag), sizeof(introFlag));
+
+	// === V4 block ===
+	file.write(reinterpret_cast<const char*>(l_state.unlockedAbilities), sizeof(l_state.unlockedAbilities));
+	int equippedAbility = static_cast<int>(l_state.equippedAbility);
+	file.write(reinterpret_cast<const char*>(&equippedAbility), sizeof(equippedAbility));
 
 	file.close();
 }
@@ -182,6 +187,36 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 		uint8_t introFlag = 0;
 		file.read(reinterpret_cast<char*>(&introFlag), sizeof(introFlag));
 		l_state.introPlayed = (file.fail() ? false : introFlag != 0);
+	}
+
+	// === V4 block (only if version >= 4) ===
+	if (version >= 4)
+	{
+		file.read(reinterpret_cast<char*>(l_state.unlockedAbilities), sizeof(l_state.unlockedAbilities));
+
+		int equippedAbility = static_cast<int>(GetDefaultEquippedAbility());
+		file.read(reinterpret_cast<char*>(&equippedAbility), sizeof(equippedAbility));
+		if (file.fail())
+		{
+			std::cerr << "SaveManager: Error reading v4 data, resetting ability progress." << std::endl;
+			for (bool& unlocked : l_state.unlockedAbilities)
+				unlocked = false;
+			l_state.equippedAbility = GetDefaultEquippedAbility();
+			file.close();
+			return;
+		}
+
+		AbilityId loadedEquipped = static_cast<AbilityId>(equippedAbility);
+		if (!IsValidAbilityId(loadedEquipped, false))
+			loadedEquipped = GetDefaultEquippedAbility();
+
+		l_state.equippedAbility = loadedEquipped;
+	}
+	else
+	{
+		for (bool& unlocked : l_state.unlockedAbilities)
+			unlocked = false;
+		l_state.equippedAbility = GetDefaultEquippedAbility();
 	}
 
 	file.close();

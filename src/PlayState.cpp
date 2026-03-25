@@ -18,6 +18,7 @@ PlayState::PlayState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_world(l_stateManager.GetWindow(), m_snake),
 	  m_hud(l_stateManager.GetWindow().GetWindowSize()),
+	  m_abilityHud(l_stateManager.GetWindow().GetWindowSize()),
 	  m_predatorApplesEaten(0),
 	  m_psychedelicTimer(0.0f),
 	  m_elapsedTime(0.0f),
@@ -29,6 +30,8 @@ PlayState::PlayState(StateManager& l_stateManager)
 	  m_cheatExtend(false),
 	  m_escReleased(true),
 	  m_rReleased(true),
+	  m_cycleReleased(true),
+	  m_activateReleased(true),
 	  m_comboSoundPlayed(false),
 	  m_levelCompleteDelay(-1.0f),
 	  m_cruelPhase(0),
@@ -120,6 +123,7 @@ void PlayState::OnEnter()
 	m_world.RespawnApple(m_snake);
 	m_world.SetBorderColor(m_levelConfig.border);
 	m_hud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
+	m_abilityHud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
 	m_snake.SetColors(m_levelConfig.snakeHead, m_levelConfig.snakeBody);
 
 	// Apply active skin based on three-tier rule:
@@ -154,8 +158,13 @@ void PlayState::OnEnter()
 	m_cheatExtend = false;
 	m_escReleased = true;
 	m_rReleased = true;
+	m_cycleReleased = true;
+	m_activateReleased = true;
 	m_comboSoundPlayed = false;
 	m_levelCompleteDelay = -1.0f;
+	m_abilityController.LoadPersistentProgress(
+		m_stateManager.unlockedAbilities, m_stateManager.equippedAbility);
+	SyncAbilityState();
 
 	m_stateManager.score = 0;
 	m_stateManager.applesEaten = 0;
@@ -336,6 +345,7 @@ void PlayState::InitCruelWorldPhases()
 	m_levelConfig.accentColor = sf::Color(170, 65, 55);
 	m_levelConfig.corruption = 0.20f;
 	m_hud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
+	m_abilityHud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
 	m_stateManager.GetWindow().SetBackground(m_levelConfig.paperTone);
 
 	// Update snake/world with Phase 1 ink params (overrides the L10 defaults set by OnEnter)
@@ -478,6 +488,7 @@ void PlayState::AdvanceCruelPhase()
 
 	// Update HUD and window for new phase
 	m_hud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
+	m_abilityHud.SetLevelColors(m_levelConfig.paperTone, m_levelConfig.inkTint, m_levelConfig.accentColor);
 	window.SetBackground(m_levelConfig.paperTone);
 
 	// Regenerate paper background for new phase
@@ -501,6 +512,18 @@ void PlayState::AdvanceCruelPhase()
 void PlayState::OnExit()
 {
 	m_screenShake.Reset(m_stateManager.GetWindow());
+}
+
+void PlayState::SyncAbilityState()
+{
+	const AbilityDefinition* visualDef = m_abilityController.GetVisualDefinition();
+	if (visualDef)
+		m_snake.SetAbilityVisual(visualDef->visual);
+	else
+		m_snake.ClearAbilityVisual();
+
+	m_abilityController.ExportPersistentProgress(
+		m_stateManager.unlockedAbilities, m_stateManager.equippedAbility);
 }
 
 void PlayState::HandleInput()
@@ -535,6 +558,36 @@ void PlayState::HandleInput()
 	else
 	{
 		m_rReleased = true;
+	}
+
+	bool canUseAbilities = !m_snake.HasLost() && m_levelCompleteDelay < 0.0f;
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+	{
+		if (m_cycleReleased && canUseAbilities)
+		{
+			m_cycleReleased = false;
+			if (m_abilityController.CycleEquipped(1))
+				m_stateManager.equippedAbility = m_abilityController.GetEquipped();
+		}
+	}
+	else
+	{
+		m_cycleReleased = true;
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+	{
+		if (m_activateReleased && canUseAbilities)
+		{
+			m_activateReleased = false;
+			if (m_abilityController.TryActivateEquipped())
+				SyncAbilityState();
+		}
+	}
+	else
+	{
+		m_activateReleased = true;
 	}
 
 	// Determine desired direction from input
@@ -588,6 +641,7 @@ void PlayState::Update(float l_dt)
 	m_elapsedTime += l_dt;
 	m_gameTime += l_dt;
 	m_stateManager.GetStats().UpdatePlaytime(l_dt);
+	m_abilityController.Update(l_dt);
 	m_snake.UpdateVisuals(l_dt);
 	m_postProcessor.Update(l_dt);
 
@@ -914,6 +968,7 @@ void PlayState::Update(float l_dt)
 					 m_levelConfig.name, m_gameTime, l_dt,
 					 m_levelConfig.hasPredator ? m_predatorApplesEaten : -1);
 	}
+	m_abilityHud.Update(m_abilityController);
 
 	// Update visual effects (continuous, not tick-based)
 	m_particles.Update(l_dt);
@@ -1175,6 +1230,8 @@ void PlayState::Update(float l_dt)
 		}
 	}
 
+	SyncAbilityState();
+
 	// Announcement timer (all levels — generalized from L10-only)
 	if (m_phaseAnnouncementTimer > 0.0f)
 		m_phaseAnnouncementTimer -= l_dt;
@@ -1409,6 +1466,7 @@ void PlayState::Render()
 		m_controlShuffle.Render(window);
 
 	m_hud.Render(window);
+	m_abilityHud.Render(window);
 
 	// Achievement notification popup
 	if (m_achievementNotif.IsShowing())

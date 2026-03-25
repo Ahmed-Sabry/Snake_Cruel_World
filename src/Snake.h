@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Ability.h"
 #include "Window.h"
 #include "SnakeSkin.h"
 #include <vector>
@@ -109,6 +110,9 @@ public:
 	// Skin system
 	void ApplySkin(const SnakeSkin& l_skin);
 	void ClearSkin(); // revert to level colors
+	void SetAbilityVisual(const AbilityVisualSpec& l_visual);
+	void ClearAbilityVisual();
+	bool HasAbilityVisual() const { return m_hasAbilityVisual; }
 
 private:
 	void Move(sf::Vector2u l_windowSize);
@@ -143,4 +147,8 @@ private:
 	// Skin
 	int m_skinRenderFlags;
 	sf::Color m_skinGradientEnd;
+
+	// Ability-driven temporary visual override
+	bool m_hasAbilityVisual;
+	AbilityVisualSpec m_abilityVisual;
 };

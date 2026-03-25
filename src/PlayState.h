@@ -1,6 +1,8 @@
 #pragma once
 
 #include "GameState.h"
+#include "Ability.h"
+#include "AbilityHUD.h"
 #include "StateManager.h"
 #include "Snake.h"
 #include "World.h"
@@ -44,10 +46,12 @@ private:
 	void AdvanceCruelPhase();
 	void RenderPhaseAnnouncement(Window& l_window);
 	void CheckCruelMoment();
+	void SyncAbilityState();
 
 	Snake m_snake;
 	World m_world;
 	HUD m_hud;
+	AbilityHUD m_abilityHud;
 	LevelConfig m_levelConfig;
 	ParticleSystem m_particles;
 	ScreenShake m_screenShake;
@@ -77,8 +81,11 @@ private:
 	bool m_cheatExtend; // temp cheat code
 	bool m_escReleased;
 	bool m_rReleased;
+	bool m_cycleReleased;
+	bool m_activateReleased;
 	bool m_comboSoundPlayed;
 	float m_levelCompleteDelay; // countdown before switching to GameOver
+	AbilityController m_abilityController;
 
 	// Announcement / "Cruel World" phase system
 	int m_cruelPhase;

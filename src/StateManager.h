@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Ability.h"
 #include "GameState.h"
 #include "LevelConfig.h"
 #include "Window.h"
@@ -57,6 +58,8 @@ public:
 	int highestUnlockedLevel = 1;
 	int highScores[NUM_LEVELS] = {};
 	int starRatings[NUM_LEVELS] = {};
+	bool unlockedAbilities[ABILITY_COUNT] = {};
+	AbilityId equippedAbility = GetDefaultEquippedAbility();
 
 	// Gamification state
 	int activeSkinIndex = 0;

@@ -15,6 +15,7 @@ Snake::Snake()
 	m_interpTimer = 0.0f;
 	m_skinRenderFlags = 0;
 	m_skinGradientEnd = sf::Color::Transparent;
+	m_hasAbilityVisual = false;
 
 	m_bodyRect.setSize({ m_blockSize - 1, m_blockSize - 1 });
 
@@ -36,6 +37,7 @@ void Snake::Reset()
 	m_inkTrail.clear();
 	m_prevPositions.clear();
 	m_interpTimer = 0.0f;
+	m_hasAbilityVisual = false;
 
 	/***************************************************/
 	/// Note that Range is:
@@ -217,13 +219,16 @@ void Snake::RenderInk(sf::RenderTarget& l_target)
 
 void Snake::RenderClassic(Window& l_window)
 {
+	const sf::Color headColor = m_hasAbilityVisual ? m_abilityVisual.headColor : m_headColor;
+	const sf::Color bodyColor = m_hasAbilityVisual ? m_abilityVisual.bodyColor : m_bodyColor;
+
 	// Draw Head
-	m_bodyRect.setFillColor(m_headColor);
+	m_bodyRect.setFillColor(headColor);
 	m_bodyRect.setPosition(m_snakeBody[0].x * m_blockSize, m_snakeBody[0].y * m_blockSize);
 	l_window.Draw(m_bodyRect);
 
 	// Draw Body
-	m_bodyRect.setFillColor(m_bodyColor);
+	m_bodyRect.setFillColor(bodyColor);
 	for (int i = 1; i < (int)m_snakeBody.size(); i++)
 	{
 		m_bodyRect.setPosition(m_snakeBody[i].x * m_blockSize, m_snakeBody[i].y * m_blockSize);
@@ -247,12 +252,34 @@ void Snake::ClearSkin()
 	m_skinGradientEnd = sf::Color::Transparent;
 }
 
+void Snake::SetAbilityVisual(const AbilityVisualSpec& l_visual)
+{
+	m_hasAbilityVisual = true;
+	m_abilityVisual = l_visual;
+}
+
+void Snake::ClearAbilityVisual()
+{
+	m_hasAbilityVisual = false;
+}
+
 void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 {
 	if (m_snakeBody.empty()) return;
 
 	float bs = m_blockSize;
 	int bodySize = (int)m_snakeBody.size();
+	const sf::Color effectiveHead = m_hasAbilityVisual ? m_abilityVisual.headColor : m_headColor;
+	const sf::Color effectiveBody = m_hasAbilityVisual ? m_abilityVisual.bodyColor : m_bodyColor;
+	const sf::Color effectiveInkTint = m_hasAbilityVisual ? m_abilityVisual.inkTint : m_inkTint;
+	const sf::Color effectiveGradientEnd = m_hasAbilityVisual ? m_abilityVisual.gradientEnd : m_skinGradientEnd;
+	const int effectiveFlags = m_hasAbilityVisual
+		? ((m_abilityVisual.rainbow ? static_cast<int>(SkinRenderFlag::Rainbow) : 0)
+		 | (m_abilityVisual.translucent ? static_cast<int>(SkinRenderFlag::Translucent) : 0)
+		 | (m_abilityVisual.thickOutline ? static_cast<int>(SkinRenderFlag::ThickOutline) : 0)
+		 | (m_abilityVisual.invertEyes ? static_cast<int>(SkinRenderFlag::InvertEyes) : 0)
+		 | (m_abilityVisual.gradientEnd != sf::Color::Transparent ? static_cast<int>(SkinRenderFlag::Gradient) : 0))
+		: m_skinRenderFlags;
 
 	// Smooth interpolation: lerp visual positions between previous and current grid positions
 	float interpT = std::min(1.0f, m_interpTimer * m_speed);
@@ -282,7 +309,7 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 	{
 		float alpha = 1.0f - (mark.age / mark.maxAge);
 		sf::Uint8 a = (sf::Uint8)(alpha * 60.0f);
-		sf::Color trailColor(m_inkTint.r, m_inkTint.g, m_inkTint.b, a);
+		sf::Color trailColor(effectiveInkTint.r, effectiveInkTint.g, effectiveInkTint.b, a);
 		sf::RectangleShape trailRect(sf::Vector2f(bs * 0.5f, bs * 0.5f));
 		trailRect.setPosition(mark.pos);
 		trailRect.setFillColor(trailColor);
@@ -305,7 +332,7 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 		if (dx > bs * 2 || dy > bs * 2) continue;
 
 		sf::Uint8 alpha = (sf::Uint8)(200 - (i * 50 / std::max(1, bodySize)));
-		sf::Color lineColor(m_inkTint.r, m_inkTint.g, m_inkTint.b, alpha);
+		sf::Color lineColor(effectiveInkTint.r, effectiveInkTint.g, effectiveInkTint.b, alpha);
 
 		sf::Vertex line[] = {
 			sf::Vertex(sf::Vector2f(x1, y1), lineColor),
@@ -326,31 +353,31 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 		sf::Uint8 bodyAlpha = (sf::Uint8)(255 * alphaFrac);
 
 		// Base fill color
-		sf::Color fillColor(m_bodyColor.r, m_bodyColor.g, m_bodyColor.b, bodyAlpha);
+		sf::Color fillColor(effectiveBody.r, effectiveBody.g, effectiveBody.b, bodyAlpha);
 
 		// Skin: Rainbow — cycle hue per segment (takes priority over Gradient)
-		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Rainbow))
+		if (effectiveFlags & static_cast<int>(SkinRenderFlag::Rainbow))
 		{
 			float hue = std::fmod(i * 30.0f + m_interpTimer * 80.0f, 360.0f);
 			fillColor = InkRenderer::HsvToRgb(hue, 0.8f, 0.9f);
 			fillColor.a = bodyAlpha;
 		}
 		// Skin: Gradient — lerp body color toward gradient end (skipped if Rainbow active)
-		else if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Gradient))
+		else if (effectiveFlags & static_cast<int>(SkinRenderFlag::Gradient))
 		{
 			float t = (float)(i - 1) / std::max(1.0f, (float)(bodySize - 2));
-			fillColor.r = (sf::Uint8)(m_bodyColor.r + t * ((int)m_skinGradientEnd.r - m_bodyColor.r));
-			fillColor.g = (sf::Uint8)(m_bodyColor.g + t * ((int)m_skinGradientEnd.g - m_bodyColor.g));
-			fillColor.b = (sf::Uint8)(m_bodyColor.b + t * ((int)m_skinGradientEnd.b - m_bodyColor.b));
+			fillColor.r = (sf::Uint8)(effectiveBody.r + t * ((int)effectiveGradientEnd.r - effectiveBody.r));
+			fillColor.g = (sf::Uint8)(effectiveBody.g + t * ((int)effectiveGradientEnd.g - effectiveBody.g));
+			fillColor.b = (sf::Uint8)(effectiveBody.b + t * ((int)effectiveGradientEnd.b - effectiveBody.b));
 			fillColor.a = bodyAlpha;
 		}
 
 		// Skin: Translucent — halve alpha
-		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Translucent))
+		if (effectiveFlags & static_cast<int>(SkinRenderFlag::Translucent))
 			fillColor.a = (sf::Uint8)(fillColor.a / 2);
 
-		sf::Color outlineColor(m_inkTint.r, m_inkTint.g, m_inkTint.b, bodyAlpha);
-		float outlineThick = (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::ThickOutline)) ? 2.0f : 1.0f;
+		sf::Color outlineColor(effectiveInkTint.r, effectiveInkTint.g, effectiveInkTint.b, bodyAlpha);
+		float outlineThick = (effectiveFlags & static_cast<int>(SkinRenderFlag::ThickOutline)) ? 2.0f : 1.0f;
 
 		float segSize = bs - 2.0f;
 		float segOffset = 1.0f;
@@ -369,21 +396,21 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 		float hy = headPos.y;
 
 		// Head is slightly larger and more prominent
-		sf::Color headFill = m_headColor;
+		sf::Color headFill = effectiveHead;
 
 		// Skin: Rainbow head
-		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Rainbow))
+		if (effectiveFlags & static_cast<int>(SkinRenderFlag::Rainbow))
 		{
 			float hue = std::fmod(m_interpTimer * 80.0f, 360.0f);
 			headFill = InkRenderer::HsvToRgb(hue, 0.9f, 1.0f);
 		}
 
 		// Skin: Translucent head
-		if (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::Translucent))
+		if (effectiveFlags & static_cast<int>(SkinRenderFlag::Translucent))
 			headFill.a = 128;
 
-		sf::Color headOutline(m_inkTint.r, m_inkTint.g, m_inkTint.b, 255);
-		float headOutlineThick = (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::ThickOutline)) ? 2.5f : 1.5f;
+		sf::Color headOutline(effectiveInkTint.r, effectiveInkTint.g, effectiveInkTint.b, 255);
+		float headOutlineThick = (effectiveFlags & static_cast<int>(SkinRenderFlag::ThickOutline)) ? 2.5f : 1.5f;
 
 		InkRenderer::DrawWobblyRect(l_target,
 									hx, hy, bs - 1, bs - 1,
@@ -424,7 +451,7 @@ void Snake::RenderInkStyle(sf::RenderTarget& l_target)
 		}
 
 		// Skin: InvertEyes — dark pupils on light eyes
-		bool invertEyes = (m_skinRenderFlags & static_cast<int>(SkinRenderFlag::InvertEyes)) != 0;
+		bool invertEyes = (effectiveFlags & static_cast<int>(SkinRenderFlag::InvertEyes)) != 0;
 		sf::Color eyeColor = invertEyes ? sf::Color::White : headOutline;
 		sf::Color pupilColor = invertEyes ? sf::Color(30, 30, 30) : sf::Color::White;
 
