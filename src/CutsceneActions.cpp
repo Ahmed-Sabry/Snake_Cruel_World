@@ -148,8 +148,8 @@ bool TypewriterTextAction::Update(float l_dt, StateManager& l_sm)
 			return true;
 
 		// Wait for Enter/Space press (require release-then-press cycle)
-		bool pressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Return) ||
-					   sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
+		bool pressed = l_sm.GetWindow().IsKeyPressed(sf::Keyboard::Return) ||
+					   l_sm.GetWindow().IsKeyPressed(sf::Keyboard::Space);
 		if (!pressed)
 			m_inputReceived = false; // key released — ready for next press
 		else if (!m_inputReceived)
@@ -230,8 +230,8 @@ bool WaitForInputAction::Update(float l_dt, StateManager& l_sm)
 
 	m_timer += l_dt;
 
-	bool pressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Return) ||
-				   sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
+	bool pressed = l_sm.GetWindow().IsKeyPressed(sf::Keyboard::Return) ||
+				   l_sm.GetWindow().IsKeyPressed(sf::Keyboard::Space);
 	if (!pressed)
 		m_keyWasUp = true;
 	else if (m_keyWasUp)

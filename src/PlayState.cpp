@@ -505,8 +505,10 @@ void PlayState::OnExit()
 
 void PlayState::HandleInput()
 {
+	Window& window = m_stateManager.GetWindow();
+
 	// Debounced Pause (Escape)
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+	if (window.IsKeyPressed(sf::Keyboard::Escape))
 	{
 		if (m_escReleased)
 		{
@@ -521,7 +523,7 @@ void PlayState::HandleInput()
 	}
 
 	// Debounced Quick restart (R)
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+	if (window.IsKeyPressed(sf::Keyboard::R))
 	{
 		if (m_rReleased)
 		{
@@ -537,13 +539,13 @@ void PlayState::HandleInput()
 
 	// Determine desired direction from input
 	Direction inputDir = Direction::None;
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+	if (window.IsKeyPressed(sf::Keyboard::Up) || window.IsKeyPressed(sf::Keyboard::W))
 		inputDir = Direction::Up;
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+	else if (window.IsKeyPressed(sf::Keyboard::Down) || window.IsKeyPressed(sf::Keyboard::S))
 		inputDir = Direction::Down;
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+	else if (window.IsKeyPressed(sf::Keyboard::Right) || window.IsKeyPressed(sf::Keyboard::D))
 		inputDir = Direction::Right;
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+	else if (window.IsKeyPressed(sf::Keyboard::Left) || window.IsKeyPressed(sf::Keyboard::A))
 		inputDir = Direction::Left;
 
 	// Poison: invert controls when active
@@ -577,7 +579,7 @@ void PlayState::HandleInput()
 	}
 
 	// Cheat code
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+	if (window.IsKeyPressed(sf::Keyboard::E))
 		m_cheatExtend = true;
 }
 

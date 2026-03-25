@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Platform/Platform.hpp"
+#include <array>
 #include <iostream>
 #include <functional>
 #include <vector>
@@ -13,6 +14,7 @@ public:
 
 	void Update();
 	bool PollEvent(sf::Event& l_event);
+	bool IsKeyPressed(sf::Keyboard::Key l_key) const;
 
 	inline void SetBackground(sf::Color l_color)
 	{
@@ -67,4 +69,5 @@ private:
 	bool m_isFullscreen;
 	sf::RenderWindow m_window;
 	sf::Event m_event;
+	std::array<bool, sf::Keyboard::KeyCount> m_keyStates{};
 };
