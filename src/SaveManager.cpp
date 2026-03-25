@@ -241,7 +241,9 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 	else
 	{
 		// Pre-v4 saves have no ability block; clear stale in-memory ability state,
-		// then infer unlocks from level progression only.
+		// then infer unlocks from per-level completion (stars/scores), not
+		// highestUnlockedLevel — that value is clamped and cannot exceed NUM_LEVELS,
+		// so the last level's reward would never satisfy highest > level id.
 		for (bool& unlocked : l_state.unlockedAbilities)
 			unlocked = false;
 
@@ -249,7 +251,12 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 		{
 			if (cfg.abilityReward == AbilityId::None)
 				continue;
-			if (l_state.highestUnlockedLevel > cfg.id)
+			const int levelIdx = cfg.id - 1;
+			if (levelIdx < 0 || levelIdx >= NUM_LEVELS)
+				continue;
+			const bool levelCompleted = (l_state.starRatings[levelIdx] > 0) ||
+				(l_state.highScores[levelIdx] > 0);
+			if (levelCompleted)
 				l_state.unlockedAbilities[GetAbilityIndex(cfg.abilityReward)] = true;
 		}
 
