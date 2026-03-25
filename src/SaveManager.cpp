@@ -210,7 +210,7 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			std::cerr << "SaveManager: Error reading v4 data, resetting ability progress." << std::endl;
 			for (bool& unlocked : l_state.unlockedAbilities)
 				unlocked = false;
-			l_state.equippedAbility = GetDefaultEquippedAbility();
+			l_state.equippedAbility = ResolveEquippedAbilityFromUnlocks(l_state.unlockedAbilities, AbilityId::None);
 			file.close();
 			return;
 		}
@@ -231,10 +231,10 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			std::cerr << "SaveManager: Invalid ability unlock data, coercing to locked." << std::endl;
 
 		AbilityId loadedEquipped = static_cast<AbilityId>(equippedAbility);
-		if (!IsValidAbilityId(loadedEquipped, false))
-			loadedEquipped = GetDefaultEquippedAbility();
+		if (!IsValidAbilityId(loadedEquipped, true))
+			loadedEquipped = AbilityId::None;
 
-		l_state.equippedAbility = loadedEquipped;
+		l_state.equippedAbility = ResolveEquippedAbilityFromUnlocks(l_state.unlockedAbilities, loadedEquipped);
 	}
 	else
 	{
@@ -248,9 +248,8 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 				l_state.unlockedAbilities[GetAbilityIndex(cfg.abilityReward)] = true;
 		}
 
-		if (!IsValidAbilityId(l_state.equippedAbility, false) ||
-		    !l_state.unlockedAbilities[GetAbilityIndex(l_state.equippedAbility)])
-			l_state.equippedAbility = GetDefaultEquippedAbility();
+		l_state.equippedAbility = ResolveEquippedAbilityFromUnlocks(
+			l_state.unlockedAbilities, l_state.equippedAbility);
 	}
 
 	file.close();

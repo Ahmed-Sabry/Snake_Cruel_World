@@ -73,6 +73,7 @@ bool IsValidAbilityId(AbilityId l_id, bool l_allowNone = true);
 std::size_t GetAbilityIndex(AbilityId l_id);
 AbilityId GetAbilityIdForIndex(std::size_t l_index);
 AbilityId GetDefaultEquippedAbility();
+AbilityId ResolveEquippedAbilityFromUnlocks(const bool (&l_unlocked)[ABILITY_COUNT], AbilityId l_preferred);
 
 class AbilityController
 {

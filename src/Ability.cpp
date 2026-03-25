@@ -130,6 +130,24 @@ AbilityId GetDefaultEquippedAbility()
 	return AbilityId::InkFlare;
 }
 
+AbilityId ResolveEquippedAbilityFromUnlocks(const bool (&l_unlocked)[ABILITY_COUNT], AbilityId l_preferred)
+{
+	if (IsValidAbilityId(l_preferred, false) && l_unlocked[GetAbilityIndex(l_preferred)])
+		return l_preferred;
+
+	const AbilityId defaultId = GetDefaultEquippedAbility();
+	if (l_unlocked[GetAbilityIndex(defaultId)])
+		return defaultId;
+
+	for (std::size_t i = 0; i < ABILITY_COUNT; ++i)
+	{
+		if (l_unlocked[i])
+			return GetAbilityIdForIndex(i);
+	}
+
+	return AbilityId::None;
+}
+
 AbilityController::AbilityController()
 	: m_equipped(GetDefaultEquippedAbility()),
 	  m_active(AbilityId::None),
@@ -156,10 +174,7 @@ void AbilityController::LoadPersistentProgress(const bool (&l_unlocked)[ABILITY_
 		m_states[i].cooldownRemaining = 0.0f;
 	}
 
-	m_equipped = l_equipped;
-	if (!IsValidAbilityId(m_equipped, false) ||
-	    !m_states[GetAbilityIndex(m_equipped)].unlocked)
-		m_equipped = GetDefaultEquippedAbility();
+	m_equipped = ResolveEquippedAbilityFromUnlocks(l_unlocked, l_equipped);
 
 	m_active = AbilityId::None;
 	m_activeRemaining = 0.0f;
