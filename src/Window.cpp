@@ -33,9 +33,20 @@ void Window::Update()
 				break;
 
 			case sf::Event::KeyPressed:
+				if (m_event.key.code >= 0 && m_event.key.code < sf::Keyboard::KeyCount)
+					m_keyStates[(std::size_t)m_event.key.code] = true;
 				if (m_event.key.code == sf::Keyboard::F5) /* Press F5 to toggle FullScreen */
 					ToggleFullscreen();
 				// Escape is now handled by game states (pause, menu, etc.)
+				break;
+
+			case sf::Event::KeyReleased:
+				if (m_event.key.code >= 0 && m_event.key.code < sf::Keyboard::KeyCount)
+					m_keyStates[(std::size_t)m_event.key.code] = false;
+				break;
+
+			case sf::Event::LostFocus:
+				m_keyStates.fill(false);
 				break;
 
 			default:
@@ -44,14 +55,18 @@ void Window::Update()
 	}
 }
 
-bool Window::PollEvent(sf::Event& l_event)
+bool Window::IsKeyPressed(sf::Keyboard::Key l_key) const
 {
-	return m_window.pollEvent(l_event);
+	if (l_key < 0 || l_key >= sf::Keyboard::KeyCount)
+		return false;
+
+	return m_keyStates[(std::size_t)l_key];
 }
 
 void Window::ToggleFullscreen()
 {
 	m_isFullscreen = !m_isFullscreen;
+	m_keyStates.fill(false);
 	m_window.close();
 	Create();
 }

@@ -83,13 +83,14 @@ void CutsceneGalleryState::OnExit()
 
 void CutsceneGalleryState::HandleInput()
 {
-	bool upPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Up) ||
-					 sf::Keyboard::isKeyPressed(sf::Keyboard::W);
-	bool downPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Down) ||
-					   sf::Keyboard::isKeyPressed(sf::Keyboard::S);
-	bool enterPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Return) ||
-						sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
-	bool escPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Escape);
+	Window& window = m_stateManager.GetWindow();
+	bool upPressed = window.IsKeyPressed(sf::Keyboard::Up) ||
+					 window.IsKeyPressed(sf::Keyboard::W);
+	bool downPressed = window.IsKeyPressed(sf::Keyboard::Down) ||
+					   window.IsKeyPressed(sf::Keyboard::S);
+	bool enterPressed = window.IsKeyPressed(sf::Keyboard::Return) ||
+						window.IsKeyPressed(sf::Keyboard::Space);
+	bool escPressed = window.IsKeyPressed(sf::Keyboard::Escape);
 
 	if (!upPressed && !downPressed && !enterPressed && !escPressed)
 	{

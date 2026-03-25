@@ -120,12 +120,13 @@ void LevelSelectState::OnExit()
 
 void LevelSelectState::HandleInput()
 {
-	bool upPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W);
-	bool downPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S);
-	bool leftPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A);
-	bool rightPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D);
-	bool enterPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Return) || sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
-	bool escPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Escape);
+	Window& window = m_stateManager.GetWindow();
+	bool upPressed = window.IsKeyPressed(sf::Keyboard::Up) || window.IsKeyPressed(sf::Keyboard::W);
+	bool downPressed = window.IsKeyPressed(sf::Keyboard::Down) || window.IsKeyPressed(sf::Keyboard::S);
+	bool leftPressed = window.IsKeyPressed(sf::Keyboard::Left) || window.IsKeyPressed(sf::Keyboard::A);
+	bool rightPressed = window.IsKeyPressed(sf::Keyboard::Right) || window.IsKeyPressed(sf::Keyboard::D);
+	bool enterPressed = window.IsKeyPressed(sf::Keyboard::Return) || window.IsKeyPressed(sf::Keyboard::Space);
+	bool escPressed = window.IsKeyPressed(sf::Keyboard::Escape);
 
 	if (!upPressed && !downPressed && !leftPressed && !rightPressed && !enterPressed && !escPressed)
 	{
@@ -147,13 +148,13 @@ void LevelSelectState::HandleInput()
 
 	// Track arrow keys for Konami code (Up Up Down Down Left Right Left Right)
 	sf::Keyboard::Key konamiKey = sf::Keyboard::Unknown;
-	if (upPressed && !sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+	if (upPressed && !window.IsKeyPressed(sf::Keyboard::W))
 		konamiKey = sf::Keyboard::Up;
-	else if (downPressed && !sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+	else if (downPressed && !window.IsKeyPressed(sf::Keyboard::S))
 		konamiKey = sf::Keyboard::Down;
-	else if (leftPressed && !sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+	else if (leftPressed && !window.IsKeyPressed(sf::Keyboard::A))
 		konamiKey = sf::Keyboard::Left;
-	else if (rightPressed && !sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+	else if (rightPressed && !window.IsKeyPressed(sf::Keyboard::D))
 		konamiKey = sf::Keyboard::Right;
 
 	if (konamiKey != sf::Keyboard::Unknown)

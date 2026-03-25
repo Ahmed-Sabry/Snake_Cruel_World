@@ -143,9 +143,10 @@ void AchievementState::OnExit()
 
 void AchievementState::HandleInput()
 {
-	bool escPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Escape);
-	bool upPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W);
-	bool downPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S);
+	Window& window = m_stateManager.GetWindow();
+	bool escPressed = window.IsKeyPressed(sf::Keyboard::Escape);
+	bool upPressed = window.IsKeyPressed(sf::Keyboard::Up) || window.IsKeyPressed(sf::Keyboard::W);
+	bool downPressed = window.IsKeyPressed(sf::Keyboard::Down) || window.IsKeyPressed(sf::Keyboard::S);
 
 	if (!escPressed && !upPressed && !downPressed)
 	{

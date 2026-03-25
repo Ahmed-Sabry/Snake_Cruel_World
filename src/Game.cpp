@@ -82,12 +82,12 @@ Game::~Game()
 
 void Game::Update()
 {
-	m_window.Update();
 	m_stateManager.Update(m_elapsedTime);
 }
 
 void Game::HandleInput()
 {
+	m_window.Update();
 	m_stateManager.HandleInput();
 }
 

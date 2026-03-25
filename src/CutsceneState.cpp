@@ -64,15 +64,16 @@ void CutsceneState::OnExit()
 
 void CutsceneState::HandleInput()
 {
-	bool escPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Escape);
+	Window& window = m_stateManager.GetWindow();
+	bool escPressed = window.IsKeyPressed(sf::Keyboard::Escape);
 
 	if (escPressed && !m_inputPressed)
 	{
 		m_skipRequested = true;
 	}
 
-	bool enterPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Return) ||
-						sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
+	bool enterPressed = window.IsKeyPressed(sf::Keyboard::Return) ||
+						window.IsKeyPressed(sf::Keyboard::Space);
 	if (enterPressed && !m_inputPressed)
 	{
 		m_timeline.SkipCurrent();
