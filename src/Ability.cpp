@@ -157,7 +157,8 @@ void AbilityController::LoadPersistentProgress(const bool (&l_unlocked)[ABILITY_
 	}
 
 	m_equipped = l_equipped;
-	if (!IsValidAbilityId(m_equipped, false))
+	if (!IsValidAbilityId(m_equipped, false) ||
+	    !m_states[GetAbilityIndex(m_equipped)].unlocked)
 		m_equipped = GetDefaultEquippedAbility();
 
 	m_active = AbilityId::None;

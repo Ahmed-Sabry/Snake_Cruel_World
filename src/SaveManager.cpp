@@ -1,4 +1,6 @@
 #include "SaveManager.h"
+#include "Ability.h"
+#include "LevelConfig.h"
 #include "StateManager.h"
 #include "StatsManager.h"
 #include "AchievementManager.h"
@@ -236,9 +238,19 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 	}
 	else
 	{
-		for (bool& unlocked : l_state.unlockedAbilities)
-			unlocked = false;
-		l_state.equippedAbility = GetDefaultEquippedAbility();
+		// Pre-v4 saves have no ability block; infer unlocks from level progression
+		// and keep defaults for equipped unless invalid or not unlocked.
+		for (const LevelConfig& cfg : GetAllLevels())
+		{
+			if (cfg.abilityReward == AbilityId::None)
+				continue;
+			if (l_state.highestUnlockedLevel > cfg.id)
+				l_state.unlockedAbilities[GetAbilityIndex(cfg.abilityReward)] = true;
+		}
+
+		if (!IsValidAbilityId(l_state.equippedAbility, false) ||
+		    !l_state.unlockedAbilities[GetAbilityIndex(l_state.equippedAbility)])
+			l_state.equippedAbility = GetDefaultEquippedAbility();
 	}
 
 	file.close();

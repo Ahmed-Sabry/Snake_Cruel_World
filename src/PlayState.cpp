@@ -562,7 +562,7 @@ void PlayState::HandleInput()
 
 	bool canUseAbilities = !m_snake.HasLost() && m_levelCompleteDelay < 0.0f;
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+	if (window.IsKeyPressed(sf::Keyboard::Q))
 	{
 		if (m_cycleReleased && canUseAbilities)
 		{
@@ -576,7 +576,7 @@ void PlayState::HandleInput()
 		m_cycleReleased = true;
 	}
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+	if (window.IsKeyPressed(sf::Keyboard::Space))
 	{
 		if (m_activateReleased && canUseAbilities)
 		{
