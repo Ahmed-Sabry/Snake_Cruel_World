@@ -1,8 +1,11 @@
 #include "SaveManager.h"
+#include "Ability.h"
+#include "LevelConfig.h"
 #include "StateManager.h"
 #include "StatsManager.h"
 #include "AchievementManager.h"
 #include "SnakeSkin.h"
+#include <array>
 #include <iostream>
 #include <cstring>
 #include <cstdint>
@@ -22,7 +25,7 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	}
 
 	// Version marker
-	int version = 3;
+	int version = 4;
 	file.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
 	// === V1 block (backwards-compatible) ===
@@ -57,6 +60,17 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	// === V3 block ===
 	uint8_t introFlag = l_state.introPlayed ? 1 : 0;
 	file.write(reinterpret_cast<const char*>(&introFlag), sizeof(introFlag));
+
+	// === V4 block ===
+	std::array<uint8_t, ABILITY_COUNT> unlockedAbilityFlags{};
+	for (std::size_t i = 0; i < ABILITY_COUNT; ++i)
+		unlockedAbilityFlags[i] = l_state.unlockedAbilities[i] ? 1 : 0;
+	file.write(reinterpret_cast<const char*>(unlockedAbilityFlags.data()),
+			   unlockedAbilityFlags.size() * sizeof(uint8_t));
+	const AbilityId equippedToSave = ResolveEquippedAbilityFromUnlocks(
+		l_state.unlockedAbilities, l_state.equippedAbility);
+	const int equippedAbility = static_cast<int>(equippedToSave);
+	file.write(reinterpret_cast<const char*>(&equippedAbility), sizeof(equippedAbility));
 
 	file.close();
 }
@@ -182,6 +196,72 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 		uint8_t introFlag = 0;
 		file.read(reinterpret_cast<char*>(&introFlag), sizeof(introFlag));
 		l_state.introPlayed = (file.fail() ? false : introFlag != 0);
+	}
+
+	// === V4 block (only if version >= 4) ===
+	if (version >= 4)
+	{
+		std::array<uint8_t, ABILITY_COUNT> unlockedAbilityFlags{};
+		file.read(reinterpret_cast<char*>(unlockedAbilityFlags.data()),
+				  unlockedAbilityFlags.size() * sizeof(uint8_t));
+
+		int equippedAbility = static_cast<int>(GetDefaultEquippedAbility());
+		file.read(reinterpret_cast<char*>(&equippedAbility), sizeof(equippedAbility));
+		if (file.fail())
+		{
+			std::cerr << "SaveManager: Error reading v4 data, resetting ability progress." << std::endl;
+			for (bool& unlocked : l_state.unlockedAbilities)
+				unlocked = false;
+			l_state.equippedAbility = ResolveEquippedAbilityFromUnlocks(l_state.unlockedAbilities, AbilityId::None);
+			file.close();
+			return;
+		}
+
+		bool hadInvalidUnlockFlag = false;
+		for (std::size_t i = 0; i < ABILITY_COUNT; ++i)
+		{
+			if (unlockedAbilityFlags[i] > 1)
+			{
+				hadInvalidUnlockFlag = true;
+				l_state.unlockedAbilities[i] = false;
+				continue;
+			}
+
+			l_state.unlockedAbilities[i] = (unlockedAbilityFlags[i] != 0);
+		}
+		if (hadInvalidUnlockFlag)
+			std::cerr << "SaveManager: Invalid ability unlock data, coercing to locked." << std::endl;
+
+		AbilityId loadedEquipped = static_cast<AbilityId>(equippedAbility);
+		if (!IsValidAbilityId(loadedEquipped, true))
+			loadedEquipped = AbilityId::None;
+
+		l_state.equippedAbility = ResolveEquippedAbilityFromUnlocks(l_state.unlockedAbilities, loadedEquipped);
+	}
+	else
+	{
+		// Pre-v4 saves have no ability block; clear stale in-memory ability state,
+		// then infer unlocks from per-level completion (stars/scores), not
+		// highestUnlockedLevel — that value is clamped and cannot exceed NUM_LEVELS,
+		// so the last level's reward would never satisfy highest > level id.
+		for (bool& unlocked : l_state.unlockedAbilities)
+			unlocked = false;
+
+		for (const LevelConfig& cfg : GetAllLevels())
+		{
+			if (cfg.abilityReward == AbilityId::None)
+				continue;
+			const int levelIdx = cfg.id - 1;
+			if (levelIdx < 0 || levelIdx >= NUM_LEVELS)
+				continue;
+			const bool levelCompleted = (l_state.starRatings[levelIdx] > 0) ||
+				(l_state.highScores[levelIdx] > 0);
+			if (levelCompleted)
+				l_state.unlockedAbilities[GetAbilityIndex(cfg.abilityReward)] = true;
+		}
+
+		l_state.equippedAbility = ResolveEquippedAbilityFromUnlocks(
+			l_state.unlockedAbilities, AbilityId::None);
 	}
 
 	file.close();
