@@ -3,6 +3,7 @@
 #include "StatsManager.h"
 #include "AchievementManager.h"
 #include "SnakeSkin.h"
+#include <array>
 #include <iostream>
 #include <cstring>
 #include <cstdint>
@@ -59,7 +60,11 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	file.write(reinterpret_cast<const char*>(&introFlag), sizeof(introFlag));
 
 	// === V4 block ===
-	file.write(reinterpret_cast<const char*>(l_state.unlockedAbilities), sizeof(l_state.unlockedAbilities));
+	std::array<uint8_t, ABILITY_COUNT> unlockedAbilityFlags{};
+	for (std::size_t i = 0; i < ABILITY_COUNT; ++i)
+		unlockedAbilityFlags[i] = l_state.unlockedAbilities[i] ? 1 : 0;
+	file.write(reinterpret_cast<const char*>(unlockedAbilityFlags.data()),
+			   unlockedAbilityFlags.size() * sizeof(uint8_t));
 	int equippedAbility = static_cast<int>(l_state.equippedAbility);
 	file.write(reinterpret_cast<const char*>(&equippedAbility), sizeof(equippedAbility));
 
@@ -192,7 +197,9 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 	// === V4 block (only if version >= 4) ===
 	if (version >= 4)
 	{
-		file.read(reinterpret_cast<char*>(l_state.unlockedAbilities), sizeof(l_state.unlockedAbilities));
+		std::array<uint8_t, ABILITY_COUNT> unlockedAbilityFlags{};
+		file.read(reinterpret_cast<char*>(unlockedAbilityFlags.data()),
+				  unlockedAbilityFlags.size() * sizeof(uint8_t));
 
 		int equippedAbility = static_cast<int>(GetDefaultEquippedAbility());
 		file.read(reinterpret_cast<char*>(&equippedAbility), sizeof(equippedAbility));
@@ -205,6 +212,21 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			file.close();
 			return;
 		}
+
+		bool hadInvalidUnlockFlag = false;
+		for (std::size_t i = 0; i < ABILITY_COUNT; ++i)
+		{
+			if (unlockedAbilityFlags[i] > 1)
+			{
+				hadInvalidUnlockFlag = true;
+				l_state.unlockedAbilities[i] = false;
+				continue;
+			}
+
+			l_state.unlockedAbilities[i] = (unlockedAbilityFlags[i] != 0);
+		}
+		if (hadInvalidUnlockFlag)
+			std::cerr << "SaveManager: Invalid ability unlock data, coercing to locked." << std::endl;
 
 		AbilityId loadedEquipped = static_cast<AbilityId>(equippedAbility);
 		if (!IsValidAbilityId(loadedEquipped, false))

@@ -112,7 +112,9 @@ std::size_t GetAbilityIndex(AbilityId l_id)
 		case AbilityId::HuntersDash: return 6;
 		case AbilityId::InkMemory: return 7;
 		case AbilityId::None:
+			return 0;
 		default:
+			assert(false && "GetAbilityIndex: unexpected AbilityId");
 			return 0;
 	}
 }
@@ -193,6 +195,8 @@ bool AbilityController::IsUnlocked(AbilityId l_id) const
 bool AbilityController::SetEquipped(AbilityId l_id)
 {
 	if (l_id == AbilityId::None)
+		return false;
+	if (!IsUnlocked(l_id))
 		return false;
 
 	m_equipped = l_id;

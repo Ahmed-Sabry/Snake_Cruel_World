@@ -1650,6 +1650,12 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 		if (m_stateManager.currentLevel >= m_stateManager.highestUnlockedLevel)
 			m_stateManager.highestUnlockedLevel = std::min(NUM_LEVELS, m_stateManager.currentLevel + 1);
 
+		if (m_levelConfig.abilityReward != AbilityId::None)
+		{
+			m_abilityController.Unlock(m_levelConfig.abilityReward);
+			SyncAbilityState();
+		}
+
 		m_stateManager.levelComplete = true;
 
 		// Level 10: extended silence before victory (the absence speaks volumes)
