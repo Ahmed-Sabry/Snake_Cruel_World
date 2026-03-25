@@ -1,5 +1,6 @@
 #include "StageSelectState.h"
 
+#include "StateManager.h"
 #include "Ability.h"
 #include "AudioManager.h"
 #include "InkRenderer.h"
@@ -284,19 +285,25 @@ void StageSelectState::DrawFinaleGate(Window& l_window, bool l_selected)
 		? "All healed pages converge here."
 		: "Heal 8 / 8 pages to break the seal. Current: " + std::to_string(m_stateManager.GetHealedPageCount()) + "/8";
 
-	l_window.Draw(MakeText(m_font, "Level 10: " + finaleConfig.name, 28,
-		sf::Color(55, 45, 40), x, y));
-	l_window.Draw(MakeText(m_font, "Gate: " + gateState, 17,
-		completed ? sf::Color(50, 110, 70) : sf::Color(150, 70, 48), x, y + 38.0f));
-	l_window.Draw(MakeText(m_font, "Threat: " + finaleConfig.corruptionLabel, 16,
-		sf::Color(100, 88, 82), x, y + 66.0f));
-	l_window.Draw(MakeText(m_font, gateHint, 16,
-		sf::Color(90, 82, 78), x, y + 90.0f));
+	sf::Text titleLine = MakeText(m_font, "Level 10: " + finaleConfig.name, 28,
+		sf::Color(55, 45, 40), x, y);
+	sf::Text gateLine = MakeText(m_font, "Gate: " + gateState, 17,
+		completed ? sf::Color(50, 110, 70) : sf::Color(150, 70, 48), x, y + 38.0f);
+	sf::Text threatLine = MakeText(m_font, "Threat: " + finaleConfig.corruptionLabel, 16,
+		sf::Color(100, 88, 82), x, y + 66.0f);
+	sf::Text hintLine = MakeText(m_font, gateHint, 16,
+		sf::Color(90, 82, 78), x, y + 90.0f);
 
 	std::ostringstream stats;
 	stats << "Stars: " << progress.bestStars << "   Best: " << progress.bestScore;
-	l_window.Draw(MakeText(m_font, stats.str(), 15,
-		sf::Color(100, 90, 84), m_finaleBounds.left + 275.0f, y + 12.0f));
+	sf::Text statsLine = MakeText(m_font, stats.str(), 15,
+		sf::Color(100, 90, 84), m_finaleBounds.left + 275.0f, y + 12.0f);
+
+	l_window.Draw(titleLine);
+	l_window.Draw(gateLine);
+	l_window.Draw(threatLine);
+	l_window.Draw(hintLine);
+	l_window.Draw(statsLine);
 }
 
 void StageSelectState::HandleInput()

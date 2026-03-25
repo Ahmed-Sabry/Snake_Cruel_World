@@ -1,6 +1,23 @@
 #include "StateManager.h"
 
 #include <algorithm>
+#include <limits>
+
+namespace
+{
+	constexpr int kMaxStarsPerLevel = 3;
+
+	StateManager::LevelProgress SanitizeLevelProgressFromSave(int l_levelId,
+															  const StateManager::LevelProgress& l_src)
+	{
+		StateManager::LevelProgress out = l_src;
+		out.bestScore = std::clamp(l_src.bestScore, 0, std::numeric_limits<int>::max());
+		out.bestStars = std::clamp(l_src.bestStars, 0, kMaxStarsPerLevel);
+		if (l_levelId < 2 || l_levelId > 9)
+			out.pageHealed = false;
+		return out;
+	}
+}
 
 StateManager::StateManager(Window& l_window, AudioManager& l_audio,
 						   StatsManager& l_stats, AchievementManager& l_achievements)
@@ -100,7 +117,8 @@ void StateManager::SetLevelProgressFromSave(int l_levelId, const LevelProgress& 
 {
 	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
 		return;
-	campaignProgress[static_cast<std::size_t>(l_levelId - 1)] = l_progress;
+	campaignProgress[static_cast<std::size_t>(l_levelId - 1)] =
+		SanitizeLevelProgressFromSave(l_levelId, l_progress);
 }
 
 void StateManager::ResetAllCampaignProgress()
@@ -137,7 +155,9 @@ bool StateManager::HasUnlockedStageSelect() const
 
 bool StateManager::CanAccessCampaignLevel(int l_levelId) const
 {
-	if (l_levelId <= 1)
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return false;
+	if (l_levelId == 1)
 		return true;
 	if (l_levelId >= 2 && l_levelId <= 9)
 		return HasUnlockedStageSelect();
@@ -170,7 +190,11 @@ int StateManager::GetCompletedLevelCount() const
 
 bool StateManager::IsL10Unlocked() const
 {
-	return GetHealedPageCount() >= 8 || HasCompletedLevel(10);
+	// Pre-v5 saves used highestUnlockedLevel == NUM_LEVELS when the finale was
+	// reachable on the linear ladder; preserve that without requiring 8 healed
+	// pages or a recorded L10 clear.
+	return GetHealedPageCount() >= 8 || HasCompletedLevel(10) ||
+		highestUnlockedLevel >= NUM_LEVELS;
 }
 
 void StateManager::RecordLevelCompletion(int l_levelId, int l_score, int l_stars, bool l_healPage)
