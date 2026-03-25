@@ -204,7 +204,7 @@ When activated:
 2. **(2-4s)** From the solid ground, structures rise: ink-drawn buildings, bridges, towers. The Artist's vision for this page was an architecture sketch - a city built on strong foundations.
 3. **(4-6s)** The city sprawls across the page. Every building's foundation touches the golden veins - built on healed cracks. What was broken now supports something greater.
 4. **(6-7s)** The Artist's hand appears. It's touching the page now. Fingertips resting on the golden veins. Feeling the strength. The pen is in the other hand.
-5. **(7-8s)** Fade to stage select. Seven pages healed. One remains.
+5. **(7-8s)** Fade to stage select. Six pages healed. Two remain.
 
 ### Emotional Beat
 

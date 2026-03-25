@@ -213,7 +213,7 @@ When activated:
 2. **(2-4s)** A single clear ink line appears - definitive, true, unmistakable. It draws itself across the page like a border between truth and deception.
 3. **(4-6s)** On one side of the line, the toxic colors settle into rich, honest greens - a meadow. On the other side, the deceptive colors drain away, leaving clean white paper. The page is divided: truth and clarity.
 4. **(6-7s)** The Artist's hand appears. It's the closest yet - fingertips almost touching the page. The hand is steady now. Not trembling, not pulling away. Ready.
-5. **(7-8s)** Fade to stage select. Six pages healed. Two remain.
+5. **(7-8s)** Fade to stage select. Five pages healed. Three remain.
 
 ### Emotional Beat
 

@@ -229,7 +229,7 @@ When replaying Level 8 with abilities from other levels:
 2. **(2-4s)** Those contour lines expand into a full notebook study page: sketches of snakes coiled, resting, striking, gliding. Observation without fear.
 3. **(4-6s)** Small handwritten notes appear beside the studies in the Artist's hand - arrows, labels, little marks of curiosity. This page was meant to be about attention and care, not predation.
 4. **(6-7s)** The Artist's hand enters and finishes one final line on the page, steady and deliberate.
-5. **(7-8s)** Fade to stage select. Eight pages healed. Only the scrambled page and the final eraser remain ahead.
+5. **(7-8s)** Fade to stage select. Seven pages healed. Only the scrambled page and the final eraser remain ahead.
 
 ### Emotional Beat
 
