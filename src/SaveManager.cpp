@@ -277,8 +277,10 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 	}
 
 	// === V5 block (only if version >= 5) ===
+	bool v5CampaignLoaded = false;
 	if (version >= 5)
 	{
+		v5CampaignLoaded = true;
 		for (StateManager::LevelProgress& progress : l_state.campaignProgress)
 		{
 			uint8_t stageCompleted = 0;
@@ -292,6 +294,7 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 				std::cerr << "SaveManager: Error reading v5 data, rebuilding progression from legacy stats." << std::endl;
 				for (StateManager::LevelProgress& resetProgress : l_state.campaignProgress)
 					resetProgress = StateManager::LevelProgress{};
+				v5CampaignLoaded = false;
 				break;
 			}
 
@@ -319,7 +322,10 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 		}
 	}
 
-	l_state.SyncLegacyProgress();
+	if (version >= 5 && v5CampaignLoaded)
+		l_state.ExportCampaignProgressToLegacy();
+	else
+		l_state.SyncLegacyProgress();
 
 	file.close();
 }

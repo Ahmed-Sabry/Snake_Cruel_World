@@ -96,14 +96,6 @@ const StateManager::LevelProgress& StateManager::GetLevelProgress(int l_levelId)
 	return campaignProgress[static_cast<std::size_t>(l_levelId - 1)];
 }
 
-StateManager::LevelProgress& StateManager::GetLevelProgress(int l_levelId)
-{
-	static LevelProgress s_emptyProgress{};
-	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
-		return s_emptyProgress;
-	return campaignProgress[static_cast<std::size_t>(l_levelId - 1)];
-}
-
 bool StateManager::HasCompletedLevel(int l_levelId) const
 {
 	return GetLevelProgress(l_levelId).stageCompleted;
@@ -137,7 +129,7 @@ bool StateManager::CanAccessCampaignLevel(int l_levelId) const
 	if (l_levelId >= 2 && l_levelId <= 9)
 		return HasUnlockedStageSelect();
 	if (l_levelId == 10)
-		return IsL10Unlocked() || HasCompletedLevel(10);
+		return IsL10Unlocked();
 	return false;
 }
 
@@ -220,6 +212,25 @@ void StateManager::SyncLegacyProgress()
 		legacyHighest = std::max(legacyHighest, NUM_LEVELS);
 
 	highestUnlockedLevel = std::clamp(std::max(highestUnlockedLevel, legacyHighest), 1, NUM_LEVELS);
+}
+
+void StateManager::ExportCampaignProgressToLegacy()
+{
+	int legacyHighest = 1;
+	for (std::size_t i = 0; i < campaignProgress.size(); ++i)
+	{
+		const LevelProgress& progress = campaignProgress[i];
+		const int levelId = static_cast<int>(i) + 1;
+		highScores[i] = progress.bestScore;
+		starRatings[i] = std::clamp(progress.bestStars, 0, 3);
+		if (progress.stageCompleted)
+			legacyHighest = std::max(legacyHighest, levelId);
+	}
+	if (GetLevelProgress(1).stageCompleted)
+		legacyHighest = std::max(legacyHighest, 2);
+	if (IsL10Unlocked())
+		legacyHighest = std::max(legacyHighest, NUM_LEVELS);
+	highestUnlockedLevel = std::clamp(legacyHighest, 1, NUM_LEVELS);
 }
 
 void StateManager::ProcessPendingTransitions()

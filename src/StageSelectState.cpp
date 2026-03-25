@@ -72,19 +72,30 @@ void StageSelectState::OnEnter()
 	m_animTimer = 0.0f;
 	m_keyReleased = false;
 
-	if (m_stateManager.currentLevel >= 2 && m_stateManager.currentLevel <= 9)
-		m_selectedIndex = m_stateManager.currentLevel - 2;
-	else if (m_stateManager.currentLevel == 10)
+	m_selectedIndex = 0;
+	if (m_stateManager.currentLevel == 10)
 		m_selectedIndex = 8;
 	else
 	{
-		m_selectedIndex = 0;
+		bool found = false;
 		for (std::size_t i = 0; i < m_tiles.size(); ++i)
 		{
-			if (!m_stateManager.IsPageHealed(m_tiles[i].levelId))
+			if (m_tiles[i].levelId == m_stateManager.currentLevel)
 			{
 				m_selectedIndex = static_cast<int>(i);
+				found = true;
 				break;
+			}
+		}
+		if (!found)
+		{
+			for (std::size_t i = 0; i < m_tiles.size(); ++i)
+			{
+				if (!m_stateManager.IsPageHealed(m_tiles[i].levelId))
+				{
+					m_selectedIndex = static_cast<int>(i);
+					break;
+				}
 			}
 		}
 	}

@@ -4,6 +4,10 @@
 #include "Ability.h"
 #include <string>
 #include <array>
+#ifndef NDEBUG
+#include <cassert>
+#include <unordered_set>
+#endif
 
 static constexpr int NUM_LEVELS = 10;
 inline const std::string FONT_PATH = "Fonts/RujisHandwritingFontV20-vrqZ.ttf";
@@ -184,6 +188,17 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 		sf::Color(248, 242, 228), sf::Color(45, 40, 55), sf::Color(170, 65, 55),
 		1.00f, true, true, true
 	};
+
+#ifndef NDEBUG
+		{
+			std::unordered_set<int> orders;
+			for (const auto& cfg : l)
+			{
+				assert(cfg.stageSelectOrder >= -1 && cfg.stageSelectOrder < NUM_LEVELS);
+				assert(orders.insert(cfg.stageSelectOrder).second && "GetAllLevels: duplicate stageSelectOrder");
+			}
+		}
+#endif
 
 		return l;
 	}();

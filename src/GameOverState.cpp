@@ -413,7 +413,7 @@ void GameOverState::OnEnter()
 
 	std::vector<std::string> items;
 	m_menuActions.clear();
-	if (!endless)
+	if (!endless && m_stateManager.HasUnlockedStageSelect())
 	{
 		items.push_back("Stage Select");
 		m_menuActions.push_back(GameOverAction::StageSelect);

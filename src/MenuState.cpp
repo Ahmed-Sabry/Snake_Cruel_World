@@ -193,13 +193,8 @@ void MenuState::OnItemSelected(int l_index)
 
 	if (label == "Play")
 	{
-		if (m_stateManager.HasUnlockedStageSelect())
-			m_stateManager.SwitchTo(StateType::StageSelect);
-		else
-		{
-			m_stateManager.currentLevel = 1;
-			m_stateManager.SwitchTo(StateType::Gameplay);
-		}
+		m_stateManager.currentLevel = 1;
+		m_stateManager.SwitchTo(StateType::Gameplay);
 	}
 	else if (label == "Stage Select")
 	{

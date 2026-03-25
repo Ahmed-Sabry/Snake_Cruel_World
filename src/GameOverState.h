@@ -29,7 +29,7 @@ private:
 	sf::Text m_taunt;
 	sf::Text m_stats[7]; // score, apples, combo, time, collisions, death#, best attempt
 	int m_statCount;
-	sf::Text m_menuItems[4]; // Stage Select, Retry, Main Menu
+	sf::Text m_menuItems[3]; // Stage Select (optional), Retry, Main Menu
 	std::vector<GameOverAction> m_menuActions;
 	int m_selectedItem;
 	int m_itemCount;

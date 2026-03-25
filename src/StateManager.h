@@ -39,7 +39,6 @@ public:
 	void PopState();
 
 	const LevelProgress& GetLevelProgress(int l_levelId) const;
-	LevelProgress& GetLevelProgress(int l_levelId);
 	bool HasCompletedLevel(int l_levelId) const;
 	bool IsPageHealed(int l_levelId) const;
 	bool HasUnlockedStageSelect() const;
@@ -49,6 +48,7 @@ public:
 	bool IsL10Unlocked() const;
 	void RecordLevelCompletion(int l_levelId, int l_score, int l_stars, bool l_healPage);
 	void SyncLegacyProgress();
+	void ExportCampaignProgressToLegacy();
 
 	Window& GetWindow();
 	AudioManager& GetAudio();
