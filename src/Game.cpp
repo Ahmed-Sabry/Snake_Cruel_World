@@ -4,6 +4,7 @@
 #include "PauseState.h"
 #include "GameOverState.h"
 #include "LevelSelectState.h"
+#include "StageSelectState.h"
 #include "AchievementState.h"
 #include "StatisticsState.h"
 #include "SkinSelectState.h"
@@ -47,6 +48,7 @@ Game::Game() :
 
 	// Register all states
 	m_stateManager.RegisterState<MenuState>(StateType::MainMenu);
+	m_stateManager.RegisterState<StageSelectState>(StateType::StageSelect);
 	m_stateManager.RegisterState<PlayState>(StateType::Gameplay);
 	m_stateManager.RegisterState<PauseState>(StateType::Pause);
 	m_stateManager.RegisterState<GameOverState>(StateType::GameOver);

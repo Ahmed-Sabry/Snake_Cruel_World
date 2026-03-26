@@ -1,4 +1,5 @@
 #include "EndlessModeController.h"
+#include "StateManager.h"
 #include <algorithm>
 #include <cstdlib>
 #include <cmath>
@@ -14,7 +15,7 @@ const char* EndlessModeController::s_mechanicNames[NUM_MECHANICS] = {
 	"Control Shuffle"
 };
 
-EndlessModeController::EndlessModeController(int l_highestUnlockedLevel)
+EndlessModeController::EndlessModeController(const StateManager& l_stateManager)
 	: m_survivalTime(0.0f),
 	  m_cycleIndex(0),
 	  m_cycleTimer(0.0f),
@@ -25,14 +26,11 @@ EndlessModeController::EndlessModeController(int l_highestUnlockedLevel)
 	  m_pendingMechanic(-1),
 	  m_warningActive(false)
 {
-	// Build available mechanics from beaten levels
-	// Mechanic i available if player has beaten level i+2
-	// (Level 2 = Blackouts, Level 3 = Quicksand, etc.)
-	// highestUnlockedLevel == N means levels 1..(N-1) are beaten
+	// Endless pulls from healed notebook pages instead of a linear ladder.
 	for (int i = 0; i < NUM_MECHANICS; i++)
 	{
-		int requiredLevel = i + 2; // Level that introduces this mechanic
-		if (l_highestUnlockedLevel >= requiredLevel + 1)
+		const int requiredLevel = i + 2;
+		if (l_stateManager.IsPageHealed(requiredLevel))
 			m_availableMechanics.push_back(i);
 	}
 

@@ -4,6 +4,7 @@
 #include "GameState.h"
 #include "LevelConfig.h"
 #include "Window.h"
+#include <array>
 #include <unordered_map>
 #include <functional>
 #include <memory>
@@ -17,6 +18,14 @@ class AchievementManager;
 class StateManager
 {
 public:
+	struct LevelProgress
+	{
+		bool stageCompleted = false;
+		bool pageHealed = false;
+		int bestScore = 0;
+		int bestStars = 0;
+	};
+
 	StateManager(Window& l_window, AudioManager& l_audio,
 				 StatsManager& l_stats, AchievementManager& l_achievements);
 	~StateManager();
@@ -28,6 +37,18 @@ public:
 	void SwitchTo(StateType l_type);
 	void PushState(StateType l_type); // overlay (e.g. pause)
 	void PopState();
+
+	const LevelProgress& GetLevelProgress(int l_levelId) const;
+	bool HasCompletedLevel(int l_levelId) const;
+	bool IsPageHealed(int l_levelId) const;
+	bool HasUnlockedStageSelect() const;
+	bool CanAccessCampaignLevel(int l_levelId) const;
+	int GetHealedPageCount() const;
+	int GetCompletedLevelCount() const;
+	bool IsL10Unlocked() const;
+	void RecordLevelCompletion(int l_levelId, int l_score, int l_stars, bool l_healPage);
+	void SyncLegacyProgress();
+	void ExportCampaignProgressToLegacy();
 
 	Window& GetWindow();
 	AudioManager& GetAudio();
@@ -89,6 +110,14 @@ public:
 	DeathContext deathCtx;
 
 private:
+	friend class SaveManager;
+	std::array<LevelProgress, NUM_LEVELS> campaignProgress = {};
+	void SetLevelProgressFromSave(int l_levelId, const LevelProgress& l_progress);
+	// Clears only campaignProgress[]. SaveManager keeps v1 highScores/starRatings/
+	// highestUnlockedLevel intact so failed v5 reads can rebuild campaignProgress
+	// (including pageHealed) from those mirrors, then SyncLegacyProgress.
+	void ClearCampaignProgressEntries();
+
 	void ProcessPendingTransitions();
 	std::unique_ptr<BaseState> CreateState(StateType l_type);
 	void ExecuteSwitchTo(StateType l_type);

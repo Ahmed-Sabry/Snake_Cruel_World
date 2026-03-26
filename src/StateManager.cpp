@@ -1,5 +1,32 @@
 #include "StateManager.h"
 
+#include <algorithm>
+#include <limits>
+
+namespace
+{
+	constexpr int kMaxStarsPerLevel = 3;
+
+	StateManager::LevelProgress SanitizeLevelProgressFromSave(int l_levelId,
+															  const StateManager::LevelProgress& l_src)
+	{
+		StateManager::LevelProgress out = l_src;
+		out.bestScore = std::clamp(l_src.bestScore, 0, std::numeric_limits<int>::max());
+		out.bestStars = std::clamp(l_src.bestStars, 0, kMaxStarsPerLevel);
+		if (l_levelId < 2 || l_levelId > 9)
+			out.pageHealed = false;
+		const bool hasProgress =
+			(out.bestScore > 0 || out.bestStars > 0 || out.pageHealed);
+		// Level 1: legacy migration can mark the tutorial cleared via the linear
+		// ladder before any score/star row exists; keep an explicit save flag then.
+		if (l_levelId == 1)
+			out.stageCompleted = hasProgress || l_src.stageCompleted;
+		else
+			out.stageCompleted = hasProgress;
+		return out;
+	}
+}
+
 StateManager::StateManager(Window& l_window, AudioManager& l_audio,
 						   StatsManager& l_stats, AchievementManager& l_achievements)
 	: m_window(l_window), m_audio(l_audio),
@@ -84,6 +111,176 @@ void StateManager::PopState()
 		return;
 	}
 	ExecutePopState();
+}
+
+const StateManager::LevelProgress& StateManager::GetLevelProgress(int l_levelId) const
+{
+	static const LevelProgress s_emptyProgress{};
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return s_emptyProgress;
+	return campaignProgress[static_cast<std::size_t>(l_levelId - 1)];
+}
+
+void StateManager::SetLevelProgressFromSave(int l_levelId, const LevelProgress& l_progress)
+{
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return;
+	campaignProgress[static_cast<std::size_t>(l_levelId - 1)] =
+		SanitizeLevelProgressFromSave(l_levelId, l_progress);
+}
+
+void StateManager::ClearCampaignProgressEntries()
+{
+	for (LevelProgress& p : campaignProgress)
+		p = LevelProgress{};
+}
+
+bool StateManager::HasCompletedLevel(int l_levelId) const
+{
+	return GetLevelProgress(l_levelId).stageCompleted;
+}
+
+bool StateManager::IsPageHealed(int l_levelId) const
+{
+	if (l_levelId < 2 || l_levelId > 9)
+		return false;
+	return GetLevelProgress(l_levelId).pageHealed;
+}
+
+bool StateManager::HasUnlockedStageSelect() const
+{
+	if (GetLevelProgress(1).stageCompleted || highestUnlockedLevel > 1)
+		return true;
+
+	for (int levelId = 2; levelId <= 10; ++levelId)
+	{
+		const LevelProgress& progress = GetLevelProgress(levelId);
+		if (progress.stageCompleted || progress.pageHealed)
+			return true;
+	}
+	return false;
+}
+
+bool StateManager::CanAccessCampaignLevel(int l_levelId) const
+{
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return false;
+	if (l_levelId == 1)
+		return true;
+	if (l_levelId >= 2 && l_levelId <= 9)
+		return HasUnlockedStageSelect();
+	if (l_levelId == 10)
+		return IsL10Unlocked();
+	return false;
+}
+
+int StateManager::GetHealedPageCount() const
+{
+	int healedPages = 0;
+	for (int levelId = 2; levelId <= 9; ++levelId)
+	{
+		if (GetLevelProgress(levelId).pageHealed)
+			++healedPages;
+	}
+	return healedPages;
+}
+
+int StateManager::GetCompletedLevelCount() const
+{
+	int completedCount = 0;
+	for (const LevelProgress& progress : campaignProgress)
+	{
+		if (progress.stageCompleted)
+			++completedCount;
+	}
+	return completedCount;
+}
+
+bool StateManager::IsL10Unlocked() const
+{
+	// Pre-v5 saves used highestUnlockedLevel == NUM_LEVELS when the finale was
+	// reachable on the linear ladder; preserve that without requiring 8 healed
+	// pages or a recorded L10 clear.
+	return GetHealedPageCount() >= 8 || HasCompletedLevel(10) ||
+		highestUnlockedLevel >= NUM_LEVELS;
+}
+
+void StateManager::RecordLevelCompletion(int l_levelId, int l_score, int l_stars, bool l_healPage)
+{
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return;
+
+	const std::size_t idx = static_cast<std::size_t>(l_levelId - 1);
+	LevelProgress& progress = campaignProgress[idx];
+	progress.stageCompleted = true;
+	progress.bestScore = std::max(progress.bestScore, l_score);
+	progress.bestStars = std::max(progress.bestStars, std::clamp(l_stars, 0, 3));
+
+	highScores[idx] = std::max(highScores[idx], progress.bestScore);
+	starRatings[idx] = std::max(starRatings[idx], progress.bestStars);
+
+	if (l_healPage && l_levelId >= 2 && l_levelId <= 9)
+		progress.pageHealed = true;
+
+	SyncLegacyProgress();
+}
+
+void StateManager::SyncLegacyProgress()
+{
+	int legacyHighest = 1;
+
+	for (std::size_t i = 0; i < campaignProgress.size(); ++i)
+	{
+		LevelProgress& progress = campaignProgress[i];
+		const int levelId = static_cast<int>(i) + 1;
+
+		progress.bestScore = std::max(progress.bestScore, highScores[i]);
+		progress.bestStars = std::clamp(std::max(progress.bestStars, starRatings[i]), 0, 3);
+
+		highScores[i] = std::max(highScores[i], progress.bestScore);
+		starRatings[i] = std::max(starRatings[i], progress.bestStars);
+
+		if (progress.bestScore > 0 || progress.bestStars > 0)
+			progress.stageCompleted = true;
+		if (levelId == 1 && highestUnlockedLevel > 1)
+			progress.stageCompleted = true;
+		if (levelId >= 2 && levelId <= 9 && progress.pageHealed)
+			progress.stageCompleted = true;
+
+		if (progress.stageCompleted)
+			legacyHighest = std::max(legacyHighest, levelId);
+	}
+
+	if (GetLevelProgress(1).stageCompleted)
+		legacyHighest = std::max(legacyHighest, 2);
+	if (IsL10Unlocked())
+		legacyHighest = std::max(legacyHighest, NUM_LEVELS);
+
+	highestUnlockedLevel = std::clamp(std::max(highestUnlockedLevel, legacyHighest), 1, NUM_LEVELS);
+}
+
+void StateManager::ExportCampaignProgressToLegacy()
+{
+	int legacyHighest = 1;
+	for (std::size_t i = 0; i < campaignProgress.size(); ++i)
+	{
+		const LevelProgress& progress = campaignProgress[i];
+		const int levelId = static_cast<int>(i) + 1;
+		highScores[i] = progress.bestScore;
+		starRatings[i] = std::clamp(progress.bestStars, 0, 3);
+		if (progress.stageCompleted)
+			legacyHighest = std::max(legacyHighest, levelId);
+	}
+	if (GetLevelProgress(1).stageCompleted)
+		legacyHighest = std::max(legacyHighest, 2);
+	// Derive finale access from loaded campaignProgress only — do not consult
+	// highestUnlockedLevel here; it still holds the pre-export v1 mirror and can
+	// be stale relative to V5 page/heal state.
+	const bool finaleUnlockedFromCampaign =
+		GetHealedPageCount() >= 8 || HasCompletedLevel(10);
+	if (finaleUnlockedFromCampaign)
+		legacyHighest = std::max(legacyHighest, NUM_LEVELS);
+	highestUnlockedLevel = std::clamp(legacyHighest, 1, NUM_LEVELS);
 }
 
 void StateManager::ProcessPendingTransitions()

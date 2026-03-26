@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 
+class StateManager;
+
 struct MechanicChangeEvent
 {
 	bool changed = false;
@@ -14,7 +16,7 @@ struct MechanicChangeEvent
 class EndlessModeController
 {
 public:
-	EndlessModeController(int l_highestUnlockedLevel);
+	EndlessModeController(const StateManager& l_stateManager);
 
 	MechanicChangeEvent Update(float l_dt);
 

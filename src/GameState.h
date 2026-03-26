@@ -8,6 +8,7 @@ enum class StateType
 {
 	Splash,
 	MainMenu,
+	StageSelect,
 	LevelSelect,
 	Gameplay,
 	Pause,

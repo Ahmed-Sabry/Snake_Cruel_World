@@ -28,7 +28,7 @@ struct AchievementContext
 	bool reachedMinBodyFromCollision = false;
 	const CumulativeStats* stats = nullptr;
 	const int* starRatings = nullptr;
-	int highestUnlockedLevel = 1;
+	int completedLevelCount = 0;
 	int totalDeaths = 0;
 	float predatorDistToApple = 999.0f; // distance of predator to apple when player eats it
 };
