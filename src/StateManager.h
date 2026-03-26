@@ -21,6 +21,7 @@ public:
 	struct LevelProgress
 	{
 		bool stageCompleted = false;
+		bool bossDefeated = false;
 		bool pageHealed = false;
 		int bestScore = 0;
 		int bestStars = 0;
@@ -40,12 +41,15 @@ public:
 
 	const LevelProgress& GetLevelProgress(int l_levelId) const;
 	bool HasCompletedLevel(int l_levelId) const;
+	bool HasDefeatedBoss(int l_levelId) const;
 	bool IsPageHealed(int l_levelId) const;
 	bool HasUnlockedStageSelect() const;
 	bool CanAccessCampaignLevel(int l_levelId) const;
 	int GetHealedPageCount() const;
 	int GetCompletedLevelCount() const;
 	bool IsL10Unlocked() const;
+	void RecordStageCompletion(int l_levelId, int l_score, int l_stars);
+	void RecordBossDefeat(int l_levelId, int l_score, int l_stars, bool l_healPage);
 	void RecordLevelCompletion(int l_levelId, int l_score, int l_stars, bool l_healPage);
 	void SyncLegacyProgress();
 	void ExportCampaignProgressToLegacy();

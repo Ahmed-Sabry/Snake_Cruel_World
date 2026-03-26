@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Platform/Platform.hpp"
+#include "Boss.h"
 #include "Snake.h"
 #include "Textbox.h"
 #include "Window.h"
@@ -46,6 +47,9 @@ public:
 	void UpdateTimedShrink(float l_dt, Window& l_window, Snake& l_snake);
 	void TriggerShrink(Window& l_window, Snake& l_snake);
 	void SetAppleColor(sf::Color l_color);
+	void SetBossArenaMode(const BossArenaRequirements& l_requirements, float l_blockSize);
+	void ClearBossArenaMode();
+	bool IsBossArenaMode() const { return m_bossArenaEnabled; }
 
 	// Per-side border offsets (for earthquake mechanic)
 	void SetBorderOffset(int l_side, float l_offsetPixels);
@@ -96,7 +100,11 @@ private:
 	float m_shrinkTimerAccum;
 
 	float m_borderOffset[4]; // per-side offset in pixels: 0=top, 1=right, 2=bottom, 3=left
+	float m_bossArenaInset[4];
 	int m_levelId;
+	bool m_bossArenaEnabled;
+	bool m_disableShrinkForBossArena;
+	bool m_allowBossSpecificSpawns;
 
 	// Ink style
 	bool m_useInkStyle;

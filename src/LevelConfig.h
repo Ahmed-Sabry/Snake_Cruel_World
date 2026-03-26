@@ -2,6 +2,7 @@
 
 #include "Platform/Platform.hpp"
 #include "Ability.h"
+#include "Boss.h"
 #include <string>
 #include <array>
 #ifndef NDEBUG
@@ -51,6 +52,7 @@ struct LevelConfig
 	bool enableInkBleed;    // Enable ink bleed/wobble post-processing shader
 	bool enableChromatic;   // Enable chromatic aberration shader
 	bool enablePsychedelic; // Enable psychedelic hue shift shader
+	BossConfig bossConfig{};
 };
 
 inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
@@ -188,6 +190,71 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 		sf::Color(248, 242, 228), sf::Color(45, 40, 55), sf::Color(170, 65, 55),
 		1.00f, true, true, true
 	};
+
+		l[1].bossConfig = BossConfig{
+			true, "blind_ink", "The Blind Ink", BossEncounterTrigger::StageClear,
+			BossProgressPresentationType::HitPoints, 3, AbilityId::InkFlare, 2,
+			0.45f, 0.85f, 0.85f,
+			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
+				BossHazardIntensityMode::BossEscalation },
+			true, ""
+		};
+		l[2].bossConfig = BossConfig{
+			true, "mire", "The Mire", BossEncounterTrigger::StageClear,
+			BossProgressPresentationType::HitPoints, 3, AbilityId::ShedSkin, 2,
+			0.45f, 0.85f, 0.85f,
+			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
+				BossHazardIntensityMode::BossEscalation },
+			true, ""
+		};
+		l[3].bossConfig = BossConfig{
+			true, "doppelganger", "The Doppelganger", BossEncounterTrigger::StageClear,
+			BossProgressPresentationType::HitPoints, 3, AbilityId::ShadowDecoy, 2,
+			0.45f, 0.85f, 0.85f,
+			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
+				BossHazardIntensityMode::BossEscalation },
+			true, ""
+		};
+		l[4].bossConfig = BossConfig{
+			true, "hourglass", "The Hourglass", BossEncounterTrigger::StageClear,
+			BossProgressPresentationType::Cracks, 3, AbilityId::TimeFreeze, 2,
+			0.45f, 0.85f, 0.85f,
+			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
+				BossHazardIntensityMode::BossEscalation },
+			true, ""
+		};
+		l[5].bossConfig = BossConfig{
+			true, "parasite", "The Parasite", BossEncounterTrigger::StageClear,
+			BossProgressPresentationType::Seals, 3, AbilityId::VenomTrail, 2,
+			0.45f, 0.85f, 0.85f,
+			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
+				BossHazardIntensityMode::BossEscalation },
+			true, ""
+		};
+		l[6].bossConfig = BossConfig{
+			true, "fault_line", "The Fault Line", BossEncounterTrigger::StageClear,
+			BossProgressPresentationType::HitPoints, 3, AbilityId::InkAnchor, 2,
+			0.45f, 0.85f, 0.85f,
+			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
+				BossHazardIntensityMode::BossEscalation },
+			true, ""
+		};
+		l[7].bossConfig = BossConfig{
+			true, "hunter", "The Hunter", BossEncounterTrigger::StageClear,
+			BossProgressPresentationType::Seals, 3, AbilityId::HuntersDash, 2,
+			0.45f, 0.85f, 0.85f,
+			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
+				BossHazardIntensityMode::BossEscalation },
+			true, ""
+		};
+		l[8].bossConfig = BossConfig{
+			true, "scrambler", "The Scrambler", BossEncounterTrigger::StageClear,
+			BossProgressPresentationType::Tentacles, 3, AbilityId::InkMemory, 2,
+			0.45f, 0.85f, 0.85f,
+			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
+				BossHazardIntensityMode::BossEscalation },
+			true, ""
+		};
 
 #ifndef NDEBUG
 		{

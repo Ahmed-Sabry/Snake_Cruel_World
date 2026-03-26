@@ -29,7 +29,10 @@ void SaveManager::RebuildCampaignProgressFromLegacyState(StateManager& l_state)
 		progress.bestStars = l_state.starRatings[i];
 
 		if (i >= 1 && i <= 8 && progress.stageCompleted)
+		{
+			progress.bossDefeated = true;
 			progress.pageHealed = true;
+		}
 
 		l_state.SetLevelProgressFromSave(i + 1, progress);
 	}
@@ -46,7 +49,7 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	}
 
 	// Version marker
-	int version = 5;
+	int version = 6;
 	file.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
 	// === V1 block (backwards-compatible) ===
@@ -93,13 +96,15 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	const int equippedAbility = static_cast<int>(equippedToSave);
 	file.write(reinterpret_cast<const char*>(&equippedAbility), sizeof(equippedAbility));
 
-	// === V5 block ===
+	// === V6 block ===
 	for (int levelId = 1; levelId <= NUM_LEVELS; ++levelId)
 	{
 		const StateManager::LevelProgress& progress = l_state.GetLevelProgress(levelId);
 		const uint8_t stageCompleted = progress.stageCompleted ? 1 : 0;
+		const uint8_t bossDefeated = progress.bossDefeated ? 1 : 0;
 		const uint8_t pageHealed = progress.pageHealed ? 1 : 0;
 		file.write(reinterpret_cast<const char*>(&stageCompleted), sizeof(stageCompleted));
+		file.write(reinterpret_cast<const char*>(&bossDefeated), sizeof(bossDefeated));
 		file.write(reinterpret_cast<const char*>(&pageHealed), sizeof(pageHealed));
 		file.write(reinterpret_cast<const char*>(&progress.bestScore), sizeof(progress.bestScore));
 		file.write(reinterpret_cast<const char*>(&progress.bestStars), sizeof(progress.bestStars));
@@ -297,35 +302,41 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			l_state.unlockedAbilities, AbilityId::None);
 	}
 
-	// === V5 block (only if version >= 5) ===
-	bool v5CampaignLoaded = false;
+	// === V5/V6 block (only if version >= 5) ===
+	bool campaignProgressLoaded = false;
 	if (version >= 5)
 	{
-		v5CampaignLoaded = true;
+		campaignProgressLoaded = true;
 		for (int levelId = 1; levelId <= NUM_LEVELS; ++levelId)
 		{
 			StateManager::LevelProgress progress{};
 			uint8_t stageCompleted = 0;
+			uint8_t bossDefeated = 0;
 			uint8_t pageHealed = 0;
 			file.read(reinterpret_cast<char*>(&stageCompleted), sizeof(stageCompleted));
+			if (version >= 6)
+				file.read(reinterpret_cast<char*>(&bossDefeated), sizeof(bossDefeated));
 			file.read(reinterpret_cast<char*>(&pageHealed), sizeof(pageHealed));
 			file.read(reinterpret_cast<char*>(&progress.bestScore), sizeof(progress.bestScore));
 			file.read(reinterpret_cast<char*>(&progress.bestStars), sizeof(progress.bestStars));
 			if (file.fail())
 			{
-				std::cerr << "SaveManager: Error reading v5 data, rebuilding progression from legacy stats." << std::endl;
-				v5CampaignLoaded = false;
+				std::cerr << "SaveManager: Error reading campaign progression data, rebuilding from legacy stats." << std::endl;
+				campaignProgressLoaded = false;
 				break;
 			}
 
 			progress.stageCompleted = (stageCompleted != 0);
+			progress.bossDefeated = (version >= 6)
+				? (bossDefeated != 0)
+				: (levelId >= 2 && levelId <= 9 && pageHealed != 0);
 			progress.pageHealed = (pageHealed != 0);
 			if (progress.bestScore < 0)
 				progress.bestScore = 0;
 			progress.bestStars = std::clamp(progress.bestStars, 0, 3);
 			l_state.SetLevelProgressFromSave(levelId, progress);
 		}
-		if (!v5CampaignLoaded)
+		if (!campaignProgressLoaded)
 			RebuildCampaignProgressFromLegacyState(l_state);
 	}
 	else
@@ -333,7 +344,7 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 		RebuildCampaignProgressFromLegacyState(l_state);
 	}
 
-	if (version >= 5 && v5CampaignLoaded)
+	if (version >= 5 && campaignProgressLoaded)
 		l_state.ExportCampaignProgressToLegacy();
 	else
 		l_state.SyncLegacyProgress();
