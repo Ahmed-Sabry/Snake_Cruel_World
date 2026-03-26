@@ -5,6 +5,7 @@
 #include "AudioManager.h"
 #include "InkRenderer.h"
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <sstream>
 
@@ -22,12 +23,21 @@ namespace
 		text.setPosition(l_x, l_y);
 		return text;
 	}
+
+	void CenterText(sf::Text& l_text, float l_x, float l_y)
+	{
+		const sf::FloatRect bounds = l_text.getLocalBounds();
+		l_text.setOrigin(bounds.left + bounds.width / 2.0f,
+			bounds.top + bounds.height / 2.0f);
+		l_text.setPosition(l_x, l_y);
+	}
 }
 
 StageSelectState::StageSelectState(StateManager& l_stateManager)
 	: BaseState(l_stateManager),
 	  m_animTimer(0.0f),
 	  m_selectedIndex(0),
+	  m_lastGridSelection(5),
 	  m_keyReleased(true)
 {
 }
@@ -48,26 +58,25 @@ void StageSelectState::OnEnter()
 
 	LevelConfig bgConfig{};
 	bgConfig.id = 0;
-	bgConfig.paperTone = sf::Color(238, 228, 214);
-	bgConfig.inkTint = sf::Color(55, 45, 40);
-	bgConfig.corruption = 0.08f;
+	bgConfig.paperTone = sf::Color(240, 232, 218);
+	bgConfig.inkTint = sf::Color(50, 40, 35);
+	bgConfig.corruption = 0.05f;
 	m_paperBg.Generate(bgConfig, winSize.x, winSize.y);
 	window.SetBackground(bgConfig.paperTone);
 
-	m_title = MakeText(m_font, "Stage Select", 42, sf::Color(170, 55, 40), 0.0f, 26.0f);
-	sf::FloatRect titleBounds = m_title.getLocalBounds();
-	m_title.setPosition(((float)winSize.x - titleBounds.width) / 2.0f, 26.0f);
+	m_title = MakeText(m_font, "Stage Select", 40, sf::Color(180, 50, 40), 0.0f, 0.0f);
+	CenterText(m_title, winSize.x / 2.0f, 46.0f);
 
 	m_subtitle = MakeText(m_font, "Heal the notebook one page at a time.", 18,
-		sf::Color(110, 90, 82), 0.0f, 78.0f);
-	sf::FloatRect subtitleBounds = m_subtitle.getLocalBounds();
-	m_subtitle.setPosition(((float)winSize.x - subtitleBounds.width) / 2.0f, 80.0f);
+		sf::Color(110, 90, 82), 0.0f, 0.0f);
+	CenterText(m_subtitle, winSize.x / 2.0f, 82.0f);
 
 	m_footer = MakeText(m_font,
-		"Enter - Play page   Esc - Main Menu   Endless unlocks at 4 healed pages",
-		16, sf::Color(100, 90, 86), 28.0f, (float)winSize.y - 36.0f);
+		"Arrows / WASD - Move   Enter - Play page   Esc - Main Menu",
+		16, sf::Color(100, 90, 86), 0.0f, 0.0f);
+	CenterText(m_footer, winSize.x / 2.0f, (float)winSize.y - 28.0f);
 
-	m_statusStrip = MakeText(m_font, "", 18, sf::Color(70, 60, 54), 30.0f, 112.0f);
+	m_statusStrip = MakeText(m_font, "", 16, sf::Color(88, 76, 68), 0.0f, 0.0f);
 
 	BuildLayout();
 	m_animTimer = 0.0f;
@@ -75,7 +84,10 @@ void StageSelectState::OnEnter()
 
 	m_selectedIndex = 0;
 	if (m_stateManager.currentLevel == 10)
+	{
 		m_selectedIndex = 8;
+		m_lastGridSelection = 5;
+	}
 	else
 	{
 		bool found = false;
@@ -84,6 +96,7 @@ void StageSelectState::OnEnter()
 			if (m_tiles[i].levelId == m_stateManager.currentLevel)
 			{
 				m_selectedIndex = static_cast<int>(i);
+				m_lastGridSelection = m_selectedIndex;
 				found = true;
 				break;
 			}
@@ -95,6 +108,7 @@ void StageSelectState::OnEnter()
 				if (!m_stateManager.IsPageHealed(m_tiles[i].levelId))
 				{
 					m_selectedIndex = static_cast<int>(i);
+					m_lastGridSelection = m_selectedIndex;
 					break;
 				}
 			}
@@ -110,12 +124,14 @@ void StageSelectState::BuildLayout()
 {
 	m_tiles.clear();
 
-	const float startX = 70.0f;
-	const float startY = 160.0f;
-	const float tileWidth = 280.0f;
-	const float tileHeight = 170.0f;
-	const float gapX = 30.0f;
-	const float gapY = 24.0f;
+	const sf::Vector2u winSize = m_stateManager.GetWindow().GetWindowSize();
+	const float sideMargin = 62.0f;
+	const float startY = 156.0f;
+	const float gapX = 24.0f;
+	const float gapY = 22.0f;
+	const float gridWidth = (float)winSize.x - sideMargin * 2.0f;
+	const float tileWidth = (gridWidth - gapX * 3.0f) / 4.0f;
+	const float tileHeight = 130.0f;
 
 	std::vector<const LevelConfig*> pages;
 	const auto& levels = GetAllLevels();
@@ -138,14 +154,25 @@ void StageSelectState::BuildLayout()
 		StageTile tile;
 		tile.levelId = pages[i]->id;
 		tile.bounds = sf::FloatRect(
-			startX + col * (tileWidth + gapX),
+			sideMargin + col * (tileWidth + gapX),
 			startY + row * (tileHeight + gapY),
 			tileWidth,
 			tileHeight);
 		m_tiles.push_back(tile);
 	}
 
-	m_finaleBounds = sf::FloatRect(463.0f, 532.0f, 440.0f, 120.0f);
+	const float gridBottom = startY + tileHeight * 2.0f + gapY;
+	const float finaleWidth = tileWidth * 2.0f + gapX;
+	m_finaleBounds = sf::FloatRect(
+		sideMargin + (gridWidth - finaleWidth) / 2.0f,
+		gridBottom + 28.0f,
+		finaleWidth,
+		108.0f);
+	m_detailBounds = sf::FloatRect(
+		sideMargin,
+		m_finaleBounds.top + m_finaleBounds.height + 18.0f,
+		gridWidth,
+		96.0f);
 }
 
 int StageSelectState::GetSelectedLevelId() const
@@ -157,12 +184,17 @@ int StageSelectState::GetSelectedLevelId() const
 
 void StageSelectState::MoveSelectionHorizontal(int l_direction)
 {
-	if (m_selectedIndex >= 8)
+	if (m_selectedIndex == 8)
+	{
+		m_selectedIndex = (l_direction < 0) ? 5 : 6;
+		m_lastGridSelection = m_selectedIndex;
 		return;
+	}
 
 	const int row = m_selectedIndex / 4;
 	const int col = m_selectedIndex % 4;
 	m_selectedIndex = row * 4 + (col + l_direction + 4) % 4;
+	m_lastGridSelection = m_selectedIndex;
 }
 
 void StageSelectState::MoveSelectionVertical(int l_direction)
@@ -170,7 +202,11 @@ void StageSelectState::MoveSelectionVertical(int l_direction)
 	if (m_selectedIndex == 8)
 	{
 		if (l_direction < 0)
-			m_selectedIndex = 6;
+		{
+			if (m_lastGridSelection < 4 || m_lastGridSelection > 7)
+				m_lastGridSelection = 5;
+			m_selectedIndex = m_lastGridSelection;
+		}
 		return;
 	}
 
@@ -180,14 +216,23 @@ void StageSelectState::MoveSelectionVertical(int l_direction)
 	if (l_direction > 0)
 	{
 		if (row == 0)
+		{
 			m_selectedIndex = 4 + col;
-		else
+			m_lastGridSelection = m_selectedIndex;
+		}
+		else if (col == 1 || col == 2)
+		{
+			m_lastGridSelection = m_selectedIndex;
 			m_selectedIndex = 8;
+		}
 	}
 	else
 	{
 		if (row == 1)
+		{
 			m_selectedIndex = col;
+			m_lastGridSelection = m_selectedIndex;
+		}
 	}
 }
 
@@ -205,15 +250,40 @@ void StageSelectState::ActivateSelection()
 	m_stateManager.SwitchTo(StateType::Gameplay);
 }
 
+sf::Color StageSelectState::GetSelectionPulseColor(bool l_available) const
+{
+	const float pulse = (std::sin(m_animTimer * 4.0f) + 1.0f) / 2.0f;
+	if (!l_available)
+	{
+		return sf::Color(150, 126, 112,
+			static_cast<sf::Uint8>(96 + pulse * 40.0f));
+	}
+
+	return sf::Color(static_cast<sf::Uint8>(150 + pulse * 40.0f),
+		48, 38, static_cast<sf::Uint8>(120 + pulse * 70.0f));
+}
+
 sf::Color StageSelectState::GetTileOutlineColor(bool l_selected, bool l_available, bool l_healed) const
 {
 	if (!l_available)
-		return sf::Color(120, 115, 112, 100);
+		return l_selected ? GetSelectionPulseColor(false) : sf::Color(138, 132, 126, 105);
 	if (l_selected)
-		return sf::Color(180, 55, 40, 180);
+		return GetSelectionPulseColor(true);
 	if (l_healed)
-		return sf::Color(50, 110, 70, 140);
-	return sf::Color(80, 65, 58, 110);
+		return sf::Color(72, 118, 84, 130);
+	return sf::Color(86, 70, 62, 112);
+}
+
+void StageSelectState::DrawStars(sf::RenderTarget& l_target, float l_x, float l_y,
+	int l_stars, const sf::Color& l_outlineColor, unsigned int l_seed) const
+{
+	for (int star = 0; star < 3; ++star)
+	{
+		const bool filled = star < l_stars;
+		InkRenderer::DrawStar(l_target, l_x + star * 18.0f, l_y, 6.5f,
+			filled ? sf::Color(205, 175, 50) : sf::Color::Transparent,
+			l_outlineColor, 0.12f, filled, l_seed + static_cast<unsigned int>(star * 17));
+	}
 }
 
 void StageSelectState::DrawStageTile(Window& l_window, const StageTile& l_tile, bool l_selected)
@@ -224,44 +294,54 @@ void StageSelectState::DrawStageTile(Window& l_window, const StageTile& l_tile, 
 	const StateManager::LevelProgress& progress = m_stateManager.GetLevelProgress(l_tile.levelId);
 	sf::RenderTarget& target = l_window.GetRenderWindow();
 
-	const sf::Color fill = healed ? sf::Color(225, 236, 224, 220) : sf::Color(235, 226, 215, 220);
+	const sf::Color fill = !available
+		? sf::Color(229, 223, 216, 220)
+		: (healed ? sf::Color(229, 236, 225, 224) : sf::Color(236, 228, 218, 224));
 	const sf::Color outline = GetTileOutlineColor(l_selected, available, healed);
+
+	if (l_selected)
+	{
+		InkRenderer::DrawWobblyRect(target, l_tile.bounds.left - 4.0f, l_tile.bounds.top - 4.0f,
+			l_tile.bounds.width + 8.0f, l_tile.bounds.height + 8.0f,
+			sf::Color::Transparent, GetSelectionPulseColor(available), 1.6f,
+			0.24f, static_cast<unsigned int>(m_animTimer * 10.0f) + l_tile.levelId * 19U);
+	}
+
 	InkRenderer::DrawWobblyRect(target, l_tile.bounds.left, l_tile.bounds.top,
 		l_tile.bounds.width, l_tile.bounds.height, fill, outline,
-		l_selected ? 2.0f : 1.2f, healed ? 0.08f : 0.16f,
+		l_selected ? 1.5f : 1.0f, healed ? 0.06f : 0.08f,
 		static_cast<unsigned int>(l_tile.levelId * 37 + (l_selected ? 7 : 0)));
 
-	const float x = l_tile.bounds.left + 14.0f;
-	const float y = l_tile.bounds.top + 10.0f;
-	const sf::Color textColor = available ? sf::Color(55, 45, 40) : sf::Color(130, 123, 118);
-	const sf::Color accentColor = healed ? sf::Color(55, 110, 70) : sf::Color(150, 70, 48);
+	const float x = l_tile.bounds.left + 18.0f;
+	const float y = l_tile.bounds.top + 12.0f;
+	const sf::Color titleColor = l_selected
+		? sf::Color(GetSelectionPulseColor(available).r, 42, 34)
+		: (available ? sf::Color(55, 45, 40) : sf::Color(130, 123, 118));
+	const sf::Color subtitleColor = available ? sf::Color(118, 100, 92) : sf::Color(146, 138, 132);
+	const sf::Color accentColor = !available
+		? sf::Color(136, 130, 126)
+		: (healed ? sf::Color(58, 110, 72) : sf::Color(145, 74, 52));
 
 	sf::Text title = MakeText(m_font,
-		std::to_string(config.id) + ". " + config.name, 24, textColor, x, y);
-	sf::Text theme = MakeText(m_font,
-		"Corruption: " + config.corruptionLabel, 16, accentColor, x, y + 34.0f);
-	sf::Text hint = MakeText(m_font,
-		"Hint: " + config.difficultyHint, 15, sf::Color(100, 88, 82), x, y + 60.0f);
+		std::to_string(config.id) + ". " + config.name, 23, titleColor, x, y);
+	sf::Text subtitle = MakeText(m_font, config.subtitle, 14, subtitleColor, x, y + 30.0f);
 
-	std::string stateLabel = healed ? "HEALED" : "CORRUPTED";
-	sf::Text state = MakeText(m_font, stateLabel, 16,
-		healed ? sf::Color(50, 110, 70) : sf::Color(150, 70, 48), x, y + 88.0f);
+	const std::string stateLabel = !available
+		? "LOCKED"
+		: (healed ? "PAGE HEALED" : "PAGE CORRUPTED");
+	sf::Text state = MakeText(m_font, stateLabel, 15, accentColor, x, y + 60.0f);
 
-	std::ostringstream stats;
-	stats << "Stars: " << progress.bestStars << "   Best: " << progress.bestScore;
-	sf::Text statsText = MakeText(m_font, stats.str(), 15, sf::Color(100, 90, 84), x, y + 112.0f);
-
-	std::string rewardLine = "Reward: ???";
-	if (healed && config.abilityReward != AbilityId::None)
-		rewardLine = "Reward: " + std::string(GetAbilityDefinition(config.abilityReward).name);
-	sf::Text reward = MakeText(m_font, rewardLine, 15, textColor, x, y + 138.0f);
+	std::ostringstream bestStream;
+	bestStream << "Best: " << progress.bestScore;
+	sf::Text bestText = MakeText(m_font, bestStream.str(), 15,
+		sf::Color(100, 90, 84), x + 82.0f, y + 84.0f);
 
 	l_window.Draw(title);
-	l_window.Draw(theme);
-	l_window.Draw(hint);
+	l_window.Draw(subtitle);
 	l_window.Draw(state);
-	l_window.Draw(statsText);
-	l_window.Draw(reward);
+	DrawStars(target, x + 8.0f, y + 96.0f, progress.bestStars,
+		sf::Color(78, 68, 60, 150), static_cast<unsigned int>(config.id * 101));
+	l_window.Draw(bestText);
 }
 
 void StageSelectState::DrawFinaleGate(Window& l_window, bool l_selected)
@@ -272,38 +352,107 @@ void StageSelectState::DrawFinaleGate(Window& l_window, bool l_selected)
 	const StateManager::LevelProgress& progress = m_stateManager.GetLevelProgress(10);
 	sf::RenderTarget& target = l_window.GetRenderWindow();
 
-	const sf::Color fill = unlocked ? sf::Color(232, 223, 214, 225) : sf::Color(220, 214, 210, 225);
-	const sf::Color outline = GetTileOutlineColor(l_selected, unlocked || completed, completed);
+	const bool available = unlocked || completed;
+	const sf::Color fill = available ? sf::Color(236, 228, 220, 225) : sf::Color(226, 220, 215, 225);
+	const sf::Color outline = GetTileOutlineColor(l_selected, available, completed);
+
+	if (l_selected)
+	{
+		InkRenderer::DrawWobblyRect(target, m_finaleBounds.left - 4.0f, m_finaleBounds.top - 4.0f,
+			m_finaleBounds.width + 8.0f, m_finaleBounds.height + 8.0f,
+			sf::Color::Transparent, GetSelectionPulseColor(available), 1.6f,
+			0.24f, static_cast<unsigned int>(m_animTimer * 12.0f) + 1009U);
+	}
+
 	InkRenderer::DrawWobblyRect(target, m_finaleBounds.left, m_finaleBounds.top,
 		m_finaleBounds.width, m_finaleBounds.height, fill, outline,
-		l_selected ? 2.0f : 1.2f, unlocked ? 0.10f : 0.03f, 1009U);
+		l_selected ? 1.5f : 1.0f, available ? 0.07f : 0.04f, 1009U);
 
-	const float x = m_finaleBounds.left + 18.0f;
-	const float y = m_finaleBounds.top + 12.0f;
-	std::string gateState = completed ? "COMPLETED" : (unlocked ? "UNSEALED" : "SEALED");
-	std::string gateHint = unlocked
-		? "All healed pages converge here."
-		: "Heal 8 / 8 pages to break the seal. Current: " + std::to_string(m_stateManager.GetHealedPageCount()) + "/8";
+	const float x = m_finaleBounds.left + 20.0f;
+	const float y = m_finaleBounds.top + 14.0f;
+	const std::string gateState = completed ? "Gate Open" : (unlocked ? "Gate Unsealed" : "Gate Sealed");
+	const sf::Color titleColor = l_selected
+		? sf::Color(GetSelectionPulseColor(available).r, 42, 34)
+		: (available ? sf::Color(55, 45, 40) : sf::Color(130, 123, 118));
 
-	sf::Text titleLine = MakeText(m_font, "Level 10: " + finaleConfig.name, 28,
-		sf::Color(55, 45, 40), x, y);
-	sf::Text gateLine = MakeText(m_font, "Gate: " + gateState, 17,
-		completed ? sf::Color(50, 110, 70) : sf::Color(150, 70, 48), x, y + 38.0f);
-	sf::Text threatLine = MakeText(m_font, "Threat: " + finaleConfig.corruptionLabel, 16,
-		sf::Color(100, 88, 82), x, y + 66.0f);
-	sf::Text hintLine = MakeText(m_font, gateHint, 16,
-		sf::Color(90, 82, 78), x, y + 90.0f);
+	sf::Text titleLine = MakeText(m_font, "10. " + finaleConfig.name, 28, titleColor, x, y);
+	sf::Text subtitleLine = MakeText(m_font, finaleConfig.subtitle, 15,
+		sf::Color(118, 100, 92), x, y + 34.0f);
+	sf::Text gateLine = MakeText(m_font, gateState, 18,
+		completed ? sf::Color(58, 110, 72) : sf::Color(145, 74, 52), x, y + 64.0f);
 
 	std::ostringstream stats;
-	stats << "Stars: " << progress.bestStars << "   Best: " << progress.bestScore;
-	sf::Text statsLine = MakeText(m_font, stats.str(), 15,
-		sf::Color(100, 90, 84), m_finaleBounds.left + 275.0f, y + 12.0f);
+	stats << "Best: " << progress.bestScore;
+	sf::Text bestLine = MakeText(m_font, stats.str(), 15,
+		sf::Color(100, 90, 84), m_finaleBounds.left + m_finaleBounds.width - 150.0f, y + 50.0f);
 
 	l_window.Draw(titleLine);
+	l_window.Draw(subtitleLine);
 	l_window.Draw(gateLine);
-	l_window.Draw(threatLine);
-	l_window.Draw(hintLine);
-	l_window.Draw(statsLine);
+	DrawStars(target, m_finaleBounds.left + m_finaleBounds.width - 150.0f, y + 24.0f,
+		progress.bestStars, sf::Color(78, 68, 60, 150), 3001U);
+	l_window.Draw(bestLine);
+}
+
+void StageSelectState::DrawSelectionDetails(Window& l_window)
+{
+	sf::RenderTarget& target = l_window.GetRenderWindow();
+	const int levelId = GetSelectedLevelId();
+	const LevelConfig& config = GetAllLevels()[static_cast<std::size_t>(levelId - 1)];
+	const bool isFinale = (levelId == 10);
+	const bool healed = isFinale ? m_stateManager.HasCompletedLevel(10) : m_stateManager.IsPageHealed(levelId);
+	const bool available = m_stateManager.CanAccessCampaignLevel(levelId);
+	const sf::Color outline = GetTileOutlineColor(false, available, healed);
+
+	InkRenderer::DrawWobblyRect(target, m_detailBounds.left, m_detailBounds.top,
+		m_detailBounds.width, m_detailBounds.height,
+		sf::Color(242, 236, 228, 220), outline, 1.0f, 0.05f, 4011U);
+
+	const float x = m_detailBounds.left + 18.0f;
+	const float y = m_detailBounds.top + 12.0f;
+
+	sf::Text title = MakeText(m_font,
+		std::to_string(config.id) + ". " + config.name, 22, sf::Color(55, 45, 40), x, y);
+	l_window.Draw(title);
+
+	InkRenderer::DrawWobblyLine(target, x, y + 26.0f,
+		m_detailBounds.left + m_detailBounds.width - 18.0f, y + 26.0f,
+		sf::Color(140, 126, 116, 80), 1.0f, 0.08f, 4012U);
+
+	if (isFinale)
+	{
+		const bool unlocked = m_stateManager.IsL10Unlocked();
+		const bool completed = m_stateManager.HasCompletedLevel(10);
+		const std::string gateState = completed ? "Open" : (unlocked ? "Unsealed" : "Sealed");
+		const std::string lineOne = "Threat: " + config.corruptionLabel + "   Gate: " + gateState;
+		const std::string lineTwo = unlocked
+			? "All healed pages converge here."
+			: "Heal all 8 notebook pages to break the seal. Current: " +
+				std::to_string(m_stateManager.GetHealedPageCount()) + "/8";
+
+		sf::Text info = MakeText(m_font, lineOne, 15, sf::Color(105, 88, 82), x, y + 34.0f);
+		sf::Text hint = MakeText(m_font, lineTwo, 15, sf::Color(90, 82, 78), x, y + 54.0f);
+		l_window.Draw(info);
+		l_window.Draw(hint);
+		return;
+	}
+
+	std::string rewardLine = "Reward: ???";
+	if (config.abilityReward != AbilityId::None && healed)
+		rewardLine = "Reward unlocked: " + std::string(GetAbilityDefinition(config.abilityReward).name);
+	else if (config.abilityReward != AbilityId::None)
+		rewardLine = "Reward: ???";
+
+	const std::string lineOne = "Corruption: " + config.corruptionLabel +
+		"   Hint: " + config.difficultyHint;
+	const std::string lineTwo = healed
+		? rewardLine + "   This page is healed."
+		: rewardLine + "   Clear this page to heal it.";
+
+	sf::Text info = MakeText(m_font, lineOne, 15, sf::Color(105, 88, 82), x, y + 34.0f);
+	sf::Text hint = MakeText(m_font, lineTwo, 15, sf::Color(90, 82, 78), x, y + 54.0f);
+	l_window.Draw(info);
+	l_window.Draw(hint);
 }
 
 void StageSelectState::HandleInput()
@@ -373,10 +522,11 @@ void StageSelectState::Update(float l_dt)
 
 	const AbilityDefinition& equipped = GetAbilityDefinition(m_stateManager.equippedAbility);
 	std::ostringstream status;
-	status << "Healed Pages: " << m_stateManager.GetHealedPageCount() << "/8"
-		   << "   Unlocked Abilities: " << unlockedAbilityCount
+	status << m_stateManager.GetHealedPageCount() << "/8 pages healed"
+		   << "   " << unlockedAbilityCount << " abilities unlocked"
 		   << "   Equipped: " << equipped.name;
 	m_statusStrip.setString(status.str());
+	CenterText(m_statusStrip, m_stateManager.GetWindow().GetWindowSize().x / 2.0f, 116.0f);
 }
 
 void StageSelectState::Render()
@@ -389,17 +539,18 @@ void StageSelectState::Render()
 
 	window.Draw(m_title);
 	window.Draw(m_subtitle);
-	window.Draw(m_footer);
 	window.Draw(m_statusStrip);
 
 	sf::FloatRect titleBounds = m_title.getGlobalBounds();
 	InkRenderer::DrawWobblyLine(target,
 		titleBounds.left, titleBounds.top + titleBounds.height + 6.0f,
 		titleBounds.left + titleBounds.width, titleBounds.top + titleBounds.height + 6.0f,
-		sf::Color(170, 55, 40, 120), 1.8f, 0.12f, 2701U);
+		sf::Color(180, 50, 40, 120), 1.5f, 0.10f, 2701U);
 
 	for (std::size_t i = 0; i < m_tiles.size(); ++i)
 		DrawStageTile(window, m_tiles[i], static_cast<int>(i) == m_selectedIndex);
 
 	DrawFinaleGate(window, m_selectedIndex == 8);
+	DrawSelectionDetails(window);
+	window.Draw(m_footer);
 }
