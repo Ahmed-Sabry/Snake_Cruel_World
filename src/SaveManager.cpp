@@ -15,26 +15,23 @@ static_assert(sizeof(bool) == 1, "Save format assumes sizeof(bool) == 1");
 
 const std::string SaveManager::s_saveFile = "save.dat";
 
-namespace
+void SaveManager::RebuildCampaignProgressFromLegacyState(StateManager& l_state)
 {
-	void RebuildCampaignProgressFromLegacyState(StateManager& l_state)
+	l_state.ClearCampaignProgressEntries();
+	for (int i = 0; i < NUM_LEVELS; ++i)
 	{
-		l_state.ClearCampaignProgressEntries();
-		for (int i = 0; i < NUM_LEVELS; ++i)
-		{
-			StateManager::LevelProgress progress{};
-			const bool clearedByStats = (l_state.starRatings[i] > 0) || (l_state.highScores[i] > 0);
-			const bool clearedByLinear = (i + 1) < l_state.highestUnlockedLevel;
+		StateManager::LevelProgress progress{};
+		const bool clearedByStats = (l_state.starRatings[i] > 0) || (l_state.highScores[i] > 0);
+		const bool clearedByLinear = (i + 1) < l_state.highestUnlockedLevel;
 
-			progress.stageCompleted = clearedByStats || clearedByLinear;
-			progress.bestScore = l_state.highScores[i];
-			progress.bestStars = l_state.starRatings[i];
+		progress.stageCompleted = clearedByStats || clearedByLinear;
+		progress.bestScore = l_state.highScores[i];
+		progress.bestStars = l_state.starRatings[i];
 
-			if (i >= 1 && i <= 8 && progress.stageCompleted)
-				progress.pageHealed = true;
+		if (i >= 1 && i <= 8 && progress.stageCompleted)
+			progress.pageHealed = true;
 
-			l_state.SetLevelProgressFromSave(i + 1, progress);
-		}
+		l_state.SetLevelProgressFromSave(i + 1, progress);
 	}
 }
 

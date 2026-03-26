@@ -16,5 +16,7 @@ public:
 					 AchievementManager& l_achievements);
 
 private:
+	static void RebuildCampaignProgressFromLegacyState(StateManager& l_state);
+
 	static const std::string s_saveFile;
 };
