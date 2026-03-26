@@ -144,6 +144,8 @@ void Snake::Tick(sf::Vector2u l_windowSize)
 
 void Snake::ClampBodyToInclusiveGridBounds(int xMin, int xMax, int yMin, int yMax)
 {
+	// Does not sync m_prevPositions — interpolation may jump until the next Tick/Move;
+	// keep that intentional unless we add a full pose snapshot here.
 	if (m_snakeBody.empty() || xMin > xMax || yMin > yMax)
 		return;
 

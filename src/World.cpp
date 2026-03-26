@@ -287,6 +287,7 @@ void World::ClampSnakeToPlayableGrid(Snake& l_snake)
 	if (xMin > xMax || yMin > yMax)
 		return;
 
+	// See Snake::ClampBodyToInclusiveGridBounds — m_prevPositions unchanged here.
 	l_snake.ClampBodyToInclusiveGridBounds(xMin, xMax, yMin, yMax);
 }
 
