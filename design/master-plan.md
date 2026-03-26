@@ -12,7 +12,9 @@ The game currently has 10 linear levels, each introducing one hazard mechanic, w
 
 - Master plan: complete
 - Level design documents: complete for `L2` through `L10`
-- Implementation work: not started in these design docs
+- Phase 1: complete (`feat/phase1-ability-core` merged, with follow-up fixes)
+- Phase 2: complete (`feat/phase2-stage-select-progression` merged, with follow-up fixes)
+- Remaining implementation roadmap: starts at Phase 3
 
 ### Recommended Reading Order
 
@@ -237,52 +239,103 @@ During this phase, treat the master ability table and counter web in this docume
 
 ### Code Implementation Phases (after design is complete)
 
+Progress note: Phases 1 and 2 are already implemented in the main branch. The remaining implementation work below begins at Phase 3, and the Phase 1 / Phase 2 scope should continue to reflect what has already shipped.
+
 #### Phase 1: Ability System Core
 
 - `src/Snake.h/.cpp` - Add ability slot, visual transform state, cooldown tracking
 - New: `src/Ability.h/.cpp` - Ability base class + 8 ability implementations
 - New: `src/AbilityHUD.h` - Cooldown indicator, equipped ability display
-- `src/LevelConfig.h` - Add `abilityReward` field per level, restructure for non-linear progression
+- `src/PlayState.h/.cpp` - Integrate equip / activate ability flow into gameplay and existing hazard orchestration
+- `src/LevelConfig.h` - Add `abilityReward` field per level
 - `src/StateManager.h` - Track unlocked abilities, equipped ability
+- `src/SaveManager.h/.cpp` - Persist unlocked abilities, equipped ability, and any required save-version migration
 
 #### Phase 2: Stage Select & Progression
 
 - New: `src/StageSelectState.h/.cpp` - 8-page stage select screen (replaces linear LevelSelect)
-- `src/PlayState.h/.cpp` - Integrate ability usage during gameplay
-- `src/LevelConfig.h` - Remove linear unlock, add `bossConfig` per level
+- `src/LevelConfig.h` - Replace linear unlock assumptions with Stage Select presentation metadata
+- `src/StateManager.h` - Track per-page campaign progression (`stageSeen`, `stageCompleted`, `bossDefeated`, `pageHealed`)
+- `src/SaveManager.h/.cpp` - Migrate old linear saves into the new campaign progression model
 
-#### Phase 3: Boss System
+#### Phase 3: Boss System Foundation
 
-- New: `src/Boss.h/.cpp` - Boss base class with health, hit patterns, phases
-- New: `src/bosses/` - 8 boss implementations (BlindInk, Mire, Doppelganger, etc.)
+- New: `src/Boss.h/.cpp` - Boss base class with health, hit patterns, phases, and shared runtime hooks
+- New: `src/bosses/` - Initial boss implementations and reusable support code for level-specific boss behavior
 - `src/PlayState.h` - Add boss phase transition (stage -> boss arena)
 - `src/World.h` - Boss arena mode (fixed size, special spawns)
+- `src/LevelConfig.h` - Add `bossConfig` per level on top of the earlier `abilityReward` / Stage Select metadata expansion
 
-#### Phase 4: Narrative & Cutscenes
+#### Phase 4: `L2` Blackout Delivery
 
-- New: `content/cutscenes/boss_*.json` - 8 post-boss cutscenes (Artist's hand)
-- New: `content/cutscenes/ending.json` - Final cutscene (notebook closes)
-- `src/CutsceneDefs.h/.cpp` - Register new cutscenes
-- Update `content/cutscenes/intro.json` - Rewrite to set up "The Unfinished Page" narrative
+- Deliver the full `L2` content slice: blackout stage flow, Blind Ink boss, Ink Flare reward, post-boss cutscene, and replay hooks
+- Use `levels/level-02-blackout.md` as the implementation and tuning spec
 
-#### Phase 5: Visual Transforms & Polish
+#### Phase 5: `L3` Quicksand Delivery
 
-- `src/Snake.h` - Ability-specific render modes (color, shape, particles)
-- `src/SnakeSkin.h` - Integrate ability transforms with skin system
-- `src/ParticleSystem.h` - New particle effects for each ability
-- `src/PostProcessor.h` - Ability-specific screen effects
+- Deliver the full `L3` content slice: quicksand stage flow, Mire boss, Shed Skin reward, post-boss cutscene, and replay hooks
+- Use `levels/level-03-quicksand.md` as the implementation and tuning spec
 
-#### Phase 6: Level 10 Redesign
+#### Phase 6: `L4` Mirror Delivery
 
-- `src/LevelConfig.h` - Redesign L10 as Eraser mega-boss requiring ability usage
-- New: `src/bosses/EraserBoss.h/.cpp` - Multi-phase final boss
-- New: `content/cutscenes/eraser_*.json` - Per-phase transition cutscenes
+- Deliver the full `L4` content slice: mirror stage flow, Doppelganger boss, Shadow Decoy reward, post-boss cutscene, and replay hooks
+- Use `levels/level-04-mirror.md` as the implementation and tuning spec
 
-#### Phase 7: Secret Interactions & Replay
+#### Phase 7: `L5` Famine Delivery
 
-- Add ability interaction checks in each level's mechanic code
-- New achievements for discovering secrets
-- Bonus star ratings for ability-assisted completions
+- Deliver the full `L5` content slice: timed-apples stage flow, Hourglass boss, Time Freeze reward, post-boss cutscene, and replay hooks
+- Use `levels/level-05-famine.md` as the implementation and tuning spec
+
+#### Phase 8: `L6` Poison Delivery
+
+- Deliver the full `L6` content slice: poison stage flow, Parasite boss, Venom Trail reward, post-boss cutscene, and replay hooks
+- Use `levels/level-06-poison.md` as the implementation and tuning spec
+
+#### Phase 9: `L7` Earthquake Delivery
+
+- Deliver the full `L7` content slice: earthquake stage flow, Fault Line boss, Ink Anchor reward, post-boss cutscene, and replay hooks
+- Use `levels/level-07-earthquake.md` as the implementation and tuning spec
+
+#### Phase 10: `L8` Watcher Delivery
+
+- Deliver the full `L8` content slice: predator stage flow, Hunter boss, Hunter's Dash reward, post-boss cutscene, and replay hooks
+- Use `levels/level-08-watcher.md` as the implementation and tuning spec
+
+#### Phase 11: `L9` Amnesia Delivery
+
+- Deliver the full `L9` content slice: control-shuffle stage flow, Scrambler boss, Ink Memory reward, post-boss cutscene, and replay hooks
+- Use `levels/level-09-amnesia.md` as the implementation and tuning spec
+
+#### Phase 12: `L10` Eraser Final Integration
+
+- Redesign `L10` as the Eraser mega-boss finale with multi-phase ability-driven encounter flow
+- Implement finale cutscenes, ending integration, and final campaign validation using `levels/level-10-eraser.md`
+
+### Shared Content Requirements For Every Level Phase
+
+- Each level phase must include its stage mechanic, boss implementation, ability reward integration, cutscene integration, secret/replay hooks, balance pass, and regression testing
+- Implement ability-specific visual transforms, particles, and screen effects as part of the relevant level phase rather than postponing all polish to a separate late phase
+- Add achievements / bonus ratings when the level doc specifies them
+- Use the corresponding level design doc as the acceptance spec for final behavior
+
+Per-level completion checklist:
+
+- Stage phase mechanic implemented and tuned to match the level doc
+- Boss phase transition implemented with arena rules, fail states, and victory conditions
+- Boss behavior implemented and balanced against intended death count / learning curve
+- Ability reward granted correctly, persisted correctly, and surfaced correctly in HUD / stage select
+- Post-boss cutscene implemented and hooked into campaign progression
+- Hidden interactions and replay hooks implemented where specified
+- Ability visuals / particles / screen effects implemented where specified
+- Achievements / bonus ratings connected where specified
+- Regression test pass completed for save/load, retry flow, replay flow, and campaign unlock state
+- Final doc-to-game validation completed against: mechanic rules, apple counts, pacing targets, counter-ability behavior, and narrative beats
+
+Exit criteria for the redesign:
+
+- All branch levels (`L2-L9`) meet their per-level completion checklist
+- `L10` is fully playable as the final multi-phase boss encounter
+- Stage select, save data, ability unlocks, cutscenes, achievements, replay interactions, and finale progression function correctly across a full campaign playthrough
 
 ---
 
