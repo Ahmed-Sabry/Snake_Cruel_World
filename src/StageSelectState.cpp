@@ -328,7 +328,10 @@ void StageSelectState::DrawStageTile(Window& l_window, const StageTile& l_tile, 
 
 	const std::string stateLabel = !available
 		? "LOCKED"
-		: (healed ? "PAGE HEALED" : "PAGE CORRUPTED");
+		: (healed ? "PAGE HEALED"
+			: (config.bossConfig.enabled && progress.stageCleared && !progress.bossDefeated
+				? "BOSS AWAITS"
+				: "PAGE CORRUPTED"));
 	sf::Text state = MakeText(m_font, stateLabel, 15, accentColor, x, y + 60.0f);
 
 	std::ostringstream bestStream;
@@ -445,9 +448,14 @@ void StageSelectState::DrawSelectionDetails(Window& l_window)
 
 	const std::string lineOne = "Corruption: " + config.corruptionLabel +
 		"   Hint: " + config.difficultyHint;
+	const StateManager::LevelProgress& selProgress = m_stateManager.GetLevelProgress(levelId);
 	const std::string lineTwo = healed
 		? rewardLine + "   This page is healed."
-		: rewardLine + "   Clear this page to heal it.";
+		: (config.bossConfig.enabled && selProgress.stageCleared && !selProgress.bossDefeated
+			? rewardLine + "   Stage cleared. Defeat the boss to heal it."
+			: (config.bossConfig.enabled
+				? rewardLine + "   Clear this page to confront its boss."
+				: rewardLine + "   Clear this level to finish the page."));
 
 	sf::Text info = MakeText(m_font, lineOne, 15, sf::Color(105, 88, 82), x, y + 34.0f);
 	sf::Text hint = MakeText(m_font, lineTwo, 15, sf::Color(90, 82, 78), x, y + 54.0f);

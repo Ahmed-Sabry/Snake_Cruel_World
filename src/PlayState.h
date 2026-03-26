@@ -37,16 +37,34 @@ public:
 	void Render() override;
 
 private:
+	enum class EncounterPhase
+	{
+		Stage,
+		BossTransition,
+		BossCombat,
+		BossReward
+	};
+
 	void OnAppleEaten(const Position& l_applePos);
 	void OnDeath();
 	void UpdateCombo(bool l_reset);
 	int CalculatePoints(int l_base);
+	int CalculateStars() const;
 	float GetAppleTimerDuration() const;
 	void InitCruelWorldPhases();
 	void AdvanceCruelPhase();
 	void RenderPhaseAnnouncement(Window& l_window);
 	void CheckCruelMoment();
 	void SyncAbilityState();
+	bool HasBossEncounter() const;
+	bool StartsBossOnStageClear() const;
+	bool IsBossRewardQuiesced() const;
+	BossContext BuildBossContext() const;
+	void BeginBossEncounter();
+	void UpdateBossEncounter(float l_dt);
+	void ApplyBossProgressEvent(const BossProgressEvent& l_event);
+	void CompleteEncounterVictory(bool l_healPage, const std::string& l_cutsceneId,
+								  bool l_bossEncounterSkipped = false);
 
 	Snake m_snake;
 	World m_world;
@@ -86,6 +104,9 @@ private:
 	bool m_comboSoundPlayed;
 	float m_levelCompleteDelay; // countdown before switching to GameOver
 	AbilityController m_abilityController;
+	EncounterPhase m_encounterPhase;
+	std::unique_ptr<Boss> m_activeBoss;
+	float m_bossEncounterStartTime = 0.0f;
 
 	// Announcement / "Cruel World" phase system
 	int m_cruelPhase;

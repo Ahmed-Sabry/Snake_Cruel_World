@@ -142,6 +142,21 @@ void Snake::Tick(sf::Vector2u l_windowSize)
 	CheckCollision();
 }
 
+void Snake::ClampBodyToInclusiveGridBounds(int xMin, int xMax, int yMin, int yMax)
+{
+	// Does not sync m_prevPositions — interpolation may jump until the next Tick/Move;
+	// keep that intentional unless we add a full pose snapshot here.
+	if (m_snakeBody.empty() || xMin > xMax || yMin > yMax)
+		return;
+
+	for (Position& p : m_snakeBody)
+	{
+		p.x = std::clamp(p.x, xMin, xMax);
+		p.y = std::clamp(p.y, yMin, yMax);
+	}
+	m_headPos = m_snakeBody[0];
+}
+
 void Snake::Extend()
 {
 	if ((int)m_snakeBody.size() > 1)

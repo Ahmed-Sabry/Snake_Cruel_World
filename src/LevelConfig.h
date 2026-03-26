@@ -2,6 +2,7 @@
 
 #include "Platform/Platform.hpp"
 #include "Ability.h"
+#include "Boss.h"
 #include <string>
 #include <array>
 #ifndef NDEBUG
@@ -51,7 +52,40 @@ struct LevelConfig
 	bool enableInkBleed;    // Enable ink bleed/wobble post-processing shader
 	bool enableChromatic;   // Enable chromatic aberration shader
 	bool enablePsychedelic; // Enable psychedelic hue shift shader
+	BossConfig bossConfig{};
 };
+
+// Shared defaults for levels 2–9 boss encounters (timings, arena, heal/cutscene flags).
+inline BossConfig MakeStageBossConfig(
+	const std::string& bossId,
+	const std::string& displayName,
+	BossProgressPresentationType presentation,
+	AbilityId counterAbility,
+	int progressMax = 3,
+	int strongCounterProgress = 2)
+{
+	BossConfig c{};
+	c.enabled = true;
+	c.bossId = bossId;
+	c.displayName = displayName;
+	c.trigger = BossEncounterTrigger::StageClear;
+	c.progressPresentationType = presentation;
+	c.progressMax = progressMax;
+	c.counterAbility = counterAbility;
+	c.strongCounterProgress = strongCounterProgress;
+	c.transitionInDurationSec = 0.45f;
+	c.introDurationSec = 0.85f;
+	c.defeatDurationSec = 0.85f;
+	c.arena = BossArenaRequirements{
+		true,
+		BossArenaBounds{2, 2, 2, 2},
+		true,
+		false,
+		BossHazardIntensityMode::BossEscalation};
+	c.healPageOnDefeat = true;
+	c.rewardCutsceneId = "";
+	return c;
+}
 
 inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 {
@@ -188,6 +222,24 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 		sf::Color(248, 242, 228), sf::Color(45, 40, 55), sf::Color(170, 65, 55),
 		1.00f, true, true, true
 	};
+
+		l[1].bossConfig = MakeStageBossConfig(
+			"blind_ink", "The Blind Ink", BossProgressPresentationType::HitPoints, AbilityId::InkFlare);
+		l[2].bossConfig = MakeStageBossConfig(
+			"mire", "The Mire", BossProgressPresentationType::HitPoints, AbilityId::ShedSkin);
+		l[3].bossConfig = MakeStageBossConfig(
+			"doppelganger", "The Doppelganger", BossProgressPresentationType::HitPoints,
+			AbilityId::ShadowDecoy);
+		l[4].bossConfig = MakeStageBossConfig(
+			"hourglass", "The Hourglass", BossProgressPresentationType::Cracks, AbilityId::TimeFreeze);
+		l[5].bossConfig = MakeStageBossConfig(
+			"parasite", "The Parasite", BossProgressPresentationType::Seals, AbilityId::VenomTrail);
+		l[6].bossConfig = MakeStageBossConfig(
+			"fault_line", "The Fault Line", BossProgressPresentationType::HitPoints, AbilityId::InkAnchor);
+		l[7].bossConfig = MakeStageBossConfig(
+			"hunter", "The Hunter", BossProgressPresentationType::Seals, AbilityId::HuntersDash);
+		l[8].bossConfig = MakeStageBossConfig(
+			"scrambler", "The Scrambler", BossProgressPresentationType::Tentacles, AbilityId::InkMemory);
 
 #ifndef NDEBUG
 		{

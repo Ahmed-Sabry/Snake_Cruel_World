@@ -13,17 +13,38 @@ namespace
 		StateManager::LevelProgress out = l_src;
 		out.bestScore = std::clamp(l_src.bestScore, 0, std::numeric_limits<int>::max());
 		out.bestStars = std::clamp(l_src.bestStars, 0, kMaxStarsPerLevel);
+		if (l_levelId == 1)
+			out.bossDefeated = false;
 		if (l_levelId < 2 || l_levelId > 9)
 			out.pageHealed = false;
-		const bool hasProgress =
-			(out.bestScore > 0 || out.bestStars > 0 || out.pageHealed);
-		// Level 1: legacy migration can mark the tutorial cleared via the linear
-		// ladder before any score/star row exists; keep an explicit save flag then.
-		if (l_levelId == 1)
-			out.stageCompleted = hasProgress || l_src.stageCompleted;
+		if (l_levelId >= 2 && l_levelId <= 9)
+		{
+			out.stageCleared = l_src.stageCleared;
+			out.stageCompleted = (out.bossDefeated || out.pageHealed);
+		}
 		else
+		{
+			const bool hasProgress =
+				(out.bestScore > 0 || out.bestStars > 0 || out.pageHealed ||
+				 out.bossDefeated || l_src.stageCompleted || l_src.stageCleared);
 			out.stageCompleted = hasProgress;
+		}
 		return out;
+	}
+
+	void UpdateLevelPerformance(StateManager::LevelProgress& l_progress, int l_score, int l_stars)
+	{
+		l_progress.bestScore = std::max(l_progress.bestScore, l_score);
+		l_progress.bestStars = std::max(
+			l_progress.bestStars, std::clamp(l_stars, 0, kMaxStarsPerLevel));
+	}
+
+	void SyncLegacyMirrorsForLevel(StateManager& l_state, std::size_t l_idx)
+	{
+		const StateManager::LevelProgress& progress =
+			l_state.GetLevelProgress(static_cast<int>(l_idx) + 1);
+		l_state.highScores[l_idx] = std::max(l_state.highScores[l_idx], progress.bestScore);
+		l_state.starRatings[l_idx] = std::max(l_state.starRatings[l_idx], progress.bestStars);
 	}
 }
 
@@ -137,7 +158,18 @@ void StateManager::ClearCampaignProgressEntries()
 
 bool StateManager::HasCompletedLevel(int l_levelId) const
 {
-	return GetLevelProgress(l_levelId).stageCompleted;
+	const LevelProgress& p = GetLevelProgress(l_levelId);
+	// Boss pages 2–9: campaign "complete" requires boss defeat or legacy heal, not apple phase alone.
+	if (l_levelId >= 2 && l_levelId <= 9)
+		return p.bossDefeated || p.pageHealed;
+	return p.stageCompleted;
+}
+
+bool StateManager::HasDefeatedBoss(int l_levelId) const
+{
+	if (l_levelId < 2 || l_levelId > NUM_LEVELS)
+		return false;
+	return GetLevelProgress(l_levelId).bossDefeated;
 }
 
 bool StateManager::IsPageHealed(int l_levelId) const
@@ -155,7 +187,7 @@ bool StateManager::HasUnlockedStageSelect() const
 	for (int levelId = 2; levelId <= 10; ++levelId)
 	{
 		const LevelProgress& progress = GetLevelProgress(levelId);
-		if (progress.stageCompleted || progress.pageHealed)
+		if (progress.stageCompleted || progress.bossDefeated || progress.pageHealed)
 			return true;
 	}
 	return false;
@@ -188,12 +220,32 @@ int StateManager::GetHealedPageCount() const
 int StateManager::GetCompletedLevelCount() const
 {
 	int completedCount = 0;
-	for (const LevelProgress& progress : campaignProgress)
+	for (std::size_t i = 0; i < campaignProgress.size(); ++i)
 	{
-		if (progress.stageCompleted)
+		const int levelId = static_cast<int>(i) + 1;
+		const LevelProgress& progress = campaignProgress[i];
+		const bool fullyCompleted = (levelId >= 2 && levelId <= 9)
+			? (progress.bossDefeated || progress.pageHealed)
+			: progress.stageCompleted;
+		if (fullyCompleted)
 			++completedCount;
 	}
 	return completedCount;
+}
+
+int StateManager::GetStageClearedCount() const
+{
+	int n = 0;
+	for (std::size_t i = 0; i < campaignProgress.size(); ++i)
+	{
+		const int levelId = static_cast<int>(i) + 1;
+		const LevelProgress& p = campaignProgress[i];
+		if (p.stageCompleted)
+			++n;
+		else if (levelId >= 2 && levelId <= 9 && p.stageCleared)
+			++n;
+	}
+	return n;
 }
 
 bool StateManager::IsL10Unlocked() const
@@ -201,8 +253,56 @@ bool StateManager::IsL10Unlocked() const
 	// Pre-v5 saves used highestUnlockedLevel == NUM_LEVELS when the finale was
 	// reachable on the linear ladder; preserve that without requiring 8 healed
 	// pages or a recorded L10 clear.
+	// Boss pages 2–9: HasCompletedLevel is false until boss defeat, so clearing
+	// apples alone cannot satisfy the finale gate via a stray stageCompleted flag.
 	return GetHealedPageCount() >= 8 || HasCompletedLevel(10) ||
 		highestUnlockedLevel >= NUM_LEVELS;
+}
+
+void StateManager::RecordStageCompletion(int l_levelId, int l_score, int l_stars)
+{
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return;
+
+	const std::size_t idx = static_cast<std::size_t>(l_levelId - 1);
+	LevelProgress& progress = campaignProgress[idx];
+	progress.stageCompleted = true;
+	UpdateLevelPerformance(progress, l_score, l_stars);
+	SyncLegacyMirrorsForLevel(*this, idx);
+	SyncLegacyProgress();
+}
+
+void StateManager::RecordStagePhaseCleared(int l_levelId, int l_score, int l_stars)
+{
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return;
+
+	const std::size_t idx = static_cast<std::size_t>(l_levelId - 1);
+	LevelProgress& progress = campaignProgress[idx];
+	if (l_levelId >= 2 && l_levelId <= 9)
+		progress.stageCleared = true;
+	UpdateLevelPerformance(progress, l_score, l_stars);
+	SyncLegacyMirrorsForLevel(*this, idx);
+	SyncLegacyProgress();
+}
+
+void StateManager::RecordBossDefeat(int l_levelId, int l_score, int l_stars, bool l_healPage)
+{
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return;
+
+	const std::size_t idx = static_cast<std::size_t>(l_levelId - 1);
+	LevelProgress& progress = campaignProgress[idx];
+	progress.stageCompleted = true;
+	if (l_levelId >= 2 && l_levelId <= 9)
+		progress.stageCleared = true;
+	if (l_levelId >= 2)
+		progress.bossDefeated = true;
+	if (l_healPage && l_levelId >= 2 && l_levelId <= 9)
+		progress.pageHealed = true;
+	UpdateLevelPerformance(progress, l_score, l_stars);
+	SyncLegacyMirrorsForLevel(*this, idx);
+	SyncLegacyProgress();
 }
 
 void StateManager::RecordLevelCompletion(int l_levelId, int l_score, int l_stars, bool l_healPage)
@@ -212,16 +312,22 @@ void StateManager::RecordLevelCompletion(int l_levelId, int l_score, int l_stars
 
 	const std::size_t idx = static_cast<std::size_t>(l_levelId - 1);
 	LevelProgress& progress = campaignProgress[idx];
-	progress.stageCompleted = true;
-	progress.bestScore = std::max(progress.bestScore, l_score);
-	progress.bestStars = std::max(progress.bestStars, std::clamp(l_stars, 0, 3));
+	UpdateLevelPerformance(progress, l_score, l_stars);
 
-	highScores[idx] = std::max(highScores[idx], progress.bestScore);
-	starRatings[idx] = std::max(starRatings[idx], progress.bestStars);
+	if (l_levelId >= 2 && l_levelId <= 9)
+	{
+		progress.stageCleared = true;
+		if (l_healPage)
+		{
+			progress.bossDefeated = true;
+			progress.pageHealed = true;
+		}
+		progress.stageCompleted = (progress.bossDefeated || progress.pageHealed);
+	}
+	else
+		progress.stageCompleted = true;
 
-	if (l_healPage && l_levelId >= 2 && l_levelId <= 9)
-		progress.pageHealed = true;
-
+	SyncLegacyMirrorsForLevel(*this, idx);
 	SyncLegacyProgress();
 }
 
@@ -240,9 +346,13 @@ void StateManager::SyncLegacyProgress()
 		highScores[i] = std::max(highScores[i], progress.bestScore);
 		starRatings[i] = std::max(starRatings[i], progress.bestStars);
 
-		if (progress.bestScore > 0 || progress.bestStars > 0)
+		if (levelId >= 2 && levelId <= 9)
+			progress.stageCompleted = (progress.bossDefeated || progress.pageHealed);
+		else if (progress.bestScore > 0 || progress.bestStars > 0)
 			progress.stageCompleted = true;
 		if (levelId == 1 && highestUnlockedLevel > 1)
+			progress.stageCompleted = true;
+		if (progress.bossDefeated)
 			progress.stageCompleted = true;
 		if (levelId >= 2 && levelId <= 9 && progress.pageHealed)
 			progress.stageCompleted = true;

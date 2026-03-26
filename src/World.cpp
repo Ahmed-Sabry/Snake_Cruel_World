@@ -9,6 +9,9 @@ World::World(Window& l_window, Snake& l_snake)
 	m_flashTimer = 0.0f;
 	m_levelId = 1;
 	m_normalBorderColor = sf::Color(200, 100, 50);
+	m_bossArenaEnabled = false;
+	m_disableShrinkForBossArena = false;
+	m_allowBossSpecificSpawns = false;
 	m_useInkStyle = false;
 	m_corruption = 0.05f;
 	m_inkTint = sf::Color(60, 50, 45);
@@ -36,6 +39,7 @@ void World::Reset(Window& l_window, Snake& l_snake)
 {
 	m_borderThickness = l_snake.GetBlockSize();
 	ResetBorderOffsets();
+	ClearBossArenaMode();
 	Borders(l_window);
 	m_count = 0;
 	m_totalApplesEaten = 0;
@@ -86,10 +90,10 @@ void World::Borders(Window& l_window)
 	float winWidth = (float)l_window.GetWindowSize().x;
 	float winHeight = (float)l_window.GetWindowSize().y;
 
-	float effTop    = m_borderThickness + m_borderOffset[0];
-	float effRight  = m_borderThickness + m_borderOffset[1];
-	float effBottom = m_borderThickness + m_borderOffset[2];
-	float effLeft   = m_borderThickness + m_borderOffset[3];
+	float effTop = GetEffectiveThickness(0);
+	float effRight = GetEffectiveThickness(1);
+	float effBottom = GetEffectiveThickness(2);
+	float effLeft = GetEffectiveThickness(3);
 
 	for (int i = 0; i < 4; i++)
 		m_borders[i].setFillColor(m_normalBorderColor);
@@ -116,10 +120,10 @@ void World::NarrowWorld(Window& l_window, Snake& l_snake)
 
 	// If apple is now inside a wall, respawn it within new bounds
 	float bs = l_snake.GetBlockSize();
-	float xLeft = (m_borderThickness + m_borderOffset[3]) / bs;
-	float xRight = m_maxX - (m_borderThickness + m_borderOffset[1]) / bs - 2 * (m_appleRaduis / bs);
-	float yTop = (m_borderThickness + m_borderOffset[0] + m_topOffset) / bs;
-	float yBottom = m_maxY - (m_borderThickness + m_borderOffset[2]) / bs - 2 * (m_appleRaduis / bs);
+	float xLeft = GetEffectiveThickness(3) / bs;
+	float xRight = m_maxX - GetEffectiveThickness(1) / bs - 2 * (m_appleRaduis / bs);
+	float yTop = (GetEffectiveThickness(0) + m_topOffset) / bs;
+	float yBottom = m_maxY - GetEffectiveThickness(2) / bs - 2 * (m_appleRaduis / bs);
 
 	if (m_applePos.x < xLeft || m_applePos.x > xRight ||
 		m_applePos.y < yTop || m_applePos.y > yBottom)
@@ -131,14 +135,15 @@ void World::NarrowWorld(Window& l_window, Snake& l_snake)
 void World::RespawnApple(Snake& l_snake)
 {
 	float bs = l_snake.GetBlockSize();
-	int xMin = (int)((m_borderThickness + m_borderOffset[3]) / bs);
-	int xMax = (int)(m_maxX - (m_borderThickness + m_borderOffset[1]) / bs - 2 * (m_appleRaduis / bs));
-	int yMin = (int)((m_borderThickness + m_borderOffset[0] + m_topOffset) / bs);
-	int yMax = (int)(m_maxY - (m_borderThickness + m_borderOffset[2]) / bs - 2 * (m_appleRaduis / bs));
+	int xMin = (int)(GetEffectiveThickness(3) / bs);
+	int xMax = (int)(m_maxX - GetEffectiveThickness(1) / bs - 2 * (m_appleRaduis / bs));
+	int yMin = (int)((GetEffectiveThickness(0) + m_topOffset) / bs);
+	int yMax = (int)(m_maxY - GetEffectiveThickness(2) / bs - 2 * (m_appleRaduis / bs));
 
 	// If eating this apple will trigger a shrink, add 1-block inward margin
 	// so the snake won't be crushed by the border moving inward
-	if (m_shrinkInterval > 0 && m_count == m_shrinkInterval - 1)
+	if (!(m_bossArenaEnabled && m_disableShrinkForBossArena) &&
+		m_shrinkInterval > 0 && m_count == m_shrinkInterval - 1)
 	{
 		xMin += 1;
 		xMax -= 1;
@@ -177,10 +182,10 @@ void World::RespawnApple(Snake& l_snake)
 void World::CheckCollision(Window& l_window, Snake& l_snake)
 {
 	float bs = l_snake.GetBlockSize();
-	float xLeft = (m_borderThickness + m_borderOffset[3]) / bs;
-	float xRight = m_maxX - (m_borderThickness + m_borderOffset[1]) / bs - 1;
-	float yTop = (m_borderThickness + m_borderOffset[0] + m_topOffset) / bs;
-	float yBottom = m_maxY - (m_borderThickness + m_borderOffset[2]) / bs - 1;
+	float xLeft = GetEffectiveThickness(3) / bs;
+	float xRight = m_maxX - GetEffectiveThickness(1) / bs - 1;
+	float yTop = (GetEffectiveThickness(0) + m_topOffset) / bs;
+	float yBottom = m_maxY - GetEffectiveThickness(2) / bs - 1;
 
 	if ((l_snake.GetPosition().x < xLeft) || (l_snake.GetPosition().x > xRight) ||
 		(l_snake.GetPosition().y < yTop) || (l_snake.GetPosition().y > yBottom))
@@ -198,7 +203,7 @@ void World::Update(Window& l_window, Snake& l_snake)
 		{
 			if (++m_count >= m_shrinkInterval)
 			{
-				NarrowWorld(l_window, l_snake);
+				TriggerShrink(l_window, l_snake);
 				m_count = 0;
 			}
 		}
@@ -224,6 +229,7 @@ void World::SetShrinkTimerSec(float l_sec)
 void World::UpdateTimedShrink(float l_dt, Window& l_window, Snake& l_snake)
 {
 	if (m_shrinkTimerSec <= 0.0f) return;
+	if (m_bossArenaEnabled && m_disableShrinkForBossArena) return;
 	m_shrinkTimerAccum += l_dt;
 	while (m_shrinkTimerAccum >= m_shrinkTimerSec)
 	{
@@ -234,7 +240,55 @@ void World::UpdateTimedShrink(float l_dt, Window& l_window, Snake& l_snake)
 
 void World::TriggerShrink(Window& l_window, Snake& l_snake)
 {
+	if (m_bossArenaEnabled && m_disableShrinkForBossArena)
+		return;
 	NarrowWorld(l_window, l_snake);
+}
+
+void World::SetBossArenaMode(const BossArenaRequirements& l_requirements, float l_blockSize)
+{
+	m_bossArenaEnabled = l_requirements.usesBossArena;
+	m_disableShrinkForBossArena = l_requirements.disableStageShrink;
+	m_allowBossSpecificSpawns = l_requirements.allowBossSpecificSpawns;
+	for (int i = 0; i < 4; ++i)
+		m_bossArenaInset[i] = 0.0f;
+
+	if (!m_bossArenaEnabled)
+		return;
+
+	m_bossArenaInset[0] = l_requirements.bossArenaBounds.topInsetTiles * l_blockSize;
+	m_bossArenaInset[1] = l_requirements.bossArenaBounds.rightInsetTiles * l_blockSize;
+	m_bossArenaInset[2] = l_requirements.bossArenaBounds.bottomInsetTiles * l_blockSize;
+	m_bossArenaInset[3] = l_requirements.bossArenaBounds.leftInsetTiles * l_blockSize;
+}
+
+void World::ClearBossArenaMode()
+{
+	m_bossArenaEnabled = false;
+	m_disableShrinkForBossArena = false;
+	m_allowBossSpecificSpawns = false;
+	for (int i = 0; i < 4; ++i)
+		m_bossArenaInset[i] = 0.0f;
+}
+
+void World::ClampSnakeToPlayableGrid(Snake& l_snake)
+{
+	float bs = l_snake.GetBlockSize();
+	float xLeft = GetEffectiveThickness(3) / bs;
+	float xRight = m_maxX - GetEffectiveThickness(1) / bs - 1.0f;
+	float yTop = (GetEffectiveThickness(0) + m_topOffset) / bs;
+	float yBottom = m_maxY - GetEffectiveThickness(2) / bs - 1.0f;
+
+	const int xMin = (int)std::ceil(xLeft - 1e-4f);
+	const int xMax = (int)std::floor(xRight + 1e-4f);
+	const int yMin = (int)std::ceil(yTop - 1e-4f);
+	const int yMax = (int)std::floor(yBottom + 1e-4f);
+
+	if (xMin > xMax || yMin > yMax)
+		return;
+
+	// See Snake::ClampBodyToInclusiveGridBounds — m_prevPositions unchanged here.
+	l_snake.ClampBodyToInclusiveGridBounds(xMin, xMax, yMin, yMax);
 }
 
 void World::SetBorderOffset(int l_side, float l_offsetPixels)
@@ -257,17 +311,17 @@ void World::ResetBorderOffsets()
 float World::GetEffectiveThickness(int l_side) const
 {
 	if (l_side >= 0 && l_side < 4)
-		return m_borderThickness + m_borderOffset[l_side];
+		return m_borderThickness + m_borderOffset[l_side] + m_bossArenaInset[l_side];
 	return m_borderThickness;
 }
 
 bool World::IsAppleInBounds(float l_blockSize) const
 {
 	float bs = l_blockSize;
-	float xLeft = (m_borderThickness + m_borderOffset[3]) / bs;
-	float xRight = m_maxX - (m_borderThickness + m_borderOffset[1]) / bs - 2 * (m_appleRaduis / bs);
-	float yTop = (m_borderThickness + m_borderOffset[0] + m_topOffset) / bs;
-	float yBottom = m_maxY - (m_borderThickness + m_borderOffset[2]) / bs - 2 * (m_appleRaduis / bs);
+	float xLeft = GetEffectiveThickness(3) / bs;
+	float xRight = m_maxX - GetEffectiveThickness(1) / bs - 2 * (m_appleRaduis / bs);
+	float yTop = (GetEffectiveThickness(0) + m_topOffset) / bs;
+	float yBottom = m_maxY - GetEffectiveThickness(2) / bs - 2 * (m_appleRaduis / bs);
 
 	return m_applePos.x >= xLeft && m_applePos.x <= xRight &&
 		   m_applePos.y >= yTop && m_applePos.y <= yBottom;

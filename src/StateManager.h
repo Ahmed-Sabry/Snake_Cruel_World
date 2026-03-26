@@ -21,6 +21,9 @@ public:
 	struct LevelProgress
 	{
 		bool stageCompleted = false;
+		// Apple quota met on boss levels 2–9 (boss fight started or in progress).
+		bool stageCleared = false;
+		bool bossDefeated = false;
 		bool pageHealed = false;
 		int bestScore = 0;
 		int bestStars = 0;
@@ -40,12 +43,20 @@ public:
 
 	const LevelProgress& GetLevelProgress(int l_levelId) const;
 	bool HasCompletedLevel(int l_levelId) const;
+	bool HasDefeatedBoss(int l_levelId) const;
 	bool IsPageHealed(int l_levelId) const;
 	bool HasUnlockedStageSelect() const;
 	bool CanAccessCampaignLevel(int l_levelId) const;
 	int GetHealedPageCount() const;
+	// Levels finished for Completionist (boss levels need heal or boss defeat).
 	int GetCompletedLevelCount() const;
+	// Counts levels with stageCompleted, plus boss pages 2–9 in apple-phase (stageCleared) only.
+	int GetStageClearedCount() const;
 	bool IsL10Unlocked() const;
+	void RecordStageCompletion(int l_levelId, int l_score, int l_stars);
+	// Persists apple-phase clear on boss levels without marking stageCompleted (finale unlock, etc.).
+	void RecordStagePhaseCleared(int l_levelId, int l_score, int l_stars);
+	void RecordBossDefeat(int l_levelId, int l_score, int l_stars, bool l_healPage);
 	void RecordLevelCompletion(int l_levelId, int l_score, int l_stars, bool l_healPage);
 	void SyncLegacyProgress();
 	void ExportCampaignProgressToLegacy();
