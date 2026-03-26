@@ -169,6 +169,7 @@ void PlayState::OnEnter()
 	m_levelCompleteDelay = -1.0f;
 	m_encounterPhase = EncounterPhase::Stage;
 	m_activeBoss.reset();
+	m_bossEncounterStartTime = 0.0f;
 	m_abilityController.LoadPersistentProgress(
 		m_stateManager.unlockedAbilities, m_stateManager.equippedAbility);
 	SyncAbilityState();
@@ -545,7 +546,8 @@ int PlayState::CalculateStars() const
 
 bool PlayState::LevelUsesBossEncounter() const
 {
-	return !m_stateManager.endlessMode && m_levelConfig.bossConfig.enabled;
+	return !m_stateManager.endlessMode && m_levelConfig.bossConfig.enabled &&
+		m_levelConfig.bossConfig.trigger == BossEncounterTrigger::StageClear;
 }
 
 BossContext PlayState::BuildBossContext() const
@@ -553,7 +555,8 @@ BossContext PlayState::BuildBossContext() const
 	BossContext ctx{};
 	ctx.levelId = m_stateManager.currentLevel;
 	ctx.applesEaten = m_applesEaten;
-	ctx.encounterTimeSec = m_gameTime;
+	ctx.encounterTimeSec =
+		m_activeBoss ? std::max(0.0f, m_gameTime - m_bossEncounterStartTime) : 0.0f;
 	ctx.blockSize = m_snake.GetBlockSize();
 	ctx.activeAbility = m_abilityController.GetActive();
 	ctx.world = &m_world;
@@ -567,10 +570,12 @@ void PlayState::BeginBossEncounter()
 		return;
 
 	m_activeBoss = std::make_unique<PlaceholderBoss>(m_levelConfig.bossConfig);
+	m_bossEncounterStartTime = m_gameTime;
 	BossContext ctx = BuildBossContext();
 	if (!m_activeBoss->CanStartEncounter(ctx))
 	{
 		m_activeBoss.reset();
+		m_bossEncounterStartTime = 0.0f;
 		m_stateManager.RecordStageCompletion(
 			m_stateManager.currentLevel, m_stateManager.score, CalculateStars());
 		CompleteEncounterVictory(false, "", true);
@@ -588,6 +593,8 @@ void PlayState::BeginBossEncounter()
 	m_snake.ClearSelfCollideFlag();
 	if (!m_world.IsAppleInBounds(m_snake.GetBlockSize()))
 		m_world.RespawnApple(m_snake);
+	if (m_levelConfig.hasPoisonApples && !m_poisonApple.IsInBounds(m_world, m_snake.GetBlockSize()))
+		m_poisonApple.SpawnPoison(m_snake, m_world, m_snake.GetBlockSize());
 
 	m_stateManager.GetAudio().PlaySound("phase_advance");
 	m_phaseAnnouncementText = m_levelConfig.bossConfig.displayName;
@@ -651,6 +658,7 @@ void PlayState::CompleteEncounterVictory(bool l_healPage, const std::string& l_c
 										 bool l_bossEncounterSkipped)
 {
 	m_activeBoss.reset();
+	m_bossEncounterStartTime = 0.0f;
 	m_world.ClearBossArenaMode();
 	m_world.Borders(m_stateManager.GetWindow());
 
@@ -695,8 +703,7 @@ void PlayState::CompleteEncounterVictory(bool l_healPage, const std::string& l_c
 	}
 
 	m_stateManager.GetStats().OnLevelComplete(
-		m_stateManager.currentLevel, m_stateManager.levelTime,
-		m_stateManager.score);
+		m_stateManager.currentLevel, m_gameTime, m_stateManager.score);
 
 	AchievementContext ctx{};
 	ctx.levelId = m_stateManager.currentLevel;
@@ -987,6 +994,8 @@ void PlayState::Update(float l_dt)
 	if (m_borderHatchTimer > 0.0f)
 		m_borderHatchTimer -= l_dt;
 
+	const bool bossRewardQuiesce = (m_encounterPhase == EncounterPhase::BossReward);
+
 	float speed = m_levelConfig.baseSpeed;
 	// Speed creep: +0.5 every 5 apples (noticeable step)
 	speed += (m_applesEaten / 5) * 0.5f;
@@ -996,7 +1005,7 @@ void PlayState::Update(float l_dt)
 
 	float timeStep = 1.0f / speed;
 
-	if (m_elapsedTime >= timeStep && m_levelCompleteDelay < 0.0f)
+	if (m_elapsedTime >= timeStep && m_levelCompleteDelay < 0.0f && !bossRewardQuiesce)
 	{
 		Window& window = m_stateManager.GetWindow();
 
@@ -1026,6 +1035,9 @@ void PlayState::Update(float l_dt)
 			OnAppleEaten(preTickHead);
 		}
 
+		const bool skipRestOfTick = (m_encounterPhase == EncounterPhase::BossReward);
+		if (!skipRestOfTick)
+		{
 		// Detect world shrink and award bonus
 		int newShrinkCount = m_world.GetShrinkCount();
 		if (newShrinkCount > m_lastShrinkCount)
@@ -1155,6 +1167,8 @@ void PlayState::Update(float l_dt)
 			m_cheatExtend = false;
 		}
 
+		} // !skipRestOfTick
+
 		m_elapsedTime -= timeStep;
 	}
 
@@ -1226,7 +1240,8 @@ void PlayState::Update(float l_dt)
 	}
 
 	// Timer-based world shrinking (Level 3)
-	if (m_levelConfig.shrinkTimerSec > 0.0f && m_levelCompleteDelay < 0.0f)
+	if (m_levelConfig.shrinkTimerSec > 0.0f && m_levelCompleteDelay < 0.0f &&
+		!bossRewardQuiesce)
 	{
 		Window& window = m_stateManager.GetWindow();
 		m_world.UpdateTimedShrink(l_dt, window, m_snake);
@@ -1260,7 +1275,8 @@ void PlayState::Update(float l_dt)
 	}
 
 	// Timed apples (Level 5)
-	if (m_levelConfig.hasTimedApples && m_levelCompleteDelay < 0.0f)
+	if (m_levelConfig.hasTimedApples && m_levelCompleteDelay < 0.0f &&
+		!bossRewardQuiesce)
 	{
 		m_timedApple.Update(l_dt);
 
@@ -1297,7 +1313,8 @@ void PlayState::Update(float l_dt)
 	}
 
 	// Earthquake (Level 7)
-	if (m_levelConfig.hasEarthquakes && m_levelCompleteDelay < 0.0f)
+	if (m_levelConfig.hasEarthquakes && m_levelCompleteDelay < 0.0f &&
+		!bossRewardQuiesce)
 	{
 		Window& window = m_stateManager.GetWindow();
 		m_earthquake.Update(l_dt, m_world, window);
@@ -1324,7 +1341,8 @@ void PlayState::Update(float l_dt)
 	}
 
 	// Predator (Level 8)
-	if (m_levelConfig.hasPredator && m_levelCompleteDelay < 0.0f)
+	if (m_levelConfig.hasPredator && m_levelCompleteDelay < 0.0f &&
+		!bossRewardQuiesce)
 	{
 		m_predator.Update(l_dt, m_world, m_snake);
 

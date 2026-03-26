@@ -104,6 +104,7 @@ private:
 	AbilityController m_abilityController;
 	EncounterPhase m_encounterPhase;
 	std::unique_ptr<Boss> m_activeBoss;
+	float m_bossEncounterStartTime = 0.0f;
 
 	// Announcement / "Cruel World" phase system
 	int m_cruelPhase;
