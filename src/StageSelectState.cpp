@@ -329,7 +329,7 @@ void StageSelectState::DrawStageTile(Window& l_window, const StageTile& l_tile, 
 	const std::string stateLabel = !available
 		? "LOCKED"
 		: (healed ? "PAGE HEALED"
-			: (config.bossConfig.enabled && progress.stageCleared
+			: (config.bossConfig.enabled && progress.stageCleared && !progress.bossDefeated
 				? "BOSS AWAITS"
 				: "PAGE CORRUPTED"));
 	sf::Text state = MakeText(m_font, stateLabel, 15, accentColor, x, y + 60.0f);
@@ -448,9 +448,10 @@ void StageSelectState::DrawSelectionDetails(Window& l_window)
 
 	const std::string lineOne = "Corruption: " + config.corruptionLabel +
 		"   Hint: " + config.difficultyHint;
+	const StateManager::LevelProgress& selProgress = m_stateManager.GetLevelProgress(levelId);
 	const std::string lineTwo = healed
 		? rewardLine + "   This page is healed."
-		: (config.bossConfig.enabled && m_stateManager.GetLevelProgress(levelId).stageCleared
+		: (config.bossConfig.enabled && selProgress.stageCleared && !selProgress.bossDefeated
 			? rewardLine + "   Stage cleared. Defeat the boss to heal it."
 			: (config.bossConfig.enabled
 				? rewardLine + "   Clear this page to confront its boss."

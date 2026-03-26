@@ -24,7 +24,9 @@ void SaveManager::RebuildCampaignProgressFromLegacyState(StateManager& l_state)
 		const bool clearedByStats = (l_state.starRatings[i] > 0) || (l_state.highScores[i] > 0);
 		const bool clearedByLinear = (i + 1) < l_state.highestUnlockedLevel;
 
-		progress.stageCompleted = clearedByStats || clearedByLinear;
+		const bool clearedLegacy = clearedByStats || clearedByLinear;
+		progress.stageCompleted = clearedLegacy;
+		progress.stageCleared = clearedLegacy;
 		progress.bestScore = l_state.highScores[i];
 		progress.bestStars = l_state.starRatings[i];
 		// Do not infer boss defeat or page heal from legacy stats alone — v5+ saves

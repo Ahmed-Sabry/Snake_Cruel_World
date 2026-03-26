@@ -50,7 +50,7 @@ public:
 	int GetHealedPageCount() const;
 	// Levels finished for Completionist (boss levels need heal or boss defeat).
 	int GetCompletedLevelCount() const;
-	// Raw count of stages with stageCompleted (stage clear without boss counts).
+	// Counts levels with stageCompleted, plus boss pages 2–9 in apple-phase (stageCleared) only.
 	int GetStageClearedCount() const;
 	bool IsL10Unlocked() const;
 	void RecordStageCompletion(int l_levelId, int l_score, int l_stars);

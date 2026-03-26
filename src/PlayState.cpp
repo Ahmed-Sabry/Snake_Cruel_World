@@ -13,6 +13,13 @@
 
 namespace {
 	constexpr float kAppleBurstDuration = 0.2f;
+
+	std::unique_ptr<Boss> CreateBoss(const BossConfig& l_config)
+	{
+		// Data-driven hook: map bossId to concrete types as they are added.
+		(void)l_config.bossId;
+		return std::make_unique<PlaceholderBoss>(l_config);
+	}
 }
 
 PlayState::PlayState(StateManager& l_stateManager)
@@ -578,7 +585,7 @@ void PlayState::BeginBossEncounter()
 	if (!HasBossEncounter() || !StartsBossOnStageClear() || m_activeBoss)
 		return;
 
-	m_activeBoss = std::make_unique<PlaceholderBoss>(m_levelConfig.bossConfig);
+	m_activeBoss = CreateBoss(m_levelConfig.bossConfig);
 	m_bossEncounterStartTime = m_gameTime;
 	BossContext ctx = BuildBossContext();
 	if (!m_activeBoss->CanStartEncounter(ctx))

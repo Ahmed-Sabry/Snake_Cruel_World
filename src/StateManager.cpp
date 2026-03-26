@@ -176,8 +176,7 @@ bool StateManager::IsPageHealed(int l_levelId) const
 {
 	if (l_levelId < 2 || l_levelId > 9)
 		return false;
-	const LevelProgress& progress = GetLevelProgress(l_levelId);
-	return progress.pageHealed || progress.bossDefeated;
+	return GetLevelProgress(l_levelId).pageHealed;
 }
 
 bool StateManager::HasUnlockedStageSelect() const
@@ -212,8 +211,7 @@ int StateManager::GetHealedPageCount() const
 	int healedPages = 0;
 	for (int levelId = 2; levelId <= 9; ++levelId)
 	{
-		const LevelProgress& progress = GetLevelProgress(levelId);
-		if (progress.bossDefeated || progress.pageHealed)
+		if (GetLevelProgress(levelId).pageHealed)
 			++healedPages;
 	}
 	return healedPages;
@@ -238,9 +236,13 @@ int StateManager::GetCompletedLevelCount() const
 int StateManager::GetStageClearedCount() const
 {
 	int n = 0;
-	for (const LevelProgress& p : campaignProgress)
+	for (std::size_t i = 0; i < campaignProgress.size(); ++i)
 	{
+		const int levelId = static_cast<int>(i) + 1;
+		const LevelProgress& p = campaignProgress[i];
 		if (p.stageCompleted)
+			++n;
+		else if (levelId >= 2 && levelId <= 9 && p.stageCleared)
 			++n;
 	}
 	return n;
