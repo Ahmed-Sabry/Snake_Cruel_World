@@ -1,9 +1,6 @@
 #include "Boss.h"
 
 #include <algorithm>
-#ifndef NDEBUG
-#include <cassert>
-#endif
 
 Boss::Boss(const BossConfig& l_config)
 	: m_config(l_config),
@@ -18,14 +15,15 @@ Boss::Boss(const BossConfig& l_config)
 
 bool Boss::CanStartEncounter(const BossContext&) const
 {
-	return m_config.enabled && m_config.trigger != BossEncounterTrigger::None;
+	return m_config.enabled && m_config.trigger != BossEncounterTrigger::None &&
+		m_config.progressMax > 0;
 }
 
 void Boss::BeginEncounter(const BossContext&)
 {
-#ifndef NDEBUG
-	assert(!m_config.enabled || m_config.progressMax > 0);
-#endif
+	if (m_config.progressMax <= 0)
+		return;
+
 	m_phaseIndex = 0;
 	m_progressCurrent = 0;
 	m_progressMax = std::max(0, m_config.progressMax);
@@ -113,7 +111,7 @@ BossProgressResult Boss::ApplyProgress(const BossProgressEvent& l_event, const B
 
 bool Boss::CanBeDamagedByAbility(AbilityId l_ability, const BossContext&) const
 {
-	return m_state == BossLifecycleState::Active &&
+	return m_state == BossLifecycleState::Active && !IsInvulnerable() &&
 		l_ability != AbilityId::None &&
 		l_ability == m_config.counterAbility;
 }

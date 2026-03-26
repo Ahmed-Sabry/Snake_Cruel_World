@@ -584,6 +584,7 @@ void PlayState::BeginBossEncounter()
 	m_encounterPhase = EncounterPhase::BossTransition;
 	m_world.SetBossArenaMode(m_activeBoss->GetArenaRequirements(), m_snake.GetBlockSize());
 	m_world.Borders(m_stateManager.GetWindow());
+	m_world.ClampSnakeToPlayableGrid(m_snake);
 	if (!m_world.IsAppleInBounds(m_snake.GetBlockSize()))
 		m_world.RespawnApple(m_snake);
 

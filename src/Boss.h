@@ -168,6 +168,7 @@ public:
 		return m_state == BossLifecycleState::Defeated ||
 			m_state == BossLifecycleState::Resolved;
 	}
+	bool IsInvulnerable() const { return m_invulnerable; }
 
 protected:
 	void SetLifecycleState(BossLifecycleState l_state);

@@ -271,6 +271,25 @@ void World::ClearBossArenaMode()
 		m_bossArenaInset[i] = 0.0f;
 }
 
+void World::ClampSnakeToPlayableGrid(Snake& l_snake)
+{
+	float bs = l_snake.GetBlockSize();
+	float xLeft = GetEffectiveThickness(3) / bs;
+	float xRight = m_maxX - GetEffectiveThickness(1) / bs - 1.0f;
+	float yTop = (GetEffectiveThickness(0) + m_topOffset) / bs;
+	float yBottom = m_maxY - GetEffectiveThickness(2) / bs - 1.0f;
+
+	const int xMin = (int)std::ceil(xLeft - 1e-4f);
+	const int xMax = (int)std::floor(xRight + 1e-4f);
+	const int yMin = (int)std::ceil(yTop - 1e-4f);
+	const int yMax = (int)std::floor(yBottom + 1e-4f);
+
+	if (xMin > xMax || yMin > yMax)
+		return;
+
+	l_snake.ClampBodyToInclusiveGridBounds(xMin, xMax, yMin, yMax);
+}
+
 void World::SetBorderOffset(int l_side, float l_offsetPixels)
 {
 	if (l_side >= 0 && l_side < 4)

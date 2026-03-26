@@ -96,6 +96,10 @@ public:
 	{
 		return m_snakeBody;
 	}
+
+	// Clamp all segments to inclusive grid bounds (e.g. after playable area shrinks).
+	void ClampBodyToInclusiveGridBounds(int xMin, int xMax, int yMin, int yMax);
+
 	void SetColors(sf::Color l_head, sf::Color l_body)
 	{
 		m_headColor = l_head;

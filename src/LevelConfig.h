@@ -55,6 +55,38 @@ struct LevelConfig
 	BossConfig bossConfig{};
 };
 
+// Shared defaults for levels 2–9 boss encounters (timings, arena, heal/cutscene flags).
+inline BossConfig MakeStageBossConfig(
+	const std::string& bossId,
+	const std::string& displayName,
+	BossProgressPresentationType presentation,
+	AbilityId counterAbility,
+	int progressMax = 3,
+	int strongCounterProgress = 2)
+{
+	BossConfig c{};
+	c.enabled = true;
+	c.bossId = bossId;
+	c.displayName = displayName;
+	c.trigger = BossEncounterTrigger::StageClear;
+	c.progressPresentationType = presentation;
+	c.progressMax = progressMax;
+	c.counterAbility = counterAbility;
+	c.strongCounterProgress = strongCounterProgress;
+	c.transitionInDurationSec = 0.45f;
+	c.introDurationSec = 0.85f;
+	c.defeatDurationSec = 0.85f;
+	c.arena = BossArenaRequirements{
+		true,
+		BossArenaBounds{2, 2, 2, 2},
+		true,
+		false,
+		BossHazardIntensityMode::BossEscalation};
+	c.healPageOnDefeat = true;
+	c.rewardCutsceneId = "";
+	return c;
+}
+
 inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 {
 	static const std::array<LevelConfig, NUM_LEVELS> levels = []()
@@ -191,70 +223,23 @@ inline const std::array<LevelConfig, NUM_LEVELS>& GetAllLevels()
 		1.00f, true, true, true
 	};
 
-		l[1].bossConfig = BossConfig{
-			true, "blind_ink", "The Blind Ink", BossEncounterTrigger::StageClear,
-			BossProgressPresentationType::HitPoints, 3, AbilityId::InkFlare, 2,
-			0.45f, 0.85f, 0.85f,
-			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
-				BossHazardIntensityMode::BossEscalation },
-			true, ""
-		};
-		l[2].bossConfig = BossConfig{
-			true, "mire", "The Mire", BossEncounterTrigger::StageClear,
-			BossProgressPresentationType::HitPoints, 3, AbilityId::ShedSkin, 2,
-			0.45f, 0.85f, 0.85f,
-			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
-				BossHazardIntensityMode::BossEscalation },
-			true, ""
-		};
-		l[3].bossConfig = BossConfig{
-			true, "doppelganger", "The Doppelganger", BossEncounterTrigger::StageClear,
-			BossProgressPresentationType::HitPoints, 3, AbilityId::ShadowDecoy, 2,
-			0.45f, 0.85f, 0.85f,
-			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
-				BossHazardIntensityMode::BossEscalation },
-			true, ""
-		};
-		l[4].bossConfig = BossConfig{
-			true, "hourglass", "The Hourglass", BossEncounterTrigger::StageClear,
-			BossProgressPresentationType::Cracks, 3, AbilityId::TimeFreeze, 2,
-			0.45f, 0.85f, 0.85f,
-			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
-				BossHazardIntensityMode::BossEscalation },
-			true, ""
-		};
-		l[5].bossConfig = BossConfig{
-			true, "parasite", "The Parasite", BossEncounterTrigger::StageClear,
-			BossProgressPresentationType::Seals, 3, AbilityId::VenomTrail, 2,
-			0.45f, 0.85f, 0.85f,
-			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
-				BossHazardIntensityMode::BossEscalation },
-			true, ""
-		};
-		l[6].bossConfig = BossConfig{
-			true, "fault_line", "The Fault Line", BossEncounterTrigger::StageClear,
-			BossProgressPresentationType::HitPoints, 3, AbilityId::InkAnchor, 2,
-			0.45f, 0.85f, 0.85f,
-			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
-				BossHazardIntensityMode::BossEscalation },
-			true, ""
-		};
-		l[7].bossConfig = BossConfig{
-			true, "hunter", "The Hunter", BossEncounterTrigger::StageClear,
-			BossProgressPresentationType::Seals, 3, AbilityId::HuntersDash, 2,
-			0.45f, 0.85f, 0.85f,
-			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
-				BossHazardIntensityMode::BossEscalation },
-			true, ""
-		};
-		l[8].bossConfig = BossConfig{
-			true, "scrambler", "The Scrambler", BossEncounterTrigger::StageClear,
-			BossProgressPresentationType::Tentacles, 3, AbilityId::InkMemory, 2,
-			0.45f, 0.85f, 0.85f,
-			BossArenaRequirements{ true, BossArenaBounds{ 2, 2, 2, 2 }, true, false,
-				BossHazardIntensityMode::BossEscalation },
-			true, ""
-		};
+		l[1].bossConfig = MakeStageBossConfig(
+			"blind_ink", "The Blind Ink", BossProgressPresentationType::HitPoints, AbilityId::InkFlare);
+		l[2].bossConfig = MakeStageBossConfig(
+			"mire", "The Mire", BossProgressPresentationType::HitPoints, AbilityId::ShedSkin);
+		l[3].bossConfig = MakeStageBossConfig(
+			"doppelganger", "The Doppelganger", BossProgressPresentationType::HitPoints,
+			AbilityId::ShadowDecoy);
+		l[4].bossConfig = MakeStageBossConfig(
+			"hourglass", "The Hourglass", BossProgressPresentationType::Cracks, AbilityId::TimeFreeze);
+		l[5].bossConfig = MakeStageBossConfig(
+			"parasite", "The Parasite", BossProgressPresentationType::Seals, AbilityId::VenomTrail);
+		l[6].bossConfig = MakeStageBossConfig(
+			"fault_line", "The Fault Line", BossProgressPresentationType::HitPoints, AbilityId::InkAnchor);
+		l[7].bossConfig = MakeStageBossConfig(
+			"hunter", "The Hunter", BossProgressPresentationType::Seals, AbilityId::HuntersDash);
+		l[8].bossConfig = MakeStageBossConfig(
+			"scrambler", "The Scrambler", BossProgressPresentationType::Tentacles, AbilityId::InkMemory);
 
 #ifndef NDEBUG
 		{

@@ -51,6 +51,9 @@ public:
 	void ClearBossArenaMode();
 	bool IsBossArenaMode() const { return m_bossArenaEnabled; }
 
+	// After borders/arena change, keep the snake inside the playable grid (matches CheckCollision).
+	void ClampSnakeToPlayableGrid(Snake& l_snake);
+
 	// Per-side border offsets (for earthquake mechanic)
 	void SetBorderOffset(int l_side, float l_offsetPixels);
 	float GetBorderOffset(int l_side) const;
