@@ -13,7 +13,7 @@ enum class BossLifecycleState
 	TransitionIn,
 	Intro,
 	Active,
-	PhaseTransition,
+	PhaseTransition, // reserved for scripted multi-phase transitions (not used by base Boss yet)
 	Defeated,
 	Resolved
 };
@@ -75,7 +75,7 @@ struct BossArenaRequirements
 	bool usesBossArena = false;
 	BossArenaBounds bossArenaBounds{};
 	bool disableStageShrink = false;
-	bool allowBossSpecificSpawns = false;
+	bool allowBossSpecificSpawns = false; // reserved for boss-tuned apple/hazard spawns (see World)
 	BossHazardIntensityMode hazardIntensityMode = BossHazardIntensityMode::Unchanged;
 };
 
@@ -175,6 +175,7 @@ protected:
 	void SetInvulnerable(bool l_invulnerable);
 	void MarkResolved();
 
+	// Counter-ability damage should respect CanBeDamagedByAbility (base implementation does).
 	virtual int EvaluateProgressDelta(const BossProgressEvent& l_event, const BossContext& l_ctx) const;
 	virtual bool ShouldAdvancePhase(const BossContext& l_ctx) const;
 	virtual void AdvancePhase(const BossContext& l_ctx);

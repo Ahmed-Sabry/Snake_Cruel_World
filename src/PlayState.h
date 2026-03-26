@@ -61,7 +61,8 @@ private:
 	void BeginBossEncounter();
 	void UpdateBossEncounter(float l_dt);
 	void ApplyBossProgressEvent(const BossProgressEvent& l_event);
-	void CompleteEncounterVictory(bool l_healPage, const std::string& l_cutsceneId);
+	void CompleteEncounterVictory(bool l_healPage, const std::string& l_cutsceneId,
+								  bool l_bossEncounterSkipped = false);
 
 	Snake m_snake;
 	World m_world;

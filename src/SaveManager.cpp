@@ -27,12 +27,8 @@ void SaveManager::RebuildCampaignProgressFromLegacyState(StateManager& l_state)
 		progress.stageCompleted = clearedByStats || clearedByLinear;
 		progress.bestScore = l_state.highScores[i];
 		progress.bestStars = l_state.starRatings[i];
-
-		if (i >= 1 && i <= 8 && progress.stageCompleted)
-		{
-			progress.bossDefeated = true;
-			progress.pageHealed = true;
-		}
+		// Do not infer boss defeat or page heal from legacy stats alone — v5+ saves
+		// carry explicit campaign flags; fresh rebuilds only get stage/score mirrors.
 
 		l_state.SetLevelProgressFromSave(i + 1, progress);
 	}

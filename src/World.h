@@ -104,7 +104,7 @@ private:
 	int m_levelId;
 	bool m_bossArenaEnabled;
 	bool m_disableShrinkForBossArena;
-	bool m_allowBossSpecificSpawns;
+	bool m_allowBossSpecificSpawns; // set from BossArenaRequirements; spawn logic TBD
 
 	// Ink style
 	bool m_useInkStyle;

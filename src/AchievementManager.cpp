@@ -93,7 +93,7 @@ void AchievementManager::OnLevelComplete(const AchievementContext& l_ctx)
 		l_ctx.stats->attemptsPerLevel[9] == 1)
 		Unlock(AchievementId::AgainstAllOdds);
 
-	// Completionist: beat all 10 levels
+	// Completionist: beat all 10 levels (uses full campaign completion; boss levels need heal/boss)
 	if (l_ctx.completedLevelCount >= NUM_LEVELS)
 		Unlock(AchievementId::Completionist);
 

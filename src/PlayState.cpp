@@ -566,17 +566,19 @@ void PlayState::BeginBossEncounter()
 	if (!LevelUsesBossEncounter() || m_activeBoss)
 		return;
 
-	m_stateManager.RecordStageCompletion(
-		m_stateManager.currentLevel, m_stateManager.score, CalculateStars());
-
 	m_activeBoss = std::make_unique<PlaceholderBoss>(m_levelConfig.bossConfig);
 	BossContext ctx = BuildBossContext();
 	if (!m_activeBoss->CanStartEncounter(ctx))
 	{
 		m_activeBoss.reset();
-		CompleteEncounterVictory(false, "");
+		m_stateManager.RecordStageCompletion(
+			m_stateManager.currentLevel, m_stateManager.score, CalculateStars());
+		CompleteEncounterVictory(false, "", true);
 		return;
 	}
+
+	m_stateManager.RecordStageCompletion(
+		m_stateManager.currentLevel, m_stateManager.score, CalculateStars());
 
 	m_activeBoss->BeginEncounter(ctx);
 	m_encounterPhase = EncounterPhase::BossTransition;
@@ -643,8 +645,10 @@ void PlayState::ApplyBossProgressEvent(const BossProgressEvent& l_event)
 		m_encounterPhase = EncounterPhase::BossReward;
 }
 
-void PlayState::CompleteEncounterVictory(bool l_healPage, const std::string& l_cutsceneId)
+void PlayState::CompleteEncounterVictory(bool l_healPage, const std::string& l_cutsceneId,
+										 bool l_bossEncounterSkipped)
 {
+	m_activeBoss.reset();
 	m_world.ClearBossArenaMode();
 	m_world.Borders(m_stateManager.GetWindow());
 
@@ -652,7 +656,7 @@ void PlayState::CompleteEncounterVictory(bool l_healPage, const std::string& l_c
 	m_stateManager.GetAudio().PlaySound("level_complete");
 
 	const int stars = CalculateStars();
-	if (LevelUsesBossEncounter())
+	if (LevelUsesBossEncounter() && !l_bossEncounterSkipped)
 		m_stateManager.RecordBossDefeat(
 			m_stateManager.currentLevel, m_stateManager.score, stars, l_healPage);
 	else
@@ -1180,6 +1184,14 @@ void PlayState::Update(float l_dt)
 
 	// Reset speed modifier each frame; mechanics below accumulate into it
 	m_speedModifier = 1.0f;
+
+	if (m_activeBoss && !m_stateManager.endlessMode)
+	{
+		const BossArenaRequirements& arena = m_activeBoss->GetArenaRequirements();
+		if (arena.hazardIntensityMode == BossHazardIntensityMode::BossEscalation)
+			m_speedModifier *= 1.1f;
+		// BossHazardIntensityMode::Disabled / Unchanged: no extra modifier here yet
+	}
 
 	// Blackout (Level 2)
 	if (m_levelConfig.hasBlackouts)

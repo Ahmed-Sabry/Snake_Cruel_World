@@ -46,7 +46,10 @@ public:
 	bool HasUnlockedStageSelect() const;
 	bool CanAccessCampaignLevel(int l_levelId) const;
 	int GetHealedPageCount() const;
+	// Levels finished for Completionist (boss levels need heal or boss defeat).
 	int GetCompletedLevelCount() const;
+	// Raw count of stages with stageCompleted (stage clear without boss counts).
+	int GetStageClearedCount() const;
 	bool IsL10Unlocked() const;
 	void RecordStageCompletion(int l_levelId, int l_score, int l_stars);
 	void RecordBossDefeat(int l_levelId, int l_score, int l_stars, bool l_healPage);

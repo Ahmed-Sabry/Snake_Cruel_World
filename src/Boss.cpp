@@ -1,6 +1,9 @@
 #include "Boss.h"
 
 #include <algorithm>
+#ifndef NDEBUG
+#include <cassert>
+#endif
 
 Boss::Boss(const BossConfig& l_config)
 	: m_config(l_config),
@@ -20,6 +23,9 @@ bool Boss::CanStartEncounter(const BossContext&) const
 
 void Boss::BeginEncounter(const BossContext&)
 {
+#ifndef NDEBUG
+	assert(!m_config.enabled || m_config.progressMax > 0);
+#endif
 	m_phaseIndex = 0;
 	m_progressCurrent = 0;
 	m_progressMax = std::max(0, m_config.progressMax);
@@ -81,6 +87,10 @@ BossProgressResult Boss::ApplyProgress(const BossProgressEvent& l_event, const B
 	m_progressCurrent = std::clamp(m_progressCurrent + delta, 0, m_progressMax);
 	result.progressApplied = true;
 	result.progressCurrent = m_progressCurrent;
+
+	if (l_event.type == BossProgressEventType::AbilityActivated ||
+		l_event.interactionType == BossInteractionType::CounterHit)
+		OnAbilityInteraction(l_event.ability, l_event.interactionType, l_ctx);
 
 	if (m_progressCurrent >= m_progressMax)
 	{
@@ -146,16 +156,16 @@ void Boss::MarkResolved()
 	SetLifecycleState(BossLifecycleState::Resolved);
 }
 
-int Boss::EvaluateProgressDelta(const BossProgressEvent& l_event, const BossContext&) const
+int Boss::EvaluateProgressDelta(const BossProgressEvent& l_event, const BossContext& l_ctx) const
 {
 	if (l_event.type == BossProgressEventType::AppleCollected)
 		return std::max(1, l_event.amount);
 
-	if ((l_event.type == BossProgressEventType::AbilityActivated ||
-		 l_event.interactionType == BossInteractionType::CounterHit) &&
-		l_event.ability != AbilityId::None &&
-		l_event.ability == m_config.counterAbility)
+	if (l_event.type == BossProgressEventType::AbilityActivated ||
+		l_event.interactionType == BossInteractionType::CounterHit)
 	{
+		if (!CanBeDamagedByAbility(l_event.ability, l_ctx))
+			return 0;
 		return std::max(1, m_config.strongCounterProgress);
 	}
 

@@ -17,8 +17,6 @@ namespace
 			out.bossDefeated = false;
 		if (l_levelId < 2 || l_levelId > 9)
 			out.pageHealed = false;
-		if (out.pageHealed)
-			out.bossDefeated = true;
 		const bool hasProgress =
 			(out.bestScore > 0 || out.bestStars > 0 || out.pageHealed ||
 			 out.bossDefeated || l_src.stageCompleted);
@@ -225,6 +223,17 @@ int StateManager::GetCompletedLevelCount() const
 	return completedCount;
 }
 
+int StateManager::GetStageClearedCount() const
+{
+	int n = 0;
+	for (const LevelProgress& p : campaignProgress)
+	{
+		if (p.stageCompleted)
+			++n;
+	}
+	return n;
+}
+
 bool StateManager::IsL10Unlocked() const
 {
 	// Pre-v5 saves used highestUnlockedLevel == NUM_LEVELS when the finale was
@@ -306,10 +315,7 @@ void StateManager::SyncLegacyProgress()
 		if (progress.bossDefeated)
 			progress.stageCompleted = true;
 		if (levelId >= 2 && levelId <= 9 && progress.pageHealed)
-		{
-			progress.bossDefeated = true;
 			progress.stageCompleted = true;
-		}
 
 		if (progress.stageCompleted)
 			legacyHighest = std::max(legacyHighest, levelId);
