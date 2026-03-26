@@ -273,7 +273,12 @@ void StateManager::ExportCampaignProgressToLegacy()
 	}
 	if (GetLevelProgress(1).stageCompleted)
 		legacyHighest = std::max(legacyHighest, 2);
-	if (IsL10Unlocked())
+	// Derive finale access from loaded campaignProgress only — do not consult
+	// highestUnlockedLevel here; it still holds the pre-export v1 mirror and can
+	// be stale relative to V5 page/heal state.
+	const bool finaleUnlockedFromCampaign =
+		GetHealedPageCount() >= 8 || HasCompletedLevel(10);
+	if (finaleUnlockedFromCampaign)
 		legacyHighest = std::max(legacyHighest, NUM_LEVELS);
 	highestUnlockedLevel = std::clamp(legacyHighest, 1, NUM_LEVELS);
 }

@@ -114,8 +114,8 @@ private:
 	std::array<LevelProgress, NUM_LEVELS> campaignProgress = {};
 	void SetLevelProgressFromSave(int l_levelId, const LevelProgress& l_progress);
 	// Clears only campaignProgress[]. SaveManager keeps v1 highScores/starRatings/
-	// highestUnlockedLevel intact so failed v5 reads can rebuild via SyncLegacyProgress,
-	// and pre-v5 migration can repopulate from those mirrors.
+	// highestUnlockedLevel intact so failed v5 reads can rebuild campaignProgress
+	// (including pageHealed) from those mirrors, then SyncLegacyProgress.
 	void ClearCampaignProgressEntries();
 
 	void ProcessPendingTransitions();

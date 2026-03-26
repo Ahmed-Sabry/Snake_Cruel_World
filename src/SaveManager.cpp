@@ -15,6 +15,29 @@ static_assert(sizeof(bool) == 1, "Save format assumes sizeof(bool) == 1");
 
 const std::string SaveManager::s_saveFile = "save.dat";
 
+namespace
+{
+	void RebuildCampaignProgressFromLegacyState(StateManager& l_state)
+	{
+		l_state.ClearCampaignProgressEntries();
+		for (int i = 0; i < NUM_LEVELS; ++i)
+		{
+			StateManager::LevelProgress progress{};
+			const bool clearedByStats = (l_state.starRatings[i] > 0) || (l_state.highScores[i] > 0);
+			const bool clearedByLinear = (i + 1) < l_state.highestUnlockedLevel;
+
+			progress.stageCompleted = clearedByStats || clearedByLinear;
+			progress.bestScore = l_state.highScores[i];
+			progress.bestStars = l_state.starRatings[i];
+
+			if (i >= 1 && i <= 8 && progress.stageCompleted)
+				progress.pageHealed = true;
+
+			l_state.SetLevelProgressFromSave(i + 1, progress);
+		}
+	}
+}
+
 void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 					   const AchievementManager& l_achievements)
 {
@@ -294,7 +317,6 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			if (file.fail())
 			{
 				std::cerr << "SaveManager: Error reading v5 data, rebuilding progression from legacy stats." << std::endl;
-				l_state.ClearCampaignProgressEntries();
 				v5CampaignLoaded = false;
 				break;
 			}
@@ -306,25 +328,12 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			progress.bestStars = std::clamp(progress.bestStars, 0, 3);
 			l_state.SetLevelProgressFromSave(levelId, progress);
 		}
+		if (!v5CampaignLoaded)
+			RebuildCampaignProgressFromLegacyState(l_state);
 	}
 	else
 	{
-		l_state.ClearCampaignProgressEntries();
-		for (int i = 0; i < NUM_LEVELS; ++i)
-		{
-			StateManager::LevelProgress progress{};
-			const bool clearedByStats = (l_state.starRatings[i] > 0) || (l_state.highScores[i] > 0);
-			const bool clearedByLinear = (i + 1) < l_state.highestUnlockedLevel;
-
-			progress.stageCompleted = clearedByStats || clearedByLinear;
-			progress.bestScore = l_state.highScores[i];
-			progress.bestStars = l_state.starRatings[i];
-
-			if (i >= 1 && i <= 8 && progress.stageCompleted)
-				progress.pageHealed = true;
-
-			l_state.SetLevelProgressFromSave(i + 1, progress);
-		}
+		RebuildCampaignProgressFromLegacyState(l_state);
 	}
 
 	if (version >= 5 && v5CampaignLoaded)
