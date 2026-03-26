@@ -318,7 +318,7 @@ Progress note: Phases 1 and 2 are already implemented in the main branch. The re
 - Add achievements / bonus ratings when the level doc specifies them
 - Use the corresponding level design doc as the acceptance spec for final behavior
 
-Per-level completion checklist:
+#### Per-level completion checklist
 
 - Stage phase mechanic implemented and tuned to match the level doc
 - Boss phase transition implemented with arena rules, fail states, and victory conditions
@@ -331,7 +331,7 @@ Per-level completion checklist:
 - Regression test pass completed for save/load, retry flow, replay flow, and campaign unlock state
 - Final doc-to-game validation completed against: mechanic rules, apple counts, pacing targets, counter-ability behavior, and narrative beats
 
-Exit criteria for the redesign:
+#### Exit criteria for the redesign
 
 - All branch levels (`L2-L9`) meet their per-level completion checklist
 - `L10` is fully playable as the final multi-phase boss encounter
