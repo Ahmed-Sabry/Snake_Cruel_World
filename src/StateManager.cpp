@@ -17,10 +17,18 @@ namespace
 			out.bossDefeated = false;
 		if (l_levelId < 2 || l_levelId > 9)
 			out.pageHealed = false;
-		const bool hasProgress =
-			(out.bestScore > 0 || out.bestStars > 0 || out.pageHealed ||
-			 out.bossDefeated || l_src.stageCompleted);
-		out.stageCompleted = hasProgress;
+		if (l_levelId >= 2 && l_levelId <= 9)
+		{
+			out.stageCleared = l_src.stageCleared;
+			out.stageCompleted = (out.bossDefeated || out.pageHealed);
+		}
+		else
+		{
+			const bool hasProgress =
+				(out.bestScore > 0 || out.bestStars > 0 || out.pageHealed ||
+				 out.bossDefeated || l_src.stageCompleted || l_src.stageCleared);
+			out.stageCompleted = hasProgress;
+		}
 		return out;
 	}
 
@@ -150,7 +158,11 @@ void StateManager::ClearCampaignProgressEntries()
 
 bool StateManager::HasCompletedLevel(int l_levelId) const
 {
-	return GetLevelProgress(l_levelId).stageCompleted;
+	const LevelProgress& p = GetLevelProgress(l_levelId);
+	// Boss pages 2–9: campaign "complete" requires boss defeat or legacy heal, not apple phase alone.
+	if (l_levelId >= 2 && l_levelId <= 9)
+		return p.bossDefeated || p.pageHealed;
+	return p.stageCompleted;
 }
 
 bool StateManager::HasDefeatedBoss(int l_levelId) const
@@ -239,6 +251,8 @@ bool StateManager::IsL10Unlocked() const
 	// Pre-v5 saves used highestUnlockedLevel == NUM_LEVELS when the finale was
 	// reachable on the linear ladder; preserve that without requiring 8 healed
 	// pages or a recorded L10 clear.
+	// Boss pages 2–9: HasCompletedLevel is false until boss defeat, so clearing
+	// apples alone cannot satisfy the finale gate via a stray stageCompleted flag.
 	return GetHealedPageCount() >= 8 || HasCompletedLevel(10) ||
 		highestUnlockedLevel >= NUM_LEVELS;
 }
@@ -256,6 +270,20 @@ void StateManager::RecordStageCompletion(int l_levelId, int l_score, int l_stars
 	SyncLegacyProgress();
 }
 
+void StateManager::RecordStagePhaseCleared(int l_levelId, int l_score, int l_stars)
+{
+	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
+		return;
+
+	const std::size_t idx = static_cast<std::size_t>(l_levelId - 1);
+	LevelProgress& progress = campaignProgress[idx];
+	if (l_levelId >= 2 && l_levelId <= 9)
+		progress.stageCleared = true;
+	UpdateLevelPerformance(progress, l_score, l_stars);
+	SyncLegacyMirrorsForLevel(*this, idx);
+	SyncLegacyProgress();
+}
+
 void StateManager::RecordBossDefeat(int l_levelId, int l_score, int l_stars, bool l_healPage)
 {
 	if (l_levelId < 1 || l_levelId > NUM_LEVELS)
@@ -264,6 +292,8 @@ void StateManager::RecordBossDefeat(int l_levelId, int l_score, int l_stars, boo
 	const std::size_t idx = static_cast<std::size_t>(l_levelId - 1);
 	LevelProgress& progress = campaignProgress[idx];
 	progress.stageCompleted = true;
+	if (l_levelId >= 2 && l_levelId <= 9)
+		progress.stageCleared = true;
 	if (l_levelId >= 2)
 		progress.bossDefeated = true;
 	if (l_healPage && l_levelId >= 2 && l_levelId <= 9)
@@ -280,14 +310,20 @@ void StateManager::RecordLevelCompletion(int l_levelId, int l_score, int l_stars
 
 	const std::size_t idx = static_cast<std::size_t>(l_levelId - 1);
 	LevelProgress& progress = campaignProgress[idx];
-	progress.stageCompleted = true;
 	UpdateLevelPerformance(progress, l_score, l_stars);
 
-	if (l_healPage && l_levelId >= 2 && l_levelId <= 9)
+	if (l_levelId >= 2 && l_levelId <= 9)
 	{
-		progress.bossDefeated = true;
-		progress.pageHealed = true;
+		progress.stageCleared = true;
+		if (l_healPage)
+		{
+			progress.bossDefeated = true;
+			progress.pageHealed = true;
+		}
+		progress.stageCompleted = (progress.bossDefeated || progress.pageHealed);
 	}
+	else
+		progress.stageCompleted = true;
 
 	SyncLegacyMirrorsForLevel(*this, idx);
 	SyncLegacyProgress();
@@ -308,7 +344,9 @@ void StateManager::SyncLegacyProgress()
 		highScores[i] = std::max(highScores[i], progress.bestScore);
 		starRatings[i] = std::max(starRatings[i], progress.bestStars);
 
-		if (progress.bestScore > 0 || progress.bestStars > 0)
+		if (levelId >= 2 && levelId <= 9)
+			progress.stageCompleted = (progress.bossDefeated || progress.pageHealed);
+		else if (progress.bestScore > 0 || progress.bestStars > 0)
 			progress.stageCompleted = true;
 		if (levelId == 1 && highestUnlockedLevel > 1)
 			progress.stageCompleted = true;

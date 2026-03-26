@@ -21,6 +21,8 @@ public:
 	struct LevelProgress
 	{
 		bool stageCompleted = false;
+		// Apple quota met on boss levels 2–9 (boss fight started or in progress).
+		bool stageCleared = false;
 		bool bossDefeated = false;
 		bool pageHealed = false;
 		int bestScore = 0;
@@ -52,6 +54,8 @@ public:
 	int GetStageClearedCount() const;
 	bool IsL10Unlocked() const;
 	void RecordStageCompletion(int l_levelId, int l_score, int l_stars);
+	// Persists apple-phase clear on boss levels without marking stageCompleted (finale unlock, etc.).
+	void RecordStagePhaseCleared(int l_levelId, int l_score, int l_stars);
 	void RecordBossDefeat(int l_levelId, int l_score, int l_stars, bool l_healPage);
 	void RecordLevelCompletion(int l_levelId, int l_score, int l_stars, bool l_healPage);
 	void SyncLegacyProgress();

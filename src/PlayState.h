@@ -56,7 +56,9 @@ private:
 	void RenderPhaseAnnouncement(Window& l_window);
 	void CheckCruelMoment();
 	void SyncAbilityState();
-	bool LevelUsesBossEncounter() const;
+	bool HasBossEncounter() const;
+	bool StartsBossOnStageClear() const;
+	bool IsBossRewardQuiesced() const;
 	BossContext BuildBossContext() const;
 	void BeginBossEncounter();
 	void UpdateBossEncounter(float l_dt);

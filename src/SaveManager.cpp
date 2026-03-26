@@ -45,7 +45,7 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	}
 
 	// Version marker
-	int version = 6;
+	int version = 7;
 	file.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
 	// === V1 block (backwards-compatible) ===
@@ -92,16 +92,18 @@ void SaveManager::Save(const StateManager& l_state, const StatsManager& l_stats,
 	const int equippedAbility = static_cast<int>(equippedToSave);
 	file.write(reinterpret_cast<const char*>(&equippedAbility), sizeof(equippedAbility));
 
-	// === V6 block ===
+	// === V6 block (extended in v7 with stageCleared) ===
 	for (int levelId = 1; levelId <= NUM_LEVELS; ++levelId)
 	{
 		const StateManager::LevelProgress& progress = l_state.GetLevelProgress(levelId);
 		const uint8_t stageCompleted = progress.stageCompleted ? 1 : 0;
 		const uint8_t bossDefeated = progress.bossDefeated ? 1 : 0;
 		const uint8_t pageHealed = progress.pageHealed ? 1 : 0;
+		const uint8_t stageCleared = progress.stageCleared ? 1 : 0;
 		file.write(reinterpret_cast<const char*>(&stageCompleted), sizeof(stageCompleted));
 		file.write(reinterpret_cast<const char*>(&bossDefeated), sizeof(bossDefeated));
 		file.write(reinterpret_cast<const char*>(&pageHealed), sizeof(pageHealed));
+		file.write(reinterpret_cast<const char*>(&stageCleared), sizeof(stageCleared));
 		file.write(reinterpret_cast<const char*>(&progress.bestScore), sizeof(progress.bestScore));
 		file.write(reinterpret_cast<const char*>(&progress.bestStars), sizeof(progress.bestStars));
 	}
@@ -309,10 +311,13 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 			uint8_t stageCompleted = 0;
 			uint8_t bossDefeated = 0;
 			uint8_t pageHealed = 0;
+			uint8_t stageCleared = 0;
 			file.read(reinterpret_cast<char*>(&stageCompleted), sizeof(stageCompleted));
 			if (version >= 6)
 				file.read(reinterpret_cast<char*>(&bossDefeated), sizeof(bossDefeated));
 			file.read(reinterpret_cast<char*>(&pageHealed), sizeof(pageHealed));
+			if (version >= 7)
+				file.read(reinterpret_cast<char*>(&stageCleared), sizeof(stageCleared));
 			file.read(reinterpret_cast<char*>(&progress.bestScore), sizeof(progress.bestScore));
 			file.read(reinterpret_cast<char*>(&progress.bestStars), sizeof(progress.bestStars));
 			if (file.fail())
@@ -327,6 +332,14 @@ void SaveManager::Load(StateManager& l_state, StatsManager& l_stats,
 				? (bossDefeated != 0)
 				: (levelId >= 2 && levelId <= 9 && pageHealed != 0);
 			progress.pageHealed = (pageHealed != 0);
+			if (version >= 7)
+				progress.stageCleared = (stageCleared != 0);
+			else if (levelId >= 2 && levelId <= 9)
+			{
+				// Split old conflated stageCompleted (apple phase + boss) into stageCleared vs completed.
+				progress.stageCleared = progress.stageCompleted && !progress.bossDefeated;
+				progress.stageCompleted = progress.bossDefeated || progress.pageHealed;
+			}
 			if (progress.bestScore < 0)
 				progress.bestScore = 0;
 			progress.bestStars = std::clamp(progress.bestStars, 0, 3);

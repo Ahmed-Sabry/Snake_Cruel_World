@@ -142,7 +142,7 @@ void PlayState::OnEnter()
 			if (m_stateManager.endlessMode)
 				shouldApplySkin = true;
 			else
-				shouldApplySkin = m_levelConfig.bossConfig.enabled
+				shouldApplySkin = HasBossEncounter()
 					? m_stateManager.HasDefeatedBoss(m_stateManager.currentLevel)
 					: m_stateManager.HasCompletedLevel(m_stateManager.currentLevel);
 		}
@@ -544,10 +544,19 @@ int PlayState::CalculateStars() const
 	return stars;
 }
 
-bool PlayState::LevelUsesBossEncounter() const
+bool PlayState::HasBossEncounter() const
 {
-	return !m_stateManager.endlessMode && m_levelConfig.bossConfig.enabled &&
-		m_levelConfig.bossConfig.trigger == BossEncounterTrigger::StageClear;
+	return !m_stateManager.endlessMode && m_levelConfig.bossConfig.enabled;
+}
+
+bool PlayState::StartsBossOnStageClear() const
+{
+	return m_levelConfig.bossConfig.trigger == BossEncounterTrigger::StageClear;
+}
+
+bool PlayState::IsBossRewardQuiesced() const
+{
+	return m_encounterPhase == EncounterPhase::BossReward;
 }
 
 BossContext PlayState::BuildBossContext() const
@@ -566,7 +575,7 @@ BossContext PlayState::BuildBossContext() const
 
 void PlayState::BeginBossEncounter()
 {
-	if (!LevelUsesBossEncounter() || m_activeBoss)
+	if (!HasBossEncounter() || !StartsBossOnStageClear() || m_activeBoss)
 		return;
 
 	m_activeBoss = std::make_unique<PlaceholderBoss>(m_levelConfig.bossConfig);
@@ -576,13 +585,11 @@ void PlayState::BeginBossEncounter()
 	{
 		m_activeBoss.reset();
 		m_bossEncounterStartTime = 0.0f;
-		m_stateManager.RecordStageCompletion(
-			m_stateManager.currentLevel, m_stateManager.score, CalculateStars());
 		CompleteEncounterVictory(false, "", true);
 		return;
 	}
 
-	m_stateManager.RecordStageCompletion(
+	m_stateManager.RecordStagePhaseCleared(
 		m_stateManager.currentLevel, m_stateManager.score, CalculateStars());
 
 	m_activeBoss->BeginEncounter(ctx);
@@ -666,7 +673,7 @@ void PlayState::CompleteEncounterVictory(bool l_healPage, const std::string& l_c
 	m_stateManager.GetAudio().PlaySound("level_complete");
 
 	const int stars = CalculateStars();
-	if (LevelUsesBossEncounter() && !l_bossEncounterSkipped)
+	if (HasBossEncounter() && StartsBossOnStageClear() && !l_bossEncounterSkipped)
 		m_stateManager.RecordBossDefeat(
 			m_stateManager.currentLevel, m_stateManager.score, stars, l_healPage);
 	else
@@ -674,7 +681,7 @@ void PlayState::CompleteEncounterVictory(bool l_healPage, const std::string& l_c
 			m_stateManager.currentLevel, m_stateManager.score, stars, l_healPage);
 
 	if (m_levelConfig.abilityReward != AbilityId::None &&
-		(!LevelUsesBossEncounter() || l_healPage))
+		(!HasBossEncounter() || !StartsBossOnStageClear() || l_healPage))
 	{
 		m_abilityController.Unlock(m_levelConfig.abilityReward);
 		SyncAbilityState();
@@ -994,8 +1001,6 @@ void PlayState::Update(float l_dt)
 	if (m_borderHatchTimer > 0.0f)
 		m_borderHatchTimer -= l_dt;
 
-	const bool bossRewardQuiesce = (m_encounterPhase == EncounterPhase::BossReward);
-
 	float speed = m_levelConfig.baseSpeed;
 	// Speed creep: +0.5 every 5 apples (noticeable step)
 	speed += (m_applesEaten / 5) * 0.5f;
@@ -1005,7 +1010,7 @@ void PlayState::Update(float l_dt)
 
 	float timeStep = 1.0f / speed;
 
-	if (m_elapsedTime >= timeStep && m_levelCompleteDelay < 0.0f && !bossRewardQuiesce)
+	if (m_elapsedTime >= timeStep && m_levelCompleteDelay < 0.0f && !IsBossRewardQuiesced())
 	{
 		Window& window = m_stateManager.GetWindow();
 
@@ -1241,7 +1246,7 @@ void PlayState::Update(float l_dt)
 
 	// Timer-based world shrinking (Level 3)
 	if (m_levelConfig.shrinkTimerSec > 0.0f && m_levelCompleteDelay < 0.0f &&
-		!bossRewardQuiesce)
+		!IsBossRewardQuiesced())
 	{
 		Window& window = m_stateManager.GetWindow();
 		m_world.UpdateTimedShrink(l_dt, window, m_snake);
@@ -1276,7 +1281,7 @@ void PlayState::Update(float l_dt)
 
 	// Timed apples (Level 5)
 	if (m_levelConfig.hasTimedApples && m_levelCompleteDelay < 0.0f &&
-		!bossRewardQuiesce)
+		!IsBossRewardQuiesced())
 	{
 		m_timedApple.Update(l_dt);
 
@@ -1314,7 +1319,7 @@ void PlayState::Update(float l_dt)
 
 	// Earthquake (Level 7)
 	if (m_levelConfig.hasEarthquakes && m_levelCompleteDelay < 0.0f &&
-		!bossRewardQuiesce)
+		!IsBossRewardQuiesced())
 	{
 		Window& window = m_stateManager.GetWindow();
 		m_earthquake.Update(l_dt, m_world, window);
@@ -1342,7 +1347,7 @@ void PlayState::Update(float l_dt)
 
 	// Predator (Level 8)
 	if (m_levelConfig.hasPredator && m_levelCompleteDelay < 0.0f &&
-		!bossRewardQuiesce)
+		!IsBossRewardQuiesced())
 	{
 		m_predator.Update(l_dt, m_world, m_snake);
 
@@ -1878,7 +1883,7 @@ void PlayState::OnAppleEaten(const Position& l_applePos)
 	// Check level complete
 	if (m_applesEaten >= m_levelConfig.applesToWin)
 	{
-		if (LevelUsesBossEncounter())
+		if (HasBossEncounter() && StartsBossOnStageClear())
 		{
 			BeginBossEncounter();
 			return;
